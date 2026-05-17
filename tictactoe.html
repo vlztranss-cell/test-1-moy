@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .status {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            min-height: 28px;
+            color: #444;
+        }
+
+        .status.win {
+            color: #27ae60;
+        }
+
+        .status.lose {
+            color: #e74c3c;
+        }
+
+        .status.draw {
+            color: #f39c12;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 0 auto 24px;
+            max-width: 300px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: #f0f2f5;
+            border: none;
+            border-radius: 12px;
+            font-size: 42px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell:hover:not(.taken) {
+            background: #e3e7ed;
+            transform: scale(1.05);
+        }
+
+        .cell.taken {
+            cursor: default;
+        }
+
+        .cell.x {
+            color: #3498db;
+        }
+
+        .cell.o {
+            color: #e74c3c;
+        }
+
+        .cell.win-cell {
+            background: #d4efdf;
+            animation: pulse 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .score {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .score span {
+            font-weight: 700;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Крестики-нолики</h1>
+        <p class="subtitle">Нажми на клетку, чтобы сделать ход. Ты играешь за X.</p>
+
+        <div class="score">
+            Ты: <span id="player-score">0</span> &nbsp;|&nbsp;
+            Компьютер: <span id="ai-score">0</span> &nbsp;|&nbsp;
+            Ничья: <span id="draw-score">0</span>
+        </div>
+
+        <div class="status" id="status">Твой ход!</div>
+
+        <div class="board" id="board"></div>
+
+        <button class="btn" id="restart" style="display:none">Играть ещё раз</button>
+    </div>
+
+    <script>
+        const board = Array(9).fill(null);
+        let gameOver = false;
+        let scores = { player: 0, ai: 0, draw: 0 };
+
+        const wins = [
+            [0,1,2],[3,4,5],[6,7,8],
+            [0,3,6],[1,4,7],[2,5,8],
+            [0,4,8],[2,4,6]
+        ];
+
+        const boardEl = document.getElementById('board');
+        const statusEl = document.getElementById('status');
+        const restartBtn = document.getElementById('restart');
+
+        function createBoard() {
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('button');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => playerMove(i));
+                boardEl.appendChild(cell);
+            }
+        }
+
+        function updateCell(index) {
+            const cell = boardEl.children[index];
+            const val = board[index];
+            cell.textContent = val || '';
+            cell.className = 'cell' + (val ? ` taken ${val.toLowerCase()}` : '');
+        }
+
+        function checkWinner(player) {
+            return wins.find(([a,b,c]) => board[a] === player && board[b] === player && board[c] === player);
+        }
+
+        function getEmpty() {
+            return board.reduce((acc, v, i) => v === null ? [...acc, i] : acc, []);
+        }
+
+        function aiMove() {
+            const empty = getEmpty();
+
+            // Победить
+            for (const i of empty) {
+                board[i] = 'O';
+                if (checkWinner('O')) { board[i] = null; return i; }
+                board[i] = null;
+            }
+
+            // Заблокировать
+            for (const i of empty) {
+                board[i] = 'X';
+                if (checkWinner('X')) { board[i] = null; return i; }
+                board[i] = null;
+            }
+
+            // Центр
+            if (empty.includes(4)) return 4;
+
+            // Углы
+            const corners = [0,2,6,8].filter(i => empty.includes(i));
+            if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+
+            // Любая
+            return empty[Math.floor(Math.random() * empty.length)];
+        }
+
+        function highlightWin(combo) {
+            combo.forEach(i => boardEl.children[i].classList.add('win-cell'));
+        }
+
+        function endGame(result, combo) {
+            gameOver = true;
+            if (result === 'win') {
+                statusEl.textContent = '🎉 Ты победил!';
+                statusEl.className = 'status win';
+                scores.player++;
+                highlightWin(combo);
+            } else if (result === 'lose') {
+                statusEl.textContent = '😤 Компьютер победил!';
+                statusEl.className = 'status lose';
+                scores.ai++;
+                highlightWin(combo);
+            } else {
+                statusEl.textContent = '🤝 Ничья!';
+                statusEl.className = 'status draw';
+                scores.draw++;
+            }
+            document.getElementById('player-score').textContent = scores.player;
+            document.getElementById('ai-score').textContent = scores.ai;
+            document.getElementById('draw-score').textContent = scores.draw;
+            restartBtn.style.display = 'inline-block';
+        }
+
+        function playerMove(index) {
+            if (gameOver || board[index] !== null) return;
+
+            board[index] = 'X';
+            updateCell(index);
+
+            const winCombo = checkWinner('X');
+            if (winCombo) { endGame('win', winCombo); return; }
+            if (getEmpty().length === 0) { endGame('draw'); return; }
+
+            // Ход AI с небольшой задержкой
+            statusEl.textContent = 'Компьютер думает...';
+            setTimeout(() => {
+                const move = aiMove();
+                board[move] = 'O';
+                updateCell(move);
+
+                const aiWin = checkWinner('O');
+                if (aiWin) { endGame('lose', aiWin); return; }
+                if (getEmpty().length === 0) { endGame('draw'); return; }
+
+                statusEl.textContent = 'Твой ход!';
+                statusEl.className = 'status';
+            }, 400);
+        }
+
+        function restart() {
+            board.fill(null);
+            gameOver = false;
+            statusEl.textContent = 'Твой ход!';
+            statusEl.className = 'status';
+            restartBtn.style.display = 'none';
+            createBoard();
+        }
+
+        restartBtn.addEventListener('click', restart);
+        createBoard();
+    </script>
+</body>
+</html>
