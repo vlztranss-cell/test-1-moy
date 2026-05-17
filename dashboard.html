@@ -79,7 +79,15 @@
         .project-desc {
             font-size: 13px;
             color: #8b949e;
+            margin-bottom: 8px;
+        }
+        .project-info {
+            font-size: 12px;
+            color: #6e7681;
             margin-bottom: 12px;
+            line-height: 1.5;
+            border-left: 2px solid #30363d;
+            padding-left: 10px;
         }
         .project-stats {
             display: flex;
@@ -257,6 +265,7 @@
                         <span class="project-badge badge-${p.category}">${p.category}</span>
                     </div>
                     <div class="project-desc">${p.description}</div>
+                    <div class="project-info">${getProjectInfo(p.name)}</div>
                     <div class="project-stats">
                         <div class="project-stat active">Активных: <span>${p.activeCount}</span></div>
                         <div class="project-stat">Всего: <span>${p.totalCount}</span></div>
@@ -297,9 +306,20 @@
             }
         }
 
+        function getProjectInfo(name) {
+            const info = {
+                'AI Photo2Video Bot': 'Telegram-бот с оплатой через ЮКассу. Пользователь отправляет фото → бот генерирует видео через Hailuo/Kling → отправляет обратно. БД в PostgreSQL (72.56.96.64). Есть follow-up рассылки и админ-статистика.',
+                'Wildberries Cards': 'Конвейер выгрузки товаров на WB. Google Sheets → создание карточки → проверка → загрузка фото из Yandex Disk → установка цен и остатков. Работает автоматически каждые 2-15 мин.',
+                'Print-on-Demand': 'Полный цикл: сканирование трендов (SerpAPI + Reddit) → GPT-4o генерирует идеи → Ideogram/Flux создают принты → GPT Vision проверяет качество → NanoBanana делает мокапы.',
+                'SEO Generator': 'GPT-4o Vision смотрит фото товара и генерирует название, описание, ключевые слова для карточек WB. Запускается каждую минуту, обрабатывает по 1 SKU.',
+                'Arbitrage Bot': 'Telegram-бот @twoDtraid_bot для команды арбитража. Регистрация закупок, чтение email с заказами, сверка с базой, формирование поставок на WB.',
+                'iskPhotoAlive Bot': 'Тестовый бот @iskPhotoAlive_bot. Оживление фото через AIMLAPI + Kling 2.1. Без оплаты, без БД — упрощённая версия основного бота.',
+                'Other': 'Служебные workflows: дашборд API, автопилот мониторинга, тестовые агенты.'
+            };
+            return info[name] || '';
+        }
+
         loadData();
-        // Auto-refresh every 30 seconds
-        setInterval(loadData, 30000);
     </script>
 </body>
 </html>
