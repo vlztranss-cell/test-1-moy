@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+        h1 { font-size: 28px; font-weight: 700; }
+        .stats {
+            display: flex;
+            gap: 16px;
+        }
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 16px 24px;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #58a6ff;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .project-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+        .project-card:hover { border-color: #58a6ff; }
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .project-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .project-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .badge-telegram-bot { background: #1d3a5c; color: #58a6ff; }
+        .badge-marketplace { background: #2d1f3d; color: #bc8cff; }
+        .badge-print { background: #1f3d2d; color: #7ce38b; }
+        .badge-seo { background: #3d3a1f; color: #e3d37c; }
+        .badge-other { background: #2d2d2d; color: #8b949e; }
+        .project-desc {
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 12px;
+        }
+        .project-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .project-stat {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .project-stat span { font-weight: 700; color: #e1e4e8; }
+        .project-stat.active span { color: #3fb950; }
+        .workflows-list {
+            border-top: 1px solid #21262d;
+            padding-top: 12px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .project-card.expanded .workflows-list {
+            max-height: 500px;
+        }
+        .wf-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 12px;
+        }
+        .wf-name {
+            color: #c9d1d9;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 8px;
+        }
+        .wf-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .wf-status.active { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+        .wf-status.inactive { background: #484f58; }
+        .wf-status.archived { background: #6e4000; }
+        .toggle-btn {
+            background: none;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+        .refresh-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover { background: #30363d; border-color: #58a6ff; }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #8b949e;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #30363d;
+            border-top-color: #58a6ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .timestamp {
+            font-size: 12px;
+            color: #484f58;
+            margin-top: 24px;
+            text-align: center;
+        }
+        .control-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .action-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { border-color: #3fb950; color: #3fb950; }
+        .action-btn.stop:hover { border-color: #f85149; color: #f85149; }
+        .action-btn:disabled { opacity: 0.4; cursor: default; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Project Dashboard</h1>
+        <button class="refresh-btn" onclick="loadData()">Обновить</button>
+    </div>
+
+    <div class="stats" id="stats"></div>
+    <div class="projects-grid" id="projects">
+        <div class="loading">Загрузка данных</div>
+    </div>
+    <div class="timestamp" id="timestamp"></div>
+
+    <script>
+        const API_URL = 'https://n8n.24isk.ru/webhook/dashboard';
+        const N8N_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5YzAwMmRkNC1mMDI2LTQ1MWQtYWZmMC0wYzNlNmU2MmE0MjgiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMTM3M2VhYTctYjBlNC00ZjM0LWJkYjQtYzg0OWFlMDBlNzU1IiwiaWF0IjoxNzc5MDU0NTAzLCJleHAiOjE3ODY4Mjc2MDB9.n9QAgjQ_6Jags29Rb4qE8okSOVw_386xgMNYnIFru1A';
+        const N8N_BASE = 'https://n8n.24isk.ru';
+
+        async function loadData() {
+            const projectsEl = document.getElementById('projects');
+            projectsEl.innerHTML = '<div class="loading">Загрузка данных</div>';
+
+            try {
+                const resp = await fetch(API_URL);
+                const data = await resp.json();
+                renderStats(data);
+                renderProjects(data.projects);
+                document.getElementById('timestamp').textContent =
+                    `Обновлено: ${new Date(data.timestamp).toLocaleString('ru-RU')}`;
+            } catch (e) {
+                projectsEl.innerHTML = `<div class="loading" style="color:#f85149">Ошибка загрузки: ${e.message}</div>`;
+            }
+        }
+
+        function renderStats(data) {
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-card">
+                    <div class="number">${data.totalWorkflows}</div>
+                    <div class="label">Всего workflows</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color:#3fb950">${data.activeWorkflows}</div>
+                    <div class="label">Активных</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color:#8b949e">${data.totalWorkflows - data.activeWorkflows}</div>
+                    <div class="label">Остановлены</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color:#bc8cff">${data.projects.length}</div>
+                    <div class="label">Проектов</div>
+                </div>
+            `;
+        }
+
+        function renderProjects(projects) {
+            const el = document.getElementById('projects');
+            el.innerHTML = projects
+                .filter(p => p.totalCount > 0 || p.activeCount > 0)
+                .map(p => `
+                <div class="project-card" onclick="this.classList.toggle('expanded')">
+                    <div class="project-header">
+                        <div class="project-name">${p.name}</div>
+                        <span class="project-badge badge-${p.category}">${p.category}</span>
+                    </div>
+                    <div class="project-desc">${p.description}</div>
+                    <div class="project-stats">
+                        <div class="project-stat active">Активных: <span>${p.activeCount}</span></div>
+                        <div class="project-stat">Всего: <span>${p.totalCount}</span></div>
+                        ${p.archivedCount ? `<div class="project-stat">Архив: <span>${p.archivedCount}</span></div>` : ''}
+                    </div>
+                    <button class="toggle-btn">Показать workflows</button>
+                    <div class="workflows-list">
+                        ${p.workflows.filter(w => !w.archived).map(w => `
+                            <div class="wf-item">
+                                <div class="wf-status ${w.active ? 'active' : 'inactive'}"></div>
+                                <span class="wf-name" style="margin-left:8px">${w.name}</span>
+                                <div class="control-actions">
+                                    ${w.active
+                                        ? `<button class="action-btn stop" onclick="event.stopPropagation();toggleWf('${w.id}','deactivate',this)">Stop</button>`
+                                        : `<button class="action-btn" onclick="event.stopPropagation();toggleWf('${w.id}','activate',this)">Start</button>`
+                                    }
+                                    <a class="action-btn" href="${N8N_BASE}/workflow/${w.id}" target="_blank" onclick="event.stopPropagation()">Open</a>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function toggleWf(id, action, btn) {
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+                await fetch(`${N8N_BASE}/api/v1/workflows/${id}/${action}`, {
+                    method: 'POST',
+                    headers: { 'X-N8N-API-KEY': N8N_API_KEY }
+                });
+                await loadData();
+            } catch (e) {
+                alert('Ошибка: ' + e.message);
+                btn.disabled = false;
+            }
+        }
+
+        loadData();
+        // Auto-refresh every 30 seconds
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>
