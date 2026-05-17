@@ -110,20 +110,49 @@
         .project-card.expanded .workflows-list {
             max-height: 500px;
         }
-        .wf-item {
+        .wf-item-card {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: border-color 0.2s;
+        }
+        .wf-item-card:hover {
+            border-color: #58a6ff;
+        }
+        .wf-item-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 6px 0;
-            font-size: 12px;
+            gap: 8px;
+            margin-bottom: 6px;
         }
         .wf-name {
-            color: #c9d1d9;
+            color: #e1e4e8;
+            font-size: 13px;
+            font-weight: 500;
             flex: 1;
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-right: 8px;
+            white-space: nowrap;
+        }
+        .wf-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+        .wf-badge.on { background: #0f2d1a; color: #3fb950; }
+        .wf-badge.off { background: #2d2d2d; color: #8b949e; }
+        .wf-description {
+            font-size: 11px;
+            color: #8b949e;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        .wf-actions {
+            display: flex;
+            gap: 6px;
         }
         .wf-status {
             width: 8px;
@@ -189,14 +218,17 @@
             background: #21262d;
             border: 1px solid #30363d;
             color: #8b949e;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
             transition: all 0.2s;
+            text-decoration: none;
         }
-        .action-btn:hover { border-color: #3fb950; color: #3fb950; }
+        .action-btn.start:hover { border-color: #3fb950; color: #3fb950; }
         .action-btn.stop:hover { border-color: #f85149; color: #f85149; }
+        .action-btn.open:hover { border-color: #58a6ff; color: #58a6ff; }
+        .action-btn.download:hover { border-color: #bc8cff; color: #bc8cff; }
         .action-btn:disabled { opacity: 0.4; cursor: default; }
     </style>
 </head>
@@ -274,15 +306,20 @@
                     <button class="toggle-btn">Показать workflows</button>
                     <div class="workflows-list">
                         ${p.workflows.filter(w => !w.archived).map(w => `
-                            <div class="wf-item">
-                                <div class="wf-status ${w.active ? 'active' : 'inactive'}"></div>
-                                <span class="wf-name" style="margin-left:8px">${w.name}</span>
-                                <div class="control-actions">
+                            <div class="wf-item-card" onclick="event.stopPropagation()">
+                                <div class="wf-item-header">
+                                    <div class="wf-status ${w.active ? 'active' : 'inactive'}"></div>
+                                    <span class="wf-name">${w.name}</span>
+                                    <span class="wf-badge ${w.active ? 'on' : 'off'}">${w.active ? 'ON' : 'OFF'}</span>
+                                </div>
+                                <div class="wf-description">${getWfInfo(w.name)}</div>
+                                <div class="wf-actions">
                                     ${w.active
-                                        ? `<button class="action-btn stop" onclick="event.stopPropagation();toggleWf('${w.id}','deactivate',this)">Stop</button>`
-                                        : `<button class="action-btn" onclick="event.stopPropagation();toggleWf('${w.id}','activate',this)">Start</button>`
+                                        ? `<button class="action-btn stop" onclick="toggleWf('${w.id}','deactivate',this)">Выключить</button>`
+                                        : `<button class="action-btn start" onclick="toggleWf('${w.id}','activate',this)">Включить</button>`
                                     }
-                                    <a class="action-btn" href="${N8N_BASE}/workflow/${w.id}" target="_blank" onclick="event.stopPropagation()">Open</a>
+                                    <a class="action-btn open" href="${N8N_BASE}/workflow/${w.id}" target="_blank">Открыть в n8n</a>
+                                    <button class="action-btn download" onclick="downloadWf('${w.id}','${w.name.replace(/'/g,'')}')">Скачать JSON</button>
                                 </div>
                             </div>
                         `).join('')}
@@ -304,6 +341,70 @@
                 alert('Ошибка: ' + e.message);
                 btn.disabled = false;
             }
+        }
+
+        async function downloadWf(id, name) {
+            try {
+                const resp = await fetch(`${N8N_BASE}/api/v1/workflows/${id}`, {
+                    headers: { 'X-N8N-API-KEY': N8N_API_KEY }
+                });
+                const data = await resp.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${name.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Ошибка скачивания: ' + e.message);
+            }
+        }
+
+        function getWfInfo(name) {
+            const wfInfo = {
+                // AI Photo2Video Bot
+                'AI_Photo2Video_Bot_v6_1_5_Hailuo_primary_ready': 'Основной бот. Принимает фото → генерирует видео через Hailuo (основной) и Kling (резерв) → отправляет пользователю. Оплата через ЮКассу, данные в PostgreSQL.',
+                'AI_Photo2Video_FollowUp_v4_Growth': 'Рассылка неактивным пользователям. Проверяет БД, отправляет напоминания в Telegram для возврата пользователей.',
+                'AI_Photo2Video_Admin_Stats': 'Ежедневная статистика для админа: кол-во пользователей, платежей, генераций. Отправляет отчёт в Telegram.',
+                'AI_Photo2Video_Bot_v6_0_2_AdminGrant': 'Старая версия бота с ручной выдачей доступа админом. ВЫКЛЮЧЕН — замена v6_1_5.',
+                'AI_Photo2Video_Bot_v6_1_1_PhotoVideoDemo': 'Версия с демо-режимом фото+видео. ВЫКЛЮЧЕН — замена v6_1_5.',
+                'AI_Photo2Video_Bot_v6_1_5_WelcomeEditInPlace': 'Версия с редактируемым приветствием. ВЫКЛЮЧЕН — замена Hailuo_primary_ready.',
+                'AI_Photo2Video_Bot_v3_PG': 'Старая v3 на PostgreSQL. Остановлен 09.03.26.',
+                'AI_Photo2Video_FollowUp_v3_PG': 'Старая v3 follow-up. Остановлен 09.03.26.',
+                // iskPhotoAlive
+                'iskPhotoAlive_bot': 'Тестовый бот @iskPhotoAlive_bot. Фото → видео через AIMLAPI (Kling 2.1). Без оплаты, без БД.',
+                // Wildberries
+                'WF_WB_CARD_CREATE v3': 'Создание карточек на WB. Каждые 2 мин берёт товары из Google Sheets, отправляет в WB Content API. Batch по 5 штук.',
+                'WF_WB_CARD_CHECK': 'Проверка создания карточки. Каждые 5 мин опрашивает WB API — появилась ли карточка. Ставит статус PUBLISHED.',
+                'WF_WB_PHOTO_UPLOAD v3': 'Загрузка фото на WB. Берёт фото из Yandex Disk, отправляет через WB Media API + размерная сетка.',
+                'WF_WB_PRICES_STOCKS': 'Установка цен и остатков. Каждые 15 мин синхронизирует цены и остатки из Google Sheets → WB API.',
+                'Cache WB Dictionaries': 'Кэш справочников WB (категории, цвета, размеры). Запуск вручную.',
+                'WB_PHOTOS': 'Извлечение прямых ссылок на фото из публичных папок Yandex Disk.',
+                'WB → Yandex': 'Синхронизация: скачивает фото из Google Drive, загружает в Yandex Disk в нужные папки.',
+                // Print-on-Demand
+                'WF1: Trend Scanner': 'Каждые 6 часов: SerpAPI (Google Trends) + Reddit → GPT-4o анализирует → записывает тренды в Sheets.',
+                'WF2': 'Генерация принтов. GPT-4o пишет промпт → Ideogram 3.0 / Flux 1.1 / DALL-E создают PNG → загрузка в Drive.',
+                'WF3': 'Контроль качества. Техпроверка (размер, формат) + GPT-4o Vision оценивает композицию и потенциал.',
+                'WF4': 'Создание мокапов. Накладывает принт на шаблоны футболок через NanoBanana API.',
+                'BACKFILL_PRINT_SCAN': 'Массовая генерация: принт + 5 мокапов (man black, woman black, detail и др.). 107 нод.',
+                'WF_Fetch_Print_Area_Presets': 'Загрузка пресетов зон печати для мокапов.',
+                'WF_Validate_Templates': 'Валидация шаблонов мокапов перед использованием.',
+                // SEO
+                'SEO Generator': 'Каждую минуту: берёт SKU → GPT-4o Vision смотрит фото → генерирует название, описание, ключевые слова для WB.',
+                // Arbitrage
+                'WF-ARB-2': 'Telegram-бот @twoDtraid_bot. Регистрация закупок через команды в чате. Данные в Google Sheets.',
+                'WF-ARB-1: Email': 'Читает email (IMAP Yandex) с подтверждениями заказов → сверяет с базой → формирует поставку на WB.',
+                'WF-ARB-1-TEST': 'Тестовая версия: только поиск и сверка, без реальной поставки на WB.',
+                // Dashboard & Autopilot
+                'Dashboard API': 'API для веб-дашборда. Собирает статусы всех workflows, группирует по проектам.',
+                'Autopilot': 'Мониторинг 1 раз в день (9:00). Проверяет ошибки, перезапускает упавшие workflows, алертит в Telegram.',
+            };
+            // Match by substring
+            for (const [key, val] of Object.entries(wfInfo)) {
+                if (name.includes(key)) return val;
+            }
+            return '';
         }
 
         function getProjectInfo(name) {
