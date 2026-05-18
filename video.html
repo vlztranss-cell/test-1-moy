@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оживи фото — AI Video</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .container {
+            max-width: 480px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        /* Upload area */
+        .upload-area {
+            background: #161b22;
+            border: 2px dashed #30363d;
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #58a6ff;
+            background: #1c2128;
+        }
+        .upload-area.has-image {
+            padding: 12px;
+            border-style: solid;
+            border-color: #30363d;
+            cursor: default;
+        }
+        .upload-icon { font-size: 48px; margin-bottom: 12px; }
+        .upload-text { color: #8b949e; font-size: 14px; }
+        .upload-hint { color: #484f58; font-size: 11px; margin-top: 6px; }
+        input[type="file"] { display: none; }
+
+        /* Preview */
+        .preview-img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            display: none;
+        }
+        .upload-area.has-image .preview-img { display: block; margin: 0 auto; }
+        .upload-area.has-image .upload-icon,
+        .upload-area.has-image .upload-text,
+        .upload-area.has-image .upload-hint { display: none; }
+        .change-photo {
+            display: none;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #58a6ff;
+            cursor: pointer;
+        }
+        .upload-area.has-image .change-photo { display: block; }
+
+        /* Prompt */
+        .prompt-field {
+            margin-top: 12px;
+        }
+        .prompt-field textarea {
+            width: 100%;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            color: #e1e4e8;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+            height: 60px;
+            transition: border-color 0.2s;
+        }
+        .prompt-field textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .prompt-field textarea::placeholder { color: #484f58; }
+
+        /* Generate button */
+        .generate-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .generate-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(102,126,234,0.4); }
+        .generate-btn:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+
+        /* Progress */
+        .progress-section {
+            display: none;
+            text-align: center;
+            margin-top: 24px;
+        }
+        .progress-section.active { display: block; }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid #30363d;
+            border-top-color: #58a6ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .progress-status {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .progress-time {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 4px;
+            background: #21262d;
+            border-radius: 2px;
+            margin-top: 16px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        /* Result */
+        .result-section {
+            display: none;
+            margin-top: 24px;
+            text-align: center;
+        }
+        .result-section.active { display: block; }
+        .result-video {
+            width: 100%;
+            max-height: 500px;
+            border-radius: 12px;
+            background: #000;
+        }
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .result-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .result-btn.download {
+            background: #238636;
+            color: white;
+        }
+        .result-btn.download:hover { background: #2ea043; }
+        .result-btn.again {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .result-btn.again:hover { border-color: #58a6ff; color: #58a6ff; }
+
+        /* Error */
+        .error-msg {
+            display: none;
+            background: #3d1f1f;
+            border: 1px solid #f85149;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 16px;
+            color: #f85149;
+            font-size: 13px;
+            text-align: center;
+        }
+        .error-msg.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Оживи своё фото</h1>
+        <p class="subtitle">Загрузи фото — AI превратит его в видео</p>
+
+        <div class="upload-area" id="upload-area">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">Нажми или перетащи фото сюда</div>
+            <div class="upload-hint">JPG, PNG, WEBP — до 10 МБ</div>
+            <img class="preview-img" id="preview">
+            <div class="change-photo" id="change-photo">Выбрать другое фото</div>
+        </div>
+        <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp">
+
+        <div class="prompt-field">
+            <textarea id="prompt" placeholder="Описание движения (необязательно)..."></textarea>
+        </div>
+
+        <button class="generate-btn" id="generate-btn" disabled>Создать видео</button>
+
+        <div class="progress-section" id="progress">
+            <div class="spinner"></div>
+            <div class="progress-status" id="progress-status">Загрузка...</div>
+            <div class="progress-time" id="progress-time"></div>
+            <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
+        </div>
+
+        <div class="error-msg" id="error"></div>
+
+        <div class="result-section" id="result">
+            <video class="result-video" id="result-video" controls autoplay loop playsinline></video>
+            <div class="result-actions">
+                <button class="result-btn download" id="download-btn">Скачать видео</button>
+                <button class="result-btn again" id="again-btn">Ещё раз</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_CREATE = 'https://n8n.24isk.ru/webhook/web-video-create';
+        const API_STATUS = 'https://n8n.24isk.ru/webhook/web-video-status';
+
+        let selectedFile = null;
+        let pollTimer = null;
+        let startTime = null;
+
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const preview = document.getElementById('preview');
+        const changePhoto = document.getElementById('change-photo');
+        const generateBtn = document.getElementById('generate-btn');
+        const progressSection = document.getElementById('progress');
+        const progressStatus = document.getElementById('progress-status');
+        const progressTime = document.getElementById('progress-time');
+        const progressBar = document.getElementById('progress-bar');
+        const errorEl = document.getElementById('error');
+        const resultSection = document.getElementById('result');
+        const resultVideo = document.getElementById('result-video');
+        const downloadBtn = document.getElementById('download-btn');
+        const againBtn = document.getElementById('again-btn');
+
+        // Upload area click
+        uploadArea.addEventListener('click', (e) => {
+            if (!uploadArea.classList.contains('has-image')) fileInput.click();
+        });
+        changePhoto.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
+                showError('Поддерживаются только JPG, PNG, WEBP');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                showError('Файл слишком большой (макс. 10 МБ)');
+                return;
+            }
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                uploadArea.classList.add('has-image');
+                generateBtn.disabled = false;
+                hideError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Generate
+        generateBtn.addEventListener('click', startGeneration);
+
+        async function startGeneration() {
+            if (!selectedFile) return;
+            generateBtn.disabled = true;
+            hideError();
+            resultSection.classList.remove('active');
+
+            // Show progress
+            progressSection.classList.add('active');
+            progressStatus.textContent = 'Загрузка фото...';
+            progressBar.style.width = '5%';
+            startTime = Date.now();
+            updateTimer();
+
+            try {
+                // Read file as base64
+                const base64 = await fileToBase64(selectedFile);
+
+                progressStatus.textContent = 'Создание задачи...';
+                progressBar.style.width = '15%';
+
+                // Create task
+                const resp = await fetch(API_CREATE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_base64: base64,
+                        prompt: document.getElementById('prompt').value || 'Bring this photo to life with natural, gentle motion',
+                        session_id: getSessionId()
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (data.error || !data.task_id) {
+                    throw new Error(data.error || 'Не удалось создать задачу');
+                }
+
+                progressStatus.textContent = 'Генерация видео...';
+                progressBar.style.width = '25%';
+
+                // Start polling
+                startPolling(data.task_id);
+
+            } catch (e) {
+                showError('Ошибка: ' + e.message + ' (Если открыто как файл — откройте через Pages)');
+                progressSection.classList.remove('active');
+                generateBtn.disabled = false;
+            }
+        }
+
+        function startPolling(taskId) {
+            let attempts = 0;
+            const maxAttempts = 60; // 5 minutes
+
+            pollTimer = setInterval(async () => {
+                attempts++;
+                updateTimer();
+
+                // Progress bar animation
+                const progress = Math.min(25 + (attempts / maxAttempts) * 65, 90);
+                progressBar.style.width = progress + '%';
+
+                if (attempts > 10) progressStatus.textContent = 'AI обрабатывает видео...';
+                if (attempts > 25) progressStatus.textContent = 'Почти готово...';
+
+                try {
+                    const resp = await fetch(API_STATUS + '?task_id=' + taskId);
+                    const data = await resp.json();
+
+                    if (data.status === 'completed' && data.video_url) {
+                        clearInterval(pollTimer);
+                        progressBar.style.width = '100%';
+                        progressStatus.textContent = 'Готово!';
+                        setTimeout(() => showResult(data.video_url), 500);
+                        return;
+                    }
+
+                    if (data.status === 'failed') {
+                        clearInterval(pollTimer);
+                        throw new Error(data.error || 'Генерация не удалась');
+                    }
+
+                } catch (e) {
+                    clearInterval(pollTimer);
+                    showError('Ошибка: ' + e.message);
+                    progressSection.classList.remove('active');
+                    generateBtn.disabled = false;
+                    return;
+                }
+
+                if (attempts >= maxAttempts) {
+                    clearInterval(pollTimer);
+                    showError('Превышено время ожидания (5 мин). Попробуйте ещё раз.');
+                    progressSection.classList.remove('active');
+                    generateBtn.disabled = false;
+                }
+            }, 5000);
+        }
+
+        function showResult(videoUrl) {
+            progressSection.classList.remove('active');
+            resultSection.classList.add('active');
+            resultVideo.src = videoUrl;
+
+            downloadBtn.onclick = async () => {
+                try {
+                    const resp = await fetch(videoUrl);
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'ai-video-' + Date.now() + '.mp4';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } catch {
+                    window.open(videoUrl, '_blank');
+                }
+            };
+        }
+
+        againBtn.addEventListener('click', () => {
+            resultSection.classList.remove('active');
+            progressSection.classList.remove('active');
+            uploadArea.classList.remove('has-image');
+            selectedFile = null;
+            preview.src = '';
+            document.getElementById('prompt').value = '';
+            generateBtn.disabled = true;
+            hideError();
+        });
+
+        function updateTimer() {
+            if (!startTime) return;
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const min = Math.floor(elapsed / 60);
+            const sec = elapsed % 60;
+            progressTime.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+            if (progressSection.classList.contains('active')) requestAnimationFrame(() => setTimeout(updateTimer, 1000));
+        }
+
+        function showError(msg) { errorEl.textContent = msg; errorEl.classList.add('active'); }
+        function hideError() { errorEl.classList.remove('active'); }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function getSessionId() {
+            let id = localStorage.getItem('video_session_id');
+            if (!id) { id = crypto.randomUUID(); localStorage.setItem('video_session_id', id); }
+            return id;
+        }
+    </script>
+</body>
+</html>
