@@ -3,7 +3,7 @@
 ## Схема работы
 
 ```
-Лендинг (video.html)
+Лендинг (botisk.ru / index.html)
     |
     +-- [Купить] --> POST yukassa-create-payment
     |                   |

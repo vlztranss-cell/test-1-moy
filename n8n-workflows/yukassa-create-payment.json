@@ -7,7 +7,7 @@
         "path": "yukassa-create-payment",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "https://vlztranss-cell.github.io"
+          "allowedOrigins": "https://botisk.ru"
         }
       },
       "id": "webhook-1",
@@ -79,7 +79,7 @@
             "entries": [
               {
                 "name": "Access-Control-Allow-Origin",
-                "value": "https://vlztranss-cell.github.io"
+                "value": "https://botisk.ru"
               }
             ]
           }
@@ -101,7 +101,7 @@
             "entries": [
               {
                 "name": "Access-Control-Allow-Origin",
-                "value": "https://vlztranss-cell.github.io"
+                "value": "https://botisk.ru"
               }
             ]
           }

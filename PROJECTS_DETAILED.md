@@ -351,4 +351,5 @@ Telegram-бот для ручной загрузки принтов:
 | Google Sheets (Фабрика) | `1GCYdYH3L8TZ0xO-wIp2MWxBa-_KoQ79Zo` | BACKFILL принтов |
 | Google Sheets (WB Cache) | `1iDkfD_I_zqTAnav-tv8joHwh1wZTvDimzrAwogyXC3g` | Справочники WB |
 | GitHub | github.com/vlztranss-cell | Код, дашборд |
-| Дашборд | vlztranss-cell.github.io/test-1-moy/dashboard.html | Панель управления |
+| Лендинг VideoAI | botisk.ru | Продающий сайт |
+| Дашборд | botisk.ru/dashboard.html | Панель управления |

@@ -153,4 +153,5 @@
 | n8n сервер | https://n8n.24isk.ru/ |
 | VPS (PostgreSQL) | root@72.56.96.64 |
 | GitHub | https://github.com/vlztranss-cell |
-| Дашборд | https://vlztranss-cell.github.io/test-1-moy/dashboard.html |
+| Лендинг VideoAI | https://botisk.ru/ |
+| Дашборд | https://botisk.ru/dashboard.html |

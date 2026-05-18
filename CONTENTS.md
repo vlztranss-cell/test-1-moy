@@ -31,6 +31,7 @@
 
 ## Ссылки
 
-- Дашборд: https://vlztranss-cell.github.io/test-1-moy/dashboard.html
+- Лендинг VideoAI: https://botisk.ru/
+- Дашборд: https://botisk.ru/dashboard.html
 - GitHub: https://github.com/vlztranss-cell/test-1-moy
 - n8n: https://n8n.24isk.ru/
