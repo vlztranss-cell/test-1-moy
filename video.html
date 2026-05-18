@@ -374,7 +374,7 @@
 
         function startPolling(taskId) {
             let attempts = 0;
-            const maxAttempts = 60; // 5 minutes
+            const maxAttempts = 120; // 10 minutes
 
             pollTimer = setInterval(async () => {
                 attempts++;
@@ -389,7 +389,9 @@
 
                 try {
                     const resp = await fetch(API_STATUS + '?task_id=' + taskId);
-                    const data = await resp.json();
+                    const text = await resp.text();
+                    if (!text) { return; } // empty response, skip this poll
+                    const data = JSON.parse(text);
 
                     if (data.status === 'completed' && data.video_url) {
                         clearInterval(pollTimer);
