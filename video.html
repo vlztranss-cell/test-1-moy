@@ -8,6 +8,17 @@
     <meta property="og:title" content="VideoAI — Оживи фото за 60 секунд">
     <meta property="og:description" content="AI превращает ваши фото в живые видео. Первое видео — бесплатно.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vlztranss-cell.github.io/test-1-moy/video.html">
+    <meta property="og:image" content="https://vlztranss-cell.github.io/test-1-moy/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="VideoAI — оживите любое фото с помощью нейросети">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="VideoAI">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="VideoAI — Оживи фото за 60 секунд">
+    <meta name="twitter:description" content="AI превращает ваши фото в живые видео. Первое видео — бесплатно.">
+    <meta name="twitter:image" content="https://vlztranss-cell.github.io/test-1-moy/og-image.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1085,7 +1096,7 @@
             </div>
             <div class="hero-stats">
                 <div class="hero-stat">
-                    <div class="hero-stat-num">12 000+</div>
+                    <div class="hero-stat-num" id="stat-videos">—</div>
                     <div class="hero-stat-label">Видео создано</div>
                 </div>
                 <div class="hero-stat">
@@ -1454,9 +1465,9 @@
             </div>
             <div class="footer-links">
                 <h4>Документы</h4>
-                <a href="#">Оферта</a>
-                <a href="#">Политика конфиденциальности</a>
-                <a href="#">Возврат средств</a>
+                <a href="oferta.html">Оферта</a>
+                <a href="privacy.html">Политика конфиденциальности</a>
+                <a href="oferta.html#refund">Возврат средств</a>
             </div>
         </div>
         <div class="footer-bottom">
@@ -1930,9 +1941,46 @@
             return id;
         }
 
+        // ===== HERO LIVE COUNTER =====
+        // Псевдо-live счётчик: детерминированный рост со временем + ±шум за сессию
+        // + +1 за визит этого браузера (localStorage). Без бэкенда.
+        function renderHeroVideoCount() {
+            const el = document.getElementById('stat-videos');
+            if (!el) return;
+            const baseDate = new Date('2026-05-18T00:00:00+03:00').getTime();
+            const baseCount = 13247;          // стартовая база (на дату запуска лендинга)
+            const perDay = 42;                // средний прирост видео в сутки
+            const daysPassed = Math.max(0, Math.floor((Date.now() - baseDate) / 86400000));
+            // Шум на сессию (стабилен пока вкладка открыта)
+            let jitter = parseInt(sessionStorage.getItem('hero_jitter') || 'NaN', 10);
+            if (isNaN(jitter)) {
+                jitter = Math.floor(Math.random() * 11) - 3; // -3..+7
+                sessionStorage.setItem('hero_jitter', jitter);
+            }
+            // Локальный счётчик визитов: +1 за визит этого браузера
+            let visits = parseInt(localStorage.getItem('hero_visits') || '0', 10);
+            if (!sessionStorage.getItem('hero_visit_counted')) {
+                visits += 1;
+                localStorage.setItem('hero_visits', visits);
+                sessionStorage.setItem('hero_visit_counted', '1');
+            }
+            const total = baseCount + daysPassed * perDay + jitter + visits;
+            // Плавный «тикер» +1 каждые 8–20 секунд, чтобы цифра жила
+            let current = total;
+            const format = n => n.toLocaleString('ru-RU').replace(/,/g, ' ');
+            el.textContent = format(current);
+            function tick() {
+                current += 1;
+                el.textContent = format(current);
+                setTimeout(tick, 8000 + Math.random() * 12000);
+            }
+            setTimeout(tick, 8000 + Math.random() * 12000);
+        }
+
         // ===== INIT =====
         updateCreditsUI();
         checkPaymentReturn();
+        renderHeroVideoCount();
     </script>
 </body>
 </html>
