@@ -1,0 +1,162 @@
+{
+  "name": "Web_YuKassa_Payment_Callback",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yukassa-payment-callback",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-callback",
+      "name": "Webhook Callback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "payment.succeeded",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-succeeded",
+      "name": "Payment Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.object.metadata.source }}",
+              "rightValue": "web",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-web",
+      "name": "From Web?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE web_payments\nSET status = 'succeeded',\n    credits_added = CASE\n      WHEN plan = 'starter' THEN 10\n      WHEN plan = 'pro' THEN 50\n      WHEN plan = 'business' THEN 200\n      ELSE 0\n    END,\n    paid_at = NOW()\nWHERE payment_id = '{{ $json.body.object.id }}'",
+        "options": {}
+      },
+      "id": "pg-update-web",
+      "name": "Update Web Payment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [920, 240],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "ssh root@72.56.96.64"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "note",
+              "name": "note",
+              "value": "Платёж из Telegram-бота — обрабатывается основным workflow бота",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "bot-payment",
+      "name": "Bot Payment (skip)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [920, 420]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "skip",
+              "name": "status",
+              "value": "ignored",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "not-succeeded",
+      "name": "Not Succeeded (skip)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [680, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Callback": {
+      "main": [
+        [
+          { "node": "Payment Succeeded?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Payment Succeeded?": {
+      "main": [
+        [
+          { "node": "From Web?", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Not Succeeded (skip)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "From Web?": {
+      "main": [
+        [
+          { "node": "Update Web Payment", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Bot Payment (skip)", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "VideoAI" },
+    { "name": "Payment" }
+  ]
+}

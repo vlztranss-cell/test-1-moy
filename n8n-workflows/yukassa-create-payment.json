@@ -1,0 +1,214 @@
+{
+  "name": "Web_YuKassa_Create_Payment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yukassa-create-payment",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://vlztranss-cell.github.io"
+        }
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.yookassa.ru/v3/payments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotence-Key",
+              "value": "={{ $runIndex }}-{{ $json.body.session_id }}-{{ Date.now() }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"amount\": {\n    \"value\": \"{{ $json.body.amount }}.00\",\n    \"currency\": \"RUB\"\n  },\n  \"confirmation\": {\n    \"type\": \"redirect\",\n    \"return_url\": \"{{ $json.body.return_url }}\"\n  },\n  \"capture\": true,\n  \"description\": \"VideoAI — {{ $json.body.plan }}\",\n  \"metadata\": {\n    \"source\": \"web\",\n    \"plan\": \"{{ $json.body.plan }}\",\n    \"email\": \"{{ $json.body.email }}\",\n    \"session_id\": \"{{ $json.body.session_id }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "yukassa-create",
+      "name": "YuKassa Create Payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "YUKASSA_CREDENTIAL_ID",
+          "name": "юкасса 23.10.2026"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO web_payments (payment_id, email, session_id, plan, amount, status, created_at)\nVALUES (\n  '{{ $json.id }}',\n  '{{ $('Webhook').item.json.body.email }}',\n  '{{ $('Webhook').item.json.body.session_id }}',\n  '{{ $('Webhook').item.json.body.plan }}',\n  {{ $('Webhook').item.json.body.amount }},\n  '{{ $json.status }}',\n  NOW()\n)",
+        "options": {}
+      },
+      "id": "pg-save",
+      "name": "Save to PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 300],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "ssh root@72.56.96.64"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"confirmation_url\": \"{{ $('YuKassa Create Payment').item.json.confirmation.confirmation_url }}\",\n  \"payment_id\": \"{{ $('YuKassa Create Payment').item.json.id }}\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://vlztranss-cell.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"error\": \"{{ $json.message || 'Не удалось создать платёж' }}\"\n}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://vlztranss-cell.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 420]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.confirmation?.confirmation_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-ok",
+      "name": "Payment Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "validate-1",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "validate-2",
+              "name": "amount",
+              "value": "={{ $json.body.amount }}",
+              "type": "number"
+            },
+            {
+              "id": "validate-3",
+              "name": "plan",
+              "value": "={{ $json.body.plan }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "validate",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [240, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Payment Created?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Payment Created?": {
+      "main": [
+        [
+          { "node": "YuKassa Create Payment", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "YuKassa Create Payment": {
+      "main": [
+        [
+          { "node": "Save to PostgreSQL", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Save to PostgreSQL": {
+      "main": [
+        [
+          { "node": "Respond OK", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "VideoAI" },
+    { "name": "Payment" }
+  ]
+}
