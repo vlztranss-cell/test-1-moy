@@ -3,66 +3,599 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Оживи фото — AI Video</title>
+    <title>VideoAI — Оживи фото за 60 секунд | AI генератор видео</title>
+    <meta name="description" content="Превращаем обычные фотографии в живые видео с помощью нейросети. Загрузите фото — получите видео за минуту. Попробуйте бесплатно!">
+    <meta property="og:title" content="VideoAI — Оживи фото за 60 секунд">
+    <meta property="og:description" content="AI превращает ваши фото в живые видео. Первое видео — бесплатно.">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #06080d;
+            --bg-card: #0d1117;
+            --bg-card-hover: #131920;
+            --border: #1e2633;
+            --border-light: #2d3748;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --text-dim: #484f58;
+            --accent: #7c5cfc;
+            --accent-light: #9d85fd;
+            --accent-glow: rgba(124, 92, 252, 0.25);
+            --gradient: linear-gradient(135deg, #667eea 0%, #7c5cfc 50%, #a855f7 100%);
+            --gradient-btn: linear-gradient(135deg, #7c5cfc, #a855f7);
+            --green: #2ea043;
+            --green-bg: #0d2818;
+            --red: #f85149;
+            --yellow: #d29922;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #0f1117;
-            color: #e1e4e8;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 16px 24px;
+            background: rgba(6, 8, 13, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+        .navbar.scrolled { border-bottom-color: var(--border); }
+        .navbar-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            font-size: 22px;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta {
+            background: var(--gradient-btn) !important;
+            color: white !important;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 600 !important;
+            transition: transform 0.2s, box-shadow 0.2s !important;
+        }
+        .nav-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 120px 24px 80px;
+            position: relative;
+            overflow: hidden;
         }
-        .container {
-            max-width: 480px;
-            width: 100%;
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
         }
-        h1 {
-            font-size: 24px;
+        .hero-content {
+            max-width: 800px;
             text-align: center;
-            margin-bottom: 6px;
+            position: relative;
+            z-index: 1;
         }
-        .subtitle {
-            text-align: center;
-            color: #8b949e;
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(124, 92, 252, 0.1);
+            border: 1px solid rgba(124, 92, 252, 0.3);
+            padding: 6px 16px;
+            border-radius: 100px;
             font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-light);
             margin-bottom: 24px;
         }
+        .hero-badge .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .hero h1 {
+            font-size: clamp(36px, 6vw, 64px);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            margin-bottom: 20px;
+        }
+        .hero h1 .gradient-text {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-sub {
+            font-size: clamp(16px, 2.2vw, 20px);
+            color: var(--text-muted);
+            max-width: 560px;
+            margin: 0 auto 36px;
+            line-height: 1.6;
+        }
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.25s;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--gradient-btn);
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+        }
+        .hero-stats {
+            display: flex;
+            gap: 48px;
+            justify-content: center;
+            margin-top: 56px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+        }
+        .hero-stat {
+            text-align: center;
+        }
+        .hero-stat-num {
+            font-size: 28px;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
 
-        /* Upload area */
+        /* ===== SECTIONS COMMON ===== */
+        section {
+            padding: 100px 24px;
+        }
+        .section-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .section-label {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-light);
+            margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+        }
+        .section-desc {
+            font-size: 17px;
+            color: var(--text-muted);
+            max-width: 560px;
+            line-height: 1.6;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+        .section-header .section-desc {
+            margin: 0 auto;
+        }
+
+        /* ===== HOW IT WORKS ===== */
+        #how-it-works {
+            background: linear-gradient(180deg, var(--bg) 0%, #080b12 100%);
+        }
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        .step-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 36px 28px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .step-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(124, 92, 252, 0.1);
+        }
+        .step-num {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 800;
+            margin: 0 auto 20px;
+        }
+        .step-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .step-card p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .step-arrow {
+            display: none;
+        }
+
+        /* ===== EXAMPLES ===== */
+        #examples {
+            background: var(--bg);
+        }
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .example-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .example-card:hover {
+            border-color: var(--border-light);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+        }
+        .example-visual {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #1a1e2e, #0d1117);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .example-visual .placeholder-icon {
+            font-size: 64px;
+            opacity: 0.6;
+        }
+        .example-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .example-info {
+            padding: 16px;
+        }
+        .example-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .example-info p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ===== FEATURES ===== */
+        #features {
+            background: linear-gradient(180deg, var(--bg) 0%, #080b12 100%);
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            border-color: var(--border-light);
+        }
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(124, 92, 252, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 16px;
+        }
+        .feature-card h3 {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* ===== PRICING ===== */
+        #pricing {
+            background: var(--bg);
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+        .pricing-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 28px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .pricing-card:hover {
+            transform: translateY(-4px);
+        }
+        .pricing-card.popular {
+            border-color: var(--accent);
+            box-shadow: 0 0 60px var(--accent-glow);
+        }
+        .pricing-popular-badge {
+            position: absolute;
+            top: -13px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gradient-btn);
+            padding: 4px 20px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        .pricing-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .pricing-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+        .pricing-price {
+            margin-bottom: 24px;
+        }
+        .pricing-amount {
+            font-size: 42px;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+        .pricing-currency {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .pricing-period {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .pricing-per-video {
+            display: inline-block;
+            background: rgba(46, 160, 67, 0.1);
+            color: var(--green);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 28px;
+        }
+        .pricing-features li {
+            font-size: 14px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pricing-features li:last-child { border-bottom: none; }
+        .pricing-features .check {
+            color: var(--green);
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .pricing-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s;
+            border: none;
+            font-family: inherit;
+        }
+        .pricing-btn-primary {
+            background: var(--gradient-btn);
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .pricing-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+        .pricing-btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .pricing-btn-secondary:hover {
+            border-color: var(--accent);
+        }
+        .pricing-guarantee {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* ===== GENERATOR (App section) ===== */
+        #generator {
+            background: linear-gradient(180deg, var(--bg) 0%, #080b12 100%);
+        }
+        .generator-wrapper {
+            max-width: 520px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+        }
         .upload-area {
-            background: #161b22;
-            border: 2px dashed #30363d;
-            border-radius: 16px;
-            padding: 40px 20px;
+            background: rgba(255,255,255,0.02);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
         }
         .upload-area:hover, .upload-area.dragover {
-            border-color: #58a6ff;
-            background: #1c2128;
+            border-color: var(--accent);
+            background: rgba(124, 92, 252, 0.03);
         }
         .upload-area.has-image {
             padding: 12px;
             border-style: solid;
-            border-color: #30363d;
+            border-color: var(--border);
             cursor: default;
         }
         .upload-icon { font-size: 48px; margin-bottom: 12px; }
-        .upload-text { color: #8b949e; font-size: 14px; }
-        .upload-hint { color: #484f58; font-size: 11px; margin-top: 6px; }
+        .upload-text { color: var(--text-muted); font-size: 15px; font-weight: 500; }
+        .upload-hint { color: var(--text-dim); font-size: 12px; margin-top: 8px; }
         input[type="file"] { display: none; }
 
-        /* Preview */
         .preview-img {
             max-width: 100%;
             max-height: 300px;
-            border-radius: 10px;
+            border-radius: var(--radius-sm);
             display: none;
         }
         .upload-area.has-image .preview-img { display: block; margin: 0 auto; }
@@ -72,191 +605,949 @@
         .change-photo {
             display: none;
             margin-top: 8px;
-            font-size: 11px;
-            color: #58a6ff;
+            font-size: 12px;
+            color: var(--accent-light);
             cursor: pointer;
         }
         .upload-area.has-image .change-photo { display: block; }
 
-        /* Prompt */
-        .prompt-field {
-            margin-top: 12px;
-        }
+        .prompt-field { margin-top: 16px; }
         .prompt-field textarea {
             width: 100%;
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            color: #e1e4e8;
-            padding: 10px 14px;
-            font-size: 13px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            padding: 12px 16px;
+            font-size: 14px;
             font-family: inherit;
             resize: none;
-            height: 60px;
+            height: 64px;
             transition: border-color 0.2s;
         }
         .prompt-field textarea:focus {
             outline: none;
-            border-color: #58a6ff;
+            border-color: var(--accent);
         }
-        .prompt-field textarea::placeholder { color: #484f58; }
+        .prompt-field textarea::placeholder { color: var(--text-dim); }
 
-        /* Generate button */
         .generate-btn {
             width: 100%;
             margin-top: 16px;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 15px;
+            background: var(--gradient-btn);
             color: white;
             border: none;
             border-radius: 12px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
+            font-family: inherit;
         }
-        .generate-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(102,126,234,0.4); }
-        .generate-btn:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px var(--accent-glow);
+        }
+        .generate-btn:disabled { opacity: 0.4; cursor: default; }
+
+        .credits-info {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .credits-count {
+            color: var(--accent-light);
+            font-weight: 600;
+        }
 
         /* Progress */
-        .progress-section {
-            display: none;
-            text-align: center;
-            margin-top: 24px;
-        }
+        .progress-section { display: none; text-align: center; margin-top: 28px; }
         .progress-section.active { display: block; }
         .spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid #30363d;
-            border-top-color: #58a6ff;
+            width: 48px; height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 16px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .progress-status {
-            font-size: 15px;
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-        .progress-time {
-            font-size: 12px;
-            color: #8b949e;
-        }
+        .progress-status { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+        .progress-time { font-size: 12px; color: var(--text-muted); }
         .progress-bar-bg {
-            width: 100%;
-            height: 4px;
-            background: #21262d;
+            width: 100%; height: 4px;
+            background: var(--border);
             border-radius: 2px;
             margin-top: 16px;
             overflow: hidden;
         }
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: var(--gradient);
             border-radius: 2px;
             width: 0%;
             transition: width 0.5s;
         }
 
         /* Result */
-        .result-section {
-            display: none;
-            margin-top: 24px;
-            text-align: center;
-        }
+        .result-section { display: none; margin-top: 28px; text-align: center; }
         .result-section.active { display: block; }
-        .result-video {
-            width: 100%;
-            max-height: 500px;
-            border-radius: 12px;
-            background: #000;
-        }
-        .result-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 16px;
-        }
+        .result-video { width: 100%; max-height: 500px; border-radius: var(--radius); background: #000; }
+        .result-actions { display: flex; gap: 10px; margin-top: 16px; }
         .result-btn {
-            flex: 1;
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
+            flex: 1; padding: 12px; border-radius: var(--radius-sm);
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; border: none; font-family: inherit;
         }
-        .result-btn.download {
-            background: #238636;
-            color: white;
-        }
-        .result-btn.download:hover { background: #2ea043; }
-        .result-btn.again {
-            background: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-        }
-        .result-btn.again:hover { border-color: #58a6ff; color: #58a6ff; }
+        .result-btn.download { background: var(--green); color: white; }
+        .result-btn.download:hover { filter: brightness(1.15); }
+        .result-btn.again { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+        .result-btn.again:hover { border-color: var(--accent); }
 
-        /* Error */
         .error-msg {
             display: none;
-            background: #3d1f1f;
-            border: 1px solid #f85149;
-            border-radius: 10px;
+            background: rgba(248, 81, 73, 0.08);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            border-radius: var(--radius-sm);
             padding: 12px;
             margin-top: 16px;
-            color: #f85149;
+            color: var(--red);
             font-size: 13px;
             text-align: center;
         }
         .error-msg.active { display: block; }
+
+        /* ===== FAQ ===== */
+        #faq {
+            background: linear-gradient(180deg, #080b12 0%, var(--bg) 100%);
+        }
+        .faq-list {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+        }
+        .faq-question {
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 600;
+            text-align: left;
+            padding: 20px 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+        .faq-question:hover { color: var(--accent-light); }
+        .faq-arrow {
+            font-size: 20px;
+            transition: transform 0.3s;
+            flex-shrink: 0;
+            margin-left: 16px;
+            color: var(--text-muted);
+        }
+        .faq-item.open .faq-arrow { transform: rotate(45deg); }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .faq-answer-inner {
+            padding: 0 0 20px;
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        /* ===== CTA SECTION ===== */
+        .cta-section {
+            padding: 100px 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+        .cta-section h2 {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+        .cta-section p {
+            font-size: 17px;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 48px 24px;
+            background: var(--bg);
+        }
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            flex-wrap: wrap;
+            gap: 32px;
+        }
+        .footer-brand .logo { margin-bottom: 12px; }
+        .footer-brand p {
+            font-size: 13px;
+            color: var(--text-muted);
+            max-width: 260px;
+            line-height: 1.6;
+        }
+        .footer-links h4 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+        .footer-links a {
+            display: block;
+            font-size: 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 4px 0;
+            transition: color 0.2s;
+        }
+        .footer-links a:hover { color: var(--text); }
+        .footer-bottom {
+            max-width: 1100px;
+            margin: 32px auto 0;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        .payment-icons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .payment-icon {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* ===== PAYMENT MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            max-width: 440px;
+            width: 100%;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal-close:hover { color: var(--text); }
+        .modal h3 {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .modal-plan-info {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-plan-info strong {
+            color: var(--text);
+            font-size: 24px;
+        }
+        .modal-form label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .modal-form input {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            padding: 12px 14px;
+            font-size: 14px;
+            font-family: inherit;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        .modal-form input:focus { outline: none; border-color: var(--accent); }
+        .modal-form input::placeholder { color: var(--text-dim); }
+        .modal-pay-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--gradient-btn);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.25s;
+        }
+        .modal-pay-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px var(--accent-glow);
+        }
+        .modal-secure {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .nav-links.open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--bg-card);
+                border-bottom: 1px solid var(--border);
+                padding: 16px 24px;
+                gap: 16px;
+            }
+            .mobile-menu-btn { display: block; }
+            .hero { padding: 100px 24px 60px; min-height: auto; }
+            .hero-stats { gap: 24px; flex-wrap: wrap; }
+            .steps-grid, .examples-grid, .pricing-grid, .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .pricing-card.popular { order: -1; }
+            .generator-wrapper { padding: 24px; }
+            .footer-inner { flex-direction: column; }
+            section { padding: 64px 24px; }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 32px; }
+            .hero-actions { flex-direction: column; }
+            .btn { justify-content: center; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Оживи своё фото</h1>
-        <p class="subtitle">Загрузи фото — AI превратит его в видео</p>
 
-        <div class="upload-area" id="upload-area">
-            <div class="upload-icon">📷</div>
-            <div class="upload-text">Нажми или перетащи фото сюда</div>
-            <div class="upload-hint">JPG, PNG, WEBP — до 10 МБ</div>
-            <img class="preview-img" id="preview">
-            <div class="change-photo" id="change-photo">Выбрать другое фото</div>
-        </div>
-        <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp">
-
-        <div class="prompt-field">
-            <textarea id="prompt" placeholder="Описание движения (необязательно)..."></textarea>
-        </div>
-
-        <button class="generate-btn" id="generate-btn" disabled>Создать видео</button>
-
-        <div class="progress-section" id="progress">
-            <div class="spinner"></div>
-            <div class="progress-status" id="progress-status">Загрузка...</div>
-            <div class="progress-time" id="progress-time"></div>
-            <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
-        </div>
-
-        <div class="error-msg" id="error"></div>
-
-        <div class="result-section" id="result">
-            <video class="result-video" id="result-video" controls autoplay loop playsinline></video>
-            <div class="result-actions">
-                <button class="result-btn download" id="download-btn">Скачать видео</button>
-                <button class="result-btn again" id="again-btn">Ещё раз</button>
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-inner">
+            <div class="logo">VideoAI</div>
+            <div class="nav-links" id="nav-links">
+                <a href="#how-it-works">Как это работает</a>
+                <a href="#examples">Примеры</a>
+                <a href="#pricing">Тарифы</a>
+                <a href="#faq">FAQ</a>
+                <a href="#generator" class="nav-cta">Попробовать</a>
             </div>
+            <button class="mobile-menu-btn" id="menu-btn" aria-label="Меню">&#9776;</button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="pulse"></span>
+                Нейросеть работает 24/7
+            </div>
+            <h1>Оживи своё фото<br><span class="gradient-text">за 60 секунд</span></h1>
+            <p class="hero-sub">Загрузите любую фотографию — искусственный интеллект превратит её в живое видео. Без навыков монтажа, без программ, без ожидания.</p>
+            <div class="hero-actions">
+                <a href="#generator" class="btn btn-primary">Попробовать бесплатно</a>
+                <a href="#examples" class="btn btn-secondary">Смотреть примеры</a>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-num">12 000+</div>
+                    <div class="hero-stat-label">Видео создано</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num">&lt; 2 мин</div>
+                    <div class="hero-stat-label">Среднее время</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num">4.8/5</div>
+                    <div class="hero-stat-label">Оценка пользователей</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how-it-works">
+        <div class="section-inner">
+            <div class="section-header">
+                <div class="section-label">Как это работает</div>
+                <h2 class="section-title">Три простых шага</h2>
+                <p class="section-desc">Никаких сложных программ. Загрузите фото, подождите минуту, скачайте готовое видео.</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <h3>Загрузите фото</h3>
+                    <p>Перетащите или выберите любое фото — портрет, пейзаж, предмет. Поддерживаем JPG, PNG, WEBP.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <h3>AI создаёт видео</h3>
+                    <p>Нейросеть анализирует фото и генерирует плавное, реалистичное видео за 1-2 минуты.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">3</div>
+                    <h3>Скачайте результат</h3>
+                    <p>Готовое видео в высоком качестве. Публикуйте в соцсетях, используйте в рекламе, удивляйте друзей.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EXAMPLES -->
+    <section id="examples">
+        <div class="section-inner">
+            <div class="section-header">
+                <div class="section-label">Примеры</div>
+                <h2 class="section-title">Что можно оживить</h2>
+                <p class="section-desc">От портретов до пейзажей — AI справляется с любыми фотографиями</p>
+            </div>
+            <div class="examples-grid">
+                <div class="example-card">
+                    <div class="example-visual">
+                        <span class="placeholder-icon">🧑</span>
+                        <span class="example-badge">Портрет</span>
+                    </div>
+                    <div class="example-info">
+                        <h4>Портреты оживают</h4>
+                        <p>Мимика, моргание, поворот головы — всё выглядит натурально</p>
+                    </div>
+                </div>
+                <div class="example-card">
+                    <div class="example-visual">
+                        <span class="placeholder-icon">🏔</span>
+                        <span class="example-badge">Пейзаж</span>
+                    </div>
+                    <div class="example-info">
+                        <h4>Пейзажи в движении</h4>
+                        <p>Облака плывут, вода течёт, деревья колышутся на ветру</p>
+                    </div>
+                </div>
+                <div class="example-card">
+                    <div class="example-visual">
+                        <span class="placeholder-icon">🐕</span>
+                        <span class="example-badge">Животные</span>
+                    </div>
+                    <div class="example-info">
+                        <h4>Питомцы двигаются</h4>
+                        <p>Ваш кот или собака «оживут» на фотографии</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features">
+        <div class="section-inner">
+            <div class="section-header">
+                <div class="section-label">Преимущества</div>
+                <h2 class="section-title">Почему выбирают нас</h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">&#9889;</div>
+                    <h3>Быстро</h3>
+                    <p>Среднее время генерации — 60-90 секунд. Никакого ожидания в очереди.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#127912;</div>
+                    <h3>Высокое качество</h3>
+                    <p>Передовая нейросеть создаёт плавные, реалистичные видео без артефактов.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128274;</div>
+                    <h3>Приватно</h3>
+                    <p>Ваши фото не хранятся на серверах. Обработка — и удаление. Без регистрации.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128241;</div>
+                    <h3>Работает везде</h3>
+                    <p>Телефон, планшет, компьютер — просто откройте сайт и загрузите фото.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing">
+        <div class="section-inner">
+            <div class="section-header">
+                <div class="section-label">Тарифы</div>
+                <h2 class="section-title">Выберите свой план</h2>
+                <p class="section-desc">Первое видео — бесплатно. Без привязки карты.</p>
+            </div>
+            <div class="pricing-grid">
+
+                <!-- Starter -->
+                <div class="pricing-card">
+                    <div class="pricing-name">Старт</div>
+                    <div class="pricing-desc">Попробовать и оценить качество</div>
+                    <div class="pricing-price">
+                        <span class="pricing-amount">290</span>
+                        <span class="pricing-currency"> &#8381;</span>
+                        <div class="pricing-period">разовый платёж</div>
+                        <div class="pricing-per-video">29 &#8381; за видео</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">&#10003;</span> 10 видео</li>
+                        <li><span class="check">&#10003;</span> Качество до 720p</li>
+                        <li><span class="check">&#10003;</span> Скачивание без водяного знака</li>
+                        <li><span class="check">&#10003;</span> Поддержка в Telegram</li>
+                    </ul>
+                    <button class="pricing-btn pricing-btn-secondary" onclick="openPayment('starter', 290, '10 видео')">Купить</button>
+                </div>
+
+                <!-- Pro — Popular -->
+                <div class="pricing-card popular">
+                    <div class="pricing-popular-badge">Выгодный</div>
+                    <div class="pricing-name">Про</div>
+                    <div class="pricing-desc">Для активного использования</div>
+                    <div class="pricing-price">
+                        <span class="pricing-amount">790</span>
+                        <span class="pricing-currency"> &#8381;</span>
+                        <div class="pricing-period">разовый платёж</div>
+                        <div class="pricing-per-video">15.8 &#8381; за видео</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">&#10003;</span> 50 видео</li>
+                        <li><span class="check">&#10003;</span> Качество до 1080p</li>
+                        <li><span class="check">&#10003;</span> Приоритетная генерация</li>
+                        <li><span class="check">&#10003;</span> Расширенные промпты</li>
+                        <li><span class="check">&#10003;</span> Поддержка 24/7</li>
+                    </ul>
+                    <button class="pricing-btn pricing-btn-primary" onclick="openPayment('pro', 790, '50 видео')">Купить</button>
+                </div>
+
+                <!-- Business -->
+                <div class="pricing-card">
+                    <div class="pricing-name">Бизнес</div>
+                    <div class="pricing-desc">Для команд и бизнеса</div>
+                    <div class="pricing-price">
+                        <span class="pricing-amount">2 490</span>
+                        <span class="pricing-currency"> &#8381;</span>
+                        <div class="pricing-period">разовый платёж</div>
+                        <div class="pricing-per-video">12.4 &#8381; за видео</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">&#10003;</span> 200 видео</li>
+                        <li><span class="check">&#10003;</span> Качество до 1080p</li>
+                        <li><span class="check">&#10003;</span> Максимальный приоритет</li>
+                        <li><span class="check">&#10003;</span> API-доступ</li>
+                        <li><span class="check">&#10003;</span> Персональный менеджер</li>
+                    </ul>
+                    <button class="pricing-btn pricing-btn-secondary" onclick="openPayment('business', 2490, '200 видео')">Купить</button>
+                </div>
+
+            </div>
+            <p class="pricing-guarantee">&#128274; Безопасная оплата через ЮKassa. Возврат, если не понравится качество.</p>
+        </div>
+    </section>
+
+    <!-- GENERATOR -->
+    <section id="generator">
+        <div class="section-inner">
+            <div class="section-header">
+                <div class="section-label">Генератор</div>
+                <h2 class="section-title">Создайте видео прямо сейчас</h2>
+                <p class="section-desc">Первое видео — бесплатно. Просто загрузите фото.</p>
+            </div>
+            <div class="generator-wrapper">
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">&#128247;</div>
+                    <div class="upload-text">Нажмите или перетащите фото сюда</div>
+                    <div class="upload-hint">JPG, PNG, WEBP — до 10 МБ</div>
+                    <img class="preview-img" id="preview" alt="Предпросмотр">
+                    <div class="change-photo" id="change-photo">Выбрать другое фото</div>
+                </div>
+                <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp">
+
+                <div class="prompt-field">
+                    <textarea id="prompt" placeholder="Описание движения (необязательно)..."></textarea>
+                </div>
+
+                <button class="generate-btn" id="generate-btn" disabled>Создать видео</button>
+                <div class="credits-info">
+                    Осталось: <span class="credits-count" id="credits-count">1</span> бесплатное видео
+                </div>
+
+                <div class="progress-section" id="progress">
+                    <div class="spinner"></div>
+                    <div class="progress-status" id="progress-status">Загрузка...</div>
+                    <div class="progress-time" id="progress-time"></div>
+                    <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
+                </div>
+
+                <div class="error-msg" id="error"></div>
+
+                <div class="result-section" id="result">
+                    <video class="result-video" id="result-video" controls autoplay loop playsinline></video>
+                    <div class="result-actions">
+                        <button class="result-btn download" id="download-btn">Скачать видео</button>
+                        <button class="result-btn again" id="again-btn">Ещё раз</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+        <div class="section-inner">
+            <div class="section-header">
+                <div class="section-label">FAQ</div>
+                <h2 class="section-title">Частые вопросы</h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Какие фото подходят?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">Подойдёт любое фото в формате JPG, PNG или WEBP до 10 МБ. Лучше всего работает с чёткими фотографиями — портретами, пейзажами, фото животных. Чем выше качество исходного фото, тем лучше результат.</div>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Сколько длится видео?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">Генерируется видео длительностью 3-5 секунд. Этого достаточно для сторис, рилс и красивых анимаций. Зацикленное воспроизведение делает его визуально бесконечным.</div>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Мои фото хранятся у вас?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">Нет. Фото используется только для генерации и автоматически удаляется после обработки. Мы не храним ваши изображения и не используем их для обучения нейросети.</div>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Можно использовать видео коммерчески?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">Да, все созданные видео принадлежат вам. Используйте для соцсетей, рекламы, презентаций — без ограничений. На платных тарифах видео без водяного знака.</div>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Как происходит оплата?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">Оплата через ЮKassa — крупнейший платёжный сервис в России. Принимаем банковские карты (Visa, Mastercard, МИР), SberPay, ЮMoney, QIWI. Все платежи защищены шифрованием.</div>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Можно вернуть деньги?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <div class="faq-answer-inner">Да. Если качество генерации вас не устроит, напишите нам в Telegram в течение 3 дней после оплаты — вернём деньги без вопросов.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2>Готовы оживить свои фото?</h2>
+            <p>Первое видео — бесплатно. Результат за 60 секунд.</p>
+            <a href="#generator" class="btn btn-primary">Создать видео бесплатно</a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="logo">VideoAI</div>
+                <p>AI-сервис для создания живых видео из фотографий. Быстро, качественно, без регистрации.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Навигация</h4>
+                <a href="#how-it-works">Как это работает</a>
+                <a href="#examples">Примеры</a>
+                <a href="#pricing">Тарифы</a>
+                <a href="#faq">FAQ</a>
+            </div>
+            <div class="footer-links">
+                <h4>Поддержка</h4>
+                <a href="#" id="tg-link">Telegram</a>
+                <a href="mailto:support@videoai.ru">Email</a>
+            </div>
+            <div class="footer-links">
+                <h4>Документы</h4>
+                <a href="#">Оферта</a>
+                <a href="#">Политика конфиденциальности</a>
+                <a href="#">Возврат средств</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2025 VideoAI. Все права защищены.</span>
+            <div class="payment-icons">
+                <span class="payment-icon">VISA</span>
+                <span class="payment-icon">MC</span>
+                <span class="payment-icon">МИР</span>
+                <span class="payment-icon">SberPay</span>
+                <span class="payment-icon">ЮMoney</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- PAYMENT MODAL -->
+    <div class="modal-overlay" id="payment-modal">
+        <div class="modal">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <h3>Оплата</h3>
+            <div class="modal-plan-info" id="modal-plan-info"></div>
+            <div class="modal-form">
+                <label>Email (для получения кредитов)</label>
+                <input type="email" id="payment-email" placeholder="your@email.com">
+                <button class="modal-pay-btn" id="modal-pay-btn">Перейти к оплате</button>
+            </div>
+            <div class="modal-secure">&#128274; Безопасная оплата через ЮKassa</div>
         </div>
     </div>
 
     <script>
+        // ===== CONFIG =====
         const API_CREATE = 'https://n8n.24isk.ru/webhook/web-video-create';
         const API_STATUS = 'https://n8n.24isk.ru/webhook/web-video-status';
 
+        // ЮKassa config — замените на свои данные
+        const YUKASSA_SHOP_ID = 'YOUR_SHOP_ID'; // <-- ваш shopId из ЮKassa
+        const YUKASSA_RETURN_URL = 'https://vlztranss-cell.github.io/test-1-moy/video.html#generator';
+        // Webhook для создания платежа через n8n:
+        const API_PAYMENT = 'https://n8n.24isk.ru/webhook/yukassa-create-payment';
+
+        // ===== CREDITS SYSTEM =====
+        function getCredits() {
+            const c = localStorage.getItem('videoai_credits');
+            if (c === null) { setCredits(1); return 1; } // 1 бесплатное видео
+            return parseInt(c, 10);
+        }
+        function setCredits(n) {
+            localStorage.setItem('videoai_credits', n);
+            updateCreditsUI();
+        }
+        function useCredit() {
+            const c = getCredits();
+            if (c <= 0) return false;
+            setCredits(c - 1);
+            return true;
+        }
+        function updateCreditsUI() {
+            const c = getCredits();
+            const el = document.getElementById('credits-count');
+            if (el) {
+                el.textContent = c;
+                if (c === 0) {
+                    el.closest('.credits-info').innerHTML = 'Кредиты закончились. <a href="#pricing" style="color:var(--accent-light)">Купить ещё</a>';
+                }
+            }
+        }
+
+        // ===== NAVBAR =====
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 50);
+        });
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            document.getElementById('nav-links').classList.toggle('open');
+        });
+        // Close mobile menu on link click
+        document.querySelectorAll('.nav-links a').forEach(a => {
+            a.addEventListener('click', () => {
+                document.getElementById('nav-links').classList.remove('open');
+            });
+        });
+
+        // ===== FAQ =====
+        document.querySelectorAll('.faq-question').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const item = btn.parentElement;
+                const answer = item.querySelector('.faq-answer');
+                const isOpen = item.classList.contains('open');
+
+                // Close all
+                document.querySelectorAll('.faq-item.open').forEach(openItem => {
+                    openItem.classList.remove('open');
+                    openItem.querySelector('.faq-answer').style.maxHeight = '0';
+                });
+
+                if (!isOpen) {
+                    item.classList.add('open');
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
+                }
+            });
+        });
+
+        // ===== PAYMENT MODAL =====
+        let currentPlan = null;
+        let currentAmount = 0;
+
+        function openPayment(plan, amount, description) {
+            currentPlan = plan;
+            currentAmount = amount;
+            document.getElementById('modal-plan-info').innerHTML =
+                `Тариф: <strong>${description}</strong><br>Сумма: <strong>${amount} &#8381;</strong>`;
+            document.getElementById('payment-modal').classList.add('active');
+        }
+
+        document.getElementById('modal-close').addEventListener('click', () => {
+            document.getElementById('payment-modal').classList.remove('active');
+        });
+        document.getElementById('payment-modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('payment-modal').classList.remove('active');
+            }
+        });
+
+        document.getElementById('modal-pay-btn').addEventListener('click', async () => {
+            const email = document.getElementById('payment-email').value.trim();
+            if (!email || !email.includes('@')) {
+                alert('Введите корректный email');
+                return;
+            }
+
+            const btn = document.getElementById('modal-pay-btn');
+            btn.textContent = 'Создаём платёж...';
+            btn.disabled = true;
+
+            try {
+                // Запрос к n8n для создания платежа ЮKassa
+                const resp = await fetch(API_PAYMENT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: currentAmount,
+                        plan: currentPlan,
+                        email: email,
+                        session_id: getSessionId(),
+                        return_url: YUKASSA_RETURN_URL
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (data.confirmation_url) {
+                    // Сохраняем email для привязки кредитов
+                    localStorage.setItem('videoai_email', email);
+                    localStorage.setItem('videoai_pending_plan', currentPlan);
+                    // Редирект на страницу оплаты ЮKassa
+                    window.location.href = data.confirmation_url;
+                } else {
+                    throw new Error(data.error || 'Не удалось создать платёж');
+                }
+            } catch (e) {
+                alert('Ошибка: ' + e.message);
+                btn.textContent = 'Перейти к оплате';
+                btn.disabled = false;
+            }
+        });
+
+        // Проверка возврата после оплаты
+        function checkPaymentReturn() {
+            const pending = localStorage.getItem('videoai_pending_plan');
+            if (pending && window.location.hash === '#generator') {
+                // Можно добавить проверку статуса платежа через API
+                const creditsMap = { starter: 10, pro: 50, business: 200 };
+                const toAdd = creditsMap[pending] || 0;
+                if (toAdd > 0) {
+                    const current = getCredits();
+                    setCredits(current + toAdd);
+                    localStorage.removeItem('videoai_pending_plan');
+                }
+            }
+        }
+
+        // ===== GENERATOR =====
         let selectedFile = null;
         let pollTimer = null;
         let startTime = null;
@@ -276,7 +1567,6 @@
         const downloadBtn = document.getElementById('download-btn');
         const againBtn = document.getElementById('again-btn');
 
-        // Upload area click
         uploadArea.addEventListener('click', (e) => {
             if (!uploadArea.classList.contains('has-image')) fileInput.click();
         });
@@ -285,7 +1575,6 @@
             fileInput.click();
         });
 
-        // Drag and drop
         uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
         uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
         uploadArea.addEventListener('drop', (e) => {
@@ -319,11 +1608,18 @@
             reader.readAsDataURL(file);
         }
 
-        // Generate
         generateBtn.addEventListener('click', startGeneration);
 
         async function startGeneration() {
             if (!selectedFile) return;
+
+            // Проверка кредитов
+            if (getCredits() <= 0) {
+                showError('Кредиты закончились. Выберите тариф для продолжения.');
+                document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+
             generateBtn.disabled = true;
             hideError();
             resultSection.classList.remove('active');
@@ -335,7 +1631,6 @@
             updateTimer();
 
             try {
-                // Resize to small JPEG and get base64
                 const resizedBlob = await resizeImage(selectedFile, 768);
                 const base64Full = await blobToBase64(resizedBlob);
                 const pureBase64 = base64Full.replace(/^data:image\/[^;]+;base64,/, '');
@@ -343,7 +1638,6 @@
                 progressStatus.textContent = 'Отправка на сервер...';
                 progressBar.style.width = '10%';
 
-                // Send base64 to n8n (n8n uploads to image host server-side)
                 const resp = await fetch(API_CREATE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -360,7 +1654,10 @@
                     throw new Error(data.error || 'Не удалось создать задачу');
                 }
 
-                progressStatus.textContent = 'Генерация видео...';
+                // Списываем кредит после успешного запуска
+                useCredit();
+
+                progressStatus.textContent = 'AI генерирует видео...';
                 progressBar.style.width = '25%';
 
                 startPolling(data.task_id);
@@ -374,13 +1671,12 @@
 
         function startPolling(taskId) {
             let attempts = 0;
-            const maxAttempts = 120; // 10 minutes
+            const maxAttempts = 120;
 
             pollTimer = setInterval(async () => {
                 attempts++;
                 updateTimer();
 
-                // Progress bar animation
                 const progress = Math.min(25 + (attempts / maxAttempts) * 65, 90);
                 progressBar.style.width = progress + '%';
 
@@ -390,7 +1686,7 @@
                 try {
                     const resp = await fetch(API_STATUS + '?task_id=' + taskId);
                     const text = await resp.text();
-                    if (!text) { return; } // empty response, skip this poll
+                    if (!text) return;
                     const data = JSON.parse(text);
 
                     if (data.status === 'completed' && data.video_url) {
@@ -405,7 +1701,6 @@
                         clearInterval(pollTimer);
                         throw new Error(data.error || 'Генерация не удалась');
                     }
-
                 } catch (e) {
                     clearInterval(pollTimer);
                     showError('Ошибка: ' + e.message);
@@ -416,7 +1711,7 @@
 
                 if (attempts >= maxAttempts) {
                     clearInterval(pollTimer);
-                    showError('Превышено время ожидания (5 мин). Попробуйте ещё раз.');
+                    showError('Превышено время ожидания. Попробуйте ещё раз.');
                     progressSection.classList.remove('active');
                     generateBtn.disabled = false;
                 }
@@ -453,6 +1748,7 @@
             document.getElementById('prompt').value = '';
             generateBtn.disabled = true;
             hideError();
+            updateCreditsUI();
         });
 
         function updateTimer() {
@@ -494,20 +1790,15 @@
             });
         }
 
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
         function getSessionId() {
             let id = localStorage.getItem('video_session_id');
             if (!id) { id = crypto.randomUUID(); localStorage.setItem('video_session_id', id); }
             return id;
         }
+
+        // ===== INIT =====
+        updateCreditsUI();
+        checkPaymentReturn();
     </script>
 </body>
 </html>
