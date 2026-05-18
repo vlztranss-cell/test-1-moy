@@ -335,38 +335,20 @@
             updateTimer();
 
             try {
-                // 1. Resize image
+                // Resize to small JPEG and get base64
                 const resizedBlob = await resizeImage(selectedFile, 768);
                 const base64Full = await blobToBase64(resizedBlob);
                 const pureBase64 = base64Full.replace(/^data:image\/[^;]+;base64,/, '');
 
-                progressStatus.textContent = 'Загрузка фото...';
+                progressStatus.textContent = 'Отправка на сервер...';
                 progressBar.style.width = '10%';
 
-                // 2. Upload to freeimage.host (from browser, no CORS issues)
-                const uploadForm = new FormData();
-                uploadForm.append('key', '6d207e02198a847aa98d0a2a901485a5');
-                uploadForm.append('action', 'upload');
-                uploadForm.append('source', pureBase64);
-                uploadForm.append('format', 'json');
-
-                const uploadResp = await fetch('https://freeimage.host/api/1/upload', {
-                    method: 'POST',
-                    body: uploadForm
-                });
-                const uploadData = await uploadResp.json();
-                if (uploadData.status_code !== 200) throw new Error('Не удалось загрузить фото');
-                const imageUrl = uploadData.image.url;
-
-                progressStatus.textContent = 'Создание задачи...';
-                progressBar.style.width = '20%';
-
-                // 3. Send URL to n8n (small payload)
+                // Send base64 to n8n (n8n uploads to image host server-side)
                 const resp = await fetch(API_CREATE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        image_url: imageUrl,
+                        image_base64: pureBase64,
                         prompt: document.getElementById('prompt').value || 'Bring this photo to life with natural, gentle motion',
                         session_id: getSessionId()
                     })
