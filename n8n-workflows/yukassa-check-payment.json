@@ -19,7 +19,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT payment_id, plan, amount, status, credits_added\nFROM web_payments\nWHERE (email = '{{ $json.body.email }}' OR session_id = '{{ $json.body.session_id }}')\nORDER BY created_at DESC\nLIMIT 1",
+        "query": "SELECT payment_id, tariff_code, amount_rub, is_paid, generations_limit, generations_left\nFROM web_orders\nWHERE (email = '{{ $json.body.email }}' OR session_id = '{{ $json.body.session_id }}')\n  AND payment_id IS NOT NULL\nORDER BY created_at DESC\nLIMIT 1",
         "options": {}
       },
       "id": "pg-check",
@@ -44,8 +44,8 @@
           },
           "conditions": [
             {
-              "leftValue": "={{ $json.status }}",
-              "rightValue": "succeeded",
+              "leftValue": "={{ $json.is_paid }}",
+              "rightValue": "yes",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -63,7 +63,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"succeeded\",\n  \"credits\": {{ {\"starter\": 10, \"pro\": 50, \"business\": 200}[$('Check PostgreSQL').item.json.plan] || 0 }},\n  \"plan\": \"{{ $('Check PostgreSQL').item.json.plan }}\"\n}",
+        "responseBody": "={\n  \"status\": \"succeeded\",\n  \"credits\": {{ $('Check PostgreSQL').item.json.generations_limit || 0 }},\n  \"plan\": \"{{ $('Check PostgreSQL').item.json.tariff_code }}\"\n}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -84,7 +84,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"{{ $('Check PostgreSQL').item.json.status || 'not_found' }}\",\n  \"credits\": 0\n}",
+        "responseBody": "={\n  \"status\": \"{{ $('Check PostgreSQL').item.json.is_paid || 'not_found' }}\",\n  \"credits\": 0\n}",
         "options": {
           "responseHeaders": {
             "entries": [

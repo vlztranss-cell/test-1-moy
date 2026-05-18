@@ -4,78 +4,76 @@
 
 ```
 Лендинг (video.html)
-    │
-    ├─ [Купить] → POST yukassa-create-payment
-    │                 │
-    │                 ├─ Создаёт платёж в ЮKassa API
-    │                 ├─ Сохраняет в PostgreSQL (web_payments)
-    │                 └─ Возвращает confirmation_url → редирект
-    │
-    ├─ [Возврат после оплаты] → POST yukassa-check-payment
-    │                              │
-    │                              ├─ Проверяет статус в PostgreSQL
-    │                              └─ Возвращает {status, credits}
-    │
-    └─ ЮKassa сама шлёт callback → POST yukassa-payment-callback
-                                       │
-                                       ├─ source=web → UPDATE web_payments
-                                       └─ source=bot → пропускает (бот обработает сам)
+    |
+    +-- [Купить] --> POST yukassa-create-payment
+    |                   |
+    |                   +-- Создает платеж в ЮKassa API
+    |                   +-- Обновляет web_orders (payment_id, tariff_code, amount_rub)
+    |                   +-- Возвращает confirmation_url -> редирект
+    |
+    +-- [Возврат после оплаты] --> POST yukassa-check-payment
+    |                                  |
+    |                                  +-- Проверяет is_paid в web_orders
+    |                                  +-- Возвращает {status, credits}
+    |
+    +-- ЮKassa callback --> POST yukassa-payment-callback
+                                |
+                                +-- source=web -> UPDATE web_orders SET is_paid='yes'
+                                +-- source=bot -> пропускает (бот обработает сам)
 ```
+
+## БД: photo_bot @ 72.56.96.64
+
+Используется существующая таблица `web_orders` (та же что для генерации).
+Добавлена колонка `email` для привязки веб-платежей.
+
+Ключевые поля для оплаты:
+- `payment_id` — ID платежа ЮKassa
+- `tariff_code` — starter / pro / business
+- `amount_rub` — сумма
+- `is_paid` — 'no' / 'pending' / 'yes'
+- `generations_limit` — сколько видео в пакете (10/50/200)
+- `generations_left` — сколько осталось
+- `paid_at` — дата оплаты
+- `email` — email покупателя (NEW)
 
 ## Шаги настройки
 
-### 1. Создать таблицу в PostgreSQL
+### 1. SQL миграция — УЖЕ ВЫПОЛНЕНА
 
-```bash
-ssh root@72.56.96.64
-psql -U <user> -d <database> -f setup.sql
-```
-
-Или выполнить содержимое `setup.sql` через любой PostgreSQL клиент.
+Колонка `email` добавлена, индекс создан.
 
 ### 2. Импорт workflows в n8n
 
 1. Открыть https://n8n.24isk.ru/
-2. Для каждого файла:
-   - Меню → Import from File
-   - Выбрать JSON файл
-   - **Заменить ID credentials** на реальные (см. ниже)
-3. Активировать все 3 workflow
+2. Для каждого файла: Menu -> Import from File
+3. В каждой ноде выбрать credentials из выпадающего списка:
+   - PostgreSQL -> `ssh root@72.56.96.64`
+   - HTTP Basic Auth (ЮKassa) -> `юкасса 23.10.2026`
+4. Активировать все 3 workflow
 
-### 3. Credentials — что заменить
-
-В каждом workflow нужно привязать credentials к реальным:
-
-| Placeholder в JSON | Что подставить |
-|---|---|
-| `YUKASSA_CREDENTIAL_ID` | ID credential "юкасса 23.10.2026" (httpBasicAuth) |
-| `POSTGRES_CREDENTIAL_ID` | ID credential "ssh root@72.56.96.64" (postgres) |
-
-Проще всего: после импорта открыть каждую ноду и выбрать credential из выпадающего списка.
-
-### 4. Настроить callback в ЮKassa
+### 3. Настроить callback в ЮKassa
 
 В личном кабинете ЮKassa (https://yookassa.ru/my/payments):
-- Настройки → HTTP-уведомления
+- Настройки -> HTTP-уведомления
 - URL: `https://n8n.24isk.ru/webhook/yukassa-payment-callback`
 - События: `payment.succeeded`, `payment.canceled`
 
-**Важно:** если у бота уже настроен свой callback — можно:
-- Вариант А: направить оба (бот + веб) на этот новый callback, а из него маршрутизировать по `metadata.source`
-- Вариант Б: в ЮKassa указать callback только для веб-платежей (по shop_id), а бот оставить со своим
+**Если у бота уже свой callback:** Можно направить оба на этот новый,
+он различает по `metadata.source` (web vs bot).
 
-### 5. Проверка
+### 4. Проверка
 
-1. Открыть лендинг → выбрать тариф → ввести email
-2. Должен редиректить на страницу оплаты ЮKassa
-3. После оплаты (тестовый режим) — вернуться на лендинг
-4. Кредиты должны зачислиться автоматически
+1. Открыть лендинг -> выбрать тариф -> ввести email
+2. Редирект на ЮKassa
+3. После оплаты (тестовый режим) -> возврат на лендинг
+4. Кредиты зачислятся автоматически
 
 ## Файлы
 
-| Файл | Что делает |
+| Файл | Назначение |
 |------|-----------|
-| `yukassa-create-payment.json` | Создание платежа (лендинг → ЮKassa) |
-| `yukassa-check-payment.json` | Проверка статуса (лендинг ← PostgreSQL) |
-| `yukassa-webhook-callback.json` | Callback от ЮKassa → обновление БД |
-| `setup.sql` | SQL для создания таблицы web_payments |
+| `yukassa-create-payment.json` | Создание платежа (лендинг -> ЮKassa) |
+| `yukassa-check-payment.json` | Проверка статуса (лендинг <- PostgreSQL) |
+| `yukassa-webhook-callback.json` | Callback от ЮKassa -> обновление БД |
+| `setup.sql` | SQL миграция (email колонка) |
