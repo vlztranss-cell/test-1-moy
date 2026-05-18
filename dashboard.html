@@ -124,6 +124,133 @@
         .finance-table tr:hover td { background: #1c2128; }
         .green { color: #3fb950; }
         .red { color: #f85149; }
+        /* ===== TASK BOARD ===== */
+        .tasks-section { margin-top: 24px; }
+        .tasks-section > h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #c9d1d9;
+            margin-bottom: 16px;
+        }
+        .task-projects {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 16px;
+        }
+        .task-project-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+        .task-project-card:hover { border-color: #58a6ff; }
+        .task-project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .task-project-name {
+            font-size: 17px;
+            font-weight: 700;
+        }
+        .task-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .task-progress-bar {
+            width: 80px;
+            height: 6px;
+            background: #21262d;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .task-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3fb950, #2ea043);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .task-progress-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #3fb950;
+        }
+        .task-project-desc {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 14px;
+        }
+        .task-group-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #21262d;
+        }
+        .task-group-label.done { color: #3fb950; }
+        .task-group-label.todo { color: #58a6ff; }
+        .task-group-label.blocked { color: #f0883e; }
+        .task-list { list-style: none; margin-bottom: 14px; }
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 5px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .task-check {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1.5px solid #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+        .task-check.done {
+            background: #0f2d1a;
+            border-color: #3fb950;
+            color: #3fb950;
+        }
+        .task-check.todo {
+            border-color: #30363d;
+        }
+        .task-check.blocked {
+            background: #3d2400;
+            border-color: #f0883e;
+            color: #f0883e;
+        }
+        .task-text { color: #c9d1d9; }
+        .task-text.done-text { color: #6e7681; text-decoration: line-through; }
+        .task-text .task-tag {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        .tag-dev { background: #1d3a5c; color: #58a6ff; }
+        .tag-design { background: #2d1f3d; color: #bc8cff; }
+        .tag-marketing { background: #3d3a1f; color: #e3d37c; }
+        .tag-finance { background: #1f3d2d; color: #7ce38b; }
+        .tag-infra { background: #3d1f1f; color: #f0883e; }
+        .task-date {
+            font-size: 10px;
+            color: #484f58;
+            margin-left: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
         .projects-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -461,6 +588,12 @@
         </div>
     </div>
 
+    <!-- TASK BOARD -->
+    <div class="tasks-section">
+        <h2>Задачи по проектам</h2>
+        <div class="task-projects" id="task-board"></div>
+    </div>
+
     <div class="projects-grid" id="projects">
         <div class="loading">Загрузка данных</div>
     </div>
@@ -713,6 +846,126 @@
             }
         }
 
+        // ===== TASK BOARD DATA =====
+        const TASK_DATA = [
+            {
+                project: 'VideoAI Лендинг',
+                desc: 'Продающий сайт для генерации видео из фото — video.html',
+                link: 'https://vlztranss-cell.github.io/test-1-moy/video.html',
+                done: [
+                    { text: 'Создан лендинг (hero, how-it-works, features, FAQ, footer)', date: '18.05.26', tag: 'dev' },
+                    { text: 'Секция тарифов: Старт 290₽/10, Про 790₽/50, Бизнес 2490₽/200', date: '18.05.26', tag: 'finance' },
+                    { text: 'Модальное окно оплаты через ЮKassa (фронтенд)', date: '18.05.26', tag: 'dev' },
+                    { text: 'Генератор видео встроен в лендинг + система кредитов (1 бесплатное)', date: '18.05.26', tag: 'dev' },
+                    { text: 'Добавлены 6 демо-видео из бота (память, детство, питомцы, love, примеры)', date: '18.05.26', tag: 'design' },
+                    { text: 'Hero-секция с реальным welcome-видео', date: '18.05.26', tag: 'design' },
+                    { text: 'Аудитории бота (память, детство, питомцы, love story) вынесены в копирайтинг', date: '18.05.26', tag: 'marketing' },
+                    { text: 'Плавающая кнопка Telegram-бота + ссылки в навбаре и CTA', date: '18.05.26', tag: 'design' },
+                    { text: 'Цены в боте синхронизированы с сайтом (290/790/2490)', date: '18.05.26', tag: 'finance' },
+                    { text: 'Адаптивная вёрстка (мобилки, планшеты)', date: '18.05.26', tag: 'dev' },
+                ],
+                todo: [
+                    { text: 'Создать n8n webhook yukassa-create-payment (бэкенд оплаты)', tag: 'dev' },
+                    { text: 'Подставить реальный SHOP_ID ЮKassa', tag: 'infra' },
+                    { text: 'Webhook подтверждения оплаты → начисление кредитов в БД', tag: 'dev' },
+                    { text: 'Реальные цифры в статистике hero (вместо 12 000+)', tag: 'marketing' },
+                    { text: 'OG-картинка для шаринга в соцсетях', tag: 'design' },
+                    { text: 'Яндекс.Метрика + цели на конверсии', tag: 'marketing' },
+                    { text: 'Юридические документы (оферта, политика конфиденциальности)', tag: 'finance' },
+                    { text: 'Свой домен (вместо github.io)', tag: 'infra' },
+                ],
+                blocked: []
+            },
+            {
+                project: 'Photo2Video Bot',
+                desc: 'Telegram-бот @photo2video — основной продукт',
+                done: [
+                    { text: 'Бот работает: фото → видео через Hailuo/Kling', date: 'ранее', tag: 'dev' },
+                    { text: 'Оплата через ЮKassa (4 тарифа)', date: 'ранее', tag: 'finance' },
+                    { text: 'Follow-up рассылки неактивным (24ч, 72ч)', date: 'ранее', tag: 'marketing' },
+                    { text: 'Демо-видео по категориям (6 шаблонов)', date: 'ранее', tag: 'design' },
+                    { text: 'Админ-статистика в Telegram', date: 'ранее', tag: 'dev' },
+                    { text: 'Тарифы обновлены: Старт/Про/Бизнес (290/790/2490)', date: '18.05.26', tag: 'finance' },
+                    { text: 'Follow-up промо обновлены под новые цены', date: '18.05.26', tag: 'marketing' },
+                ],
+                todo: [
+                    { text: 'Добавить реферальную систему (приведи друга)', tag: 'marketing' },
+                    { text: 'Автоматические промо-акции по сегментам', tag: 'marketing' },
+                ],
+                blocked: []
+            },
+            {
+                project: 'Wildberries Cards',
+                desc: 'Автоматизация карточек WB — создание, фото, цены, остатки',
+                done: [
+                    { text: 'Конвейер: Sheets → карточка → фото → цены → LIVE', date: 'ранее', tag: 'dev' },
+                    { text: 'Кэш справочников WB', date: 'ранее', tag: 'dev' },
+                ],
+                todo: [
+                    { text: 'Мониторинг ошибок создания карточек', tag: 'dev' },
+                ],
+                blocked: []
+            },
+            {
+                project: 'Print-on-Demand',
+                desc: 'Тренды → принты → мокапы → WB',
+                done: [
+                    { text: 'Trend Scanner работает (SerpAPI + Reddit + GPT)', date: 'ранее', tag: 'dev' },
+                    { text: 'Quality Control через GPT-4o Vision', date: 'ранее', tag: 'dev' },
+                ],
+                todo: [
+                    { text: 'Запустить Print Generator v4', tag: 'dev' },
+                    { text: 'Запустить Mockup Generator v9', tag: 'dev' },
+                    { text: 'Связка мокапов → загрузка на WB', tag: 'dev' },
+                ],
+                blocked: []
+            },
+        ];
+
+        function renderTaskBoard() {
+            const el = document.getElementById('task-board');
+            el.innerHTML = TASK_DATA.map(p => {
+                const total = p.done.length + p.todo.length + p.blocked.length;
+                const doneCount = p.done.length;
+                const pct = total ? Math.round(doneCount / total * 100) : 0;
+
+                const renderItem = (item, status) => `
+                    <li class="task-item">
+                        <div class="task-check ${status}">${status === 'done' ? '&#10003;' : status === 'blocked' ? '!' : ''}</div>
+                        <span class="task-text ${status === 'done' ? 'done-text' : ''}">${item.text}${item.tag ? `<span class="task-tag tag-${item.tag}">${item.tag}</span>` : ''}</span>
+                        ${item.date ? `<span class="task-date">${item.date}</span>` : ''}
+                    </li>`;
+
+                return `
+                <div class="task-project-card">
+                    <div class="task-project-header">
+                        <div class="task-project-name">${p.project}</div>
+                        <div class="task-progress">
+                            <div class="task-progress-bar"><div class="task-progress-fill" style="width:${pct}%"></div></div>
+                            <span class="task-progress-text">${doneCount}/${total}</span>
+                        </div>
+                    </div>
+                    <div class="task-project-desc">${p.desc}${p.link ? ` — <a href="${p.link}" target="_blank" style="color:#58a6ff;text-decoration:none;">открыть</a>` : ''}</div>
+
+                    ${p.todo.length ? `
+                        <div class="task-group-label todo">Предстоит (${p.todo.length})</div>
+                        <ul class="task-list">${p.todo.map(i => renderItem(i, 'todo')).join('')}</ul>
+                    ` : ''}
+
+                    ${p.blocked.length ? `
+                        <div class="task-group-label blocked">Заблокировано (${p.blocked.length})</div>
+                        <ul class="task-list">${p.blocked.map(i => renderItem(i, 'blocked')).join('')}</ul>
+                    ` : ''}
+
+                    <details style="margin-top:4px;">
+                        <summary style="font-size:11px;color:#6e7681;cursor:pointer;user-select:none;">Выполнено (${p.done.length})</summary>
+                        <ul class="task-list" style="margin-top:8px;">${p.done.map(i => renderItem(i, 'done')).join('')}</ul>
+                    </details>
+                </div>`;
+            }).join('');
+        }
+
+        renderTaskBoard();
         loadData();
         loadBotStats();
     </script>
