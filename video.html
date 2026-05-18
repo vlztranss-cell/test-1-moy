@@ -333,7 +333,7 @@
         }
         .examples-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
         .example-card {
@@ -1020,7 +1020,14 @@
                 Нейросеть работает 24/7
             </div>
             <h1>Оживи своё фото<br><span class="gradient-text">за 60 секунд</span></h1>
-            <p class="hero-sub">Загрузите любую фотографию — искусственный интеллект превратит её в живое видео. Без навыков монтажа, без программ, без ожидания.</p>
+            <p class="hero-sub">Семейное фото, детский снимок, фото с питомцем — загрузите любую фотографию, и нейросеть превратит её в живое видео. Без программ, без ожидания.</p>
+            <!-- Hero demo video -->
+            <div style="margin: 32px auto 36px; max-width: 360px;">
+                <video autoplay loop muted playsinline style="width:100%; border-radius:16px; box-shadow: 0 8px 40px rgba(124,92,252,0.2);">
+                    <source src="videos/welcome.mp4" type="video/mp4">
+                </video>
+                <p style="text-align:center; font-size:13px; color:var(--text-dim); margin-top:8px;">Вот как оживают старые фотографии</p>
+            </div>
             <div class="hero-actions">
                 <a href="#generator" class="btn btn-primary">Попробовать бесплатно</a>
                 <a href="#examples" class="btn btn-secondary">Смотреть примеры</a>
@@ -1075,38 +1082,68 @@
         <div class="section-inner">
             <div class="section-header">
                 <div class="section-label">Примеры</div>
-                <h2 class="section-title">Что можно оживить</h2>
-                <p class="section-desc">От портретов до пейзажей — AI справляется с любыми фотографиями</p>
+                <h2 class="section-title">Что чаще всего оживляют</h2>
+                <p class="section-desc">Фото родителей, детские снимки, кадры с питомцем, романтические моменты — реальные результаты наших пользователей</p>
             </div>
             <div class="examples-grid">
                 <div class="example-card">
                     <div class="example-visual">
-                        <span class="placeholder-icon">🧑</span>
-                        <span class="example-badge">Портрет</span>
+                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
+                            <source src="videos/warm_memory.mp4" type="video/mp4">
+                        </video>
+                        <span class="example-badge">Память</span>
                     </div>
                     <div class="example-info">
-                        <h4>Портреты оживают</h4>
-                        <p>Мимика, моргание, поворот головы — всё выглядит натурально</p>
+                        <h4>Тёплая память</h4>
+                        <p>Оживите старые семейные фото — родители, бабушки, дедушки снова «дышат»</p>
                     </div>
                 </div>
                 <div class="example-card">
                     <div class="example-visual">
-                        <span class="placeholder-icon">🏔</span>
-                        <span class="example-badge">Пейзаж</span>
+                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
+                            <source src="videos/childhood.mp4" type="video/mp4">
+                        </video>
+                        <span class="example-badge">Детство</span>
                     </div>
                     <div class="example-info">
-                        <h4>Пейзажи в движении</h4>
-                        <p>Облака плывут, вода течёт, деревья колышутся на ветру</p>
+                        <h4>Детство оживает</h4>
+                        <p>Детские снимки превращаются в трогательные видео — подарок себе и близким</p>
                     </div>
                 </div>
                 <div class="example-card">
                     <div class="example-visual">
-                        <span class="placeholder-icon">🐕</span>
-                        <span class="example-badge">Животные</span>
+                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
+                            <source src="videos/pet.mp4" type="video/mp4">
+                        </video>
+                        <span class="example-badge">Питомцы</span>
                     </div>
                     <div class="example-info">
-                        <h4>Питомцы двигаются</h4>
-                        <p>Ваш кот или собака «оживут» на фотографии</p>
+                        <h4>Фото с питомцем</h4>
+                        <p>Ваш кот или собака «оживут» — моргают, поворачиваются, дышат</p>
+                    </div>
+                </div>
+                <div class="example-card">
+                    <div class="example-visual">
+                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
+                            <source src="videos/love_story.mp4" type="video/mp4">
+                        </video>
+                        <span class="example-badge">Love Story</span>
+                    </div>
+                    <div class="example-info">
+                        <h4>Романтические кадры</h4>
+                        <p>Оживите важный момент — свадьба, первое свидание, совместное фото</p>
+                    </div>
+                </div>
+                <div class="example-card">
+                    <div class="example-visual">
+                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
+                            <source src="videos/examples.mp4" type="video/mp4">
+                        </video>
+                        <span class="example-badge">Пример</span>
+                    </div>
+                    <div class="example-info">
+                        <h4>Любое фото</h4>
+                        <p>Портрет, пейзаж, групповое фото — AI справится с любым сюжетом</p>
                     </div>
                 </div>
             </div>
