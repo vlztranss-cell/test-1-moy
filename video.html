@@ -328,7 +328,6 @@
             hideError();
             resultSection.classList.remove('active');
 
-            // Show progress
             progressSection.classList.add('active');
             progressStatus.textContent = 'Загрузка фото...';
             progressBar.style.width = '5%';
@@ -336,18 +335,26 @@
             updateTimer();
 
             try {
-                // Read file as base64
-                const base64 = await fileToBase64(selectedFile);
+                // Upload image to free hosting (imgbb)
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+                const uploadResp = await fetch('https://api.imgbb.com/1/upload?key=00c65e1bfe1cba6cf2de9467acfef02c', {
+                    method: 'POST',
+                    body: formData
+                });
+                const uploadData = await uploadResp.json();
+                if (!uploadData.success) throw new Error('Не удалось загрузить фото');
+                const imageUrl = uploadData.data.url;
 
                 progressStatus.textContent = 'Создание задачи...';
                 progressBar.style.width = '15%';
 
-                // Create task
+                // Create task with URL (small payload)
                 const resp = await fetch(API_CREATE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        image_base64: base64,
+                        image_url: imageUrl,
                         prompt: document.getElementById('prompt').value || 'Bring this photo to life with natural, gentle motion',
                         session_id: getSessionId()
                     })
@@ -362,11 +369,10 @@
                 progressStatus.textContent = 'Генерация видео...';
                 progressBar.style.width = '25%';
 
-                // Start polling
                 startPolling(data.task_id);
 
             } catch (e) {
-                showError('Ошибка: ' + e.message + ' (Если открыто как файл — откройте через Pages)');
+                showError('Ошибка: ' + e.message);
                 progressSection.classList.remove('active');
                 generateBtn.disabled = false;
             }
