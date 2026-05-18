@@ -702,6 +702,28 @@
         }
         .prompt-field textarea::placeholder { color: var(--text-dim); }
 
+        .email-field { margin-top: 12px; }
+        .email-field input {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .email-field input:focus { outline: none; border-color: var(--accent); }
+        .email-field input::placeholder { color: var(--text-dim); }
+        .email-field input.invalid { border-color: var(--red); }
+        .email-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding-left: 4px;
+        }
+
         .generate-btn {
             width: 100%;
             margin-top: 16px;
@@ -1355,8 +1377,13 @@
                     <textarea id="prompt" placeholder="Описание движения (необязательно)..."></textarea>
                 </div>
 
+                <div class="email-field">
+                    <input type="email" id="user-email" autocomplete="email" placeholder="your@email.com">
+                    <div class="email-hint">На email зачислится 1 бесплатное видео и купленные кредиты</div>
+                </div>
+
                 <button class="generate-btn" id="generate-btn" disabled>Создать видео</button>
-                <div class="credits-info">
+                <div class="credits-info" id="credits-info">
                     Осталось: <span class="credits-count" id="credits-count">1</span> бесплатное видео
                 </div>
 
@@ -1532,29 +1559,38 @@
         const TG_BOT_URL = 'https://t.me/VideoAI_24isk_bot';
 
         // ===== CREDITS SYSTEM =====
+        // Источник правды — сервер (web_users). localStorage только кэш для UI,
+        // обновляется по ответу /webhook/web-video-create (credits_left).
         function getCredits() {
             const c = localStorage.getItem('videoai_credits');
-            if (c === null) { setCredits(1); return 1; } // 1 бесплатное видео
+            if (c === null) return 1; // оптимистично показываем 1 бесплатное, серверу всё равно
             return parseInt(c, 10);
         }
         function setCredits(n) {
-            localStorage.setItem('videoai_credits', n);
+            localStorage.setItem('videoai_credits', String(n));
             updateCreditsUI();
         }
-        function useCredit() {
-            const c = getCredits();
-            if (c <= 0) return false;
-            setCredits(c - 1);
-            return true;
+        function getEmail() {
+            return (localStorage.getItem('videoai_email') || '').trim().toLowerCase();
+        }
+        function setEmail(e) {
+            localStorage.setItem('videoai_email', e.trim().toLowerCase());
+            updateCreditsUI();
+        }
+        function isValidEmail(e) {
+            return /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test((e || '').trim());
         }
         function updateCreditsUI() {
+            const el = document.getElementById('credits-info');
+            if (!el) return;
             const c = getCredits();
-            const el = document.getElementById('credits-count');
-            if (el) {
-                el.textContent = c;
-                if (c === 0) {
-                    el.closest('.credits-info').innerHTML = 'Кредиты закончились. <a href="#pricing" style="color:var(--accent-light)">Купить ещё</a>';
-                }
+            const hasEmail = !!getEmail();
+            if (c <= 0) {
+                el.innerHTML = 'Кредиты закончились. <a href="' + TG_BOT_URL + '" target="_blank" style="color:var(--accent-light)">Купить в Telegram</a>';
+            } else if (!hasEmail) {
+                el.innerHTML = 'Осталось: <span class="credits-count">1</span> бесплатное видео — после ввода email';
+            } else {
+                el.innerHTML = 'Осталось: <span class="credits-count">' + c + '</span> ' + (c === 1 ? 'видео' : 'видео');
             }
         }
 
@@ -1597,12 +1633,19 @@
         let currentPlan = null;
         let currentAmount = 0;
 
+        // ВРЕМЕННО: ЮKassa не принимает домен botisk.ru в whitelist (баг ЛК),
+        // оплату гоним через Telegram-бот. Когда домен одобрят — закомментируйте
+        // первую строку и раскомментируйте вторую.
         function openPayment(plan, amount, description) {
-            currentPlan = plan;
-            currentAmount = amount;
-            document.getElementById('modal-plan-info').innerHTML =
-                `Тариф: <strong>${description}</strong><br>Сумма: <strong>${amount} &#8381;</strong>`;
-            document.getElementById('payment-modal').classList.add('active');
+            // Перенаправление в Telegram-бот для оплаты
+            window.open(TG_BOT_URL, '_blank');
+            return;
+            // --- Резервный код ниже (восстановить после одобрения домена в ЮKassa) ---
+            // currentPlan = plan;
+            // currentAmount = amount;
+            // document.getElementById('modal-plan-info').innerHTML =
+            //     `Тариф: <strong>${description}</strong><br>Сумма: <strong>${amount} &#8381;</strong>`;
+            // document.getElementById('payment-modal').classList.add('active');
         }
 
         document.getElementById('modal-close').addEventListener('click', () => {
@@ -1772,12 +1815,18 @@
         async function startGeneration() {
             if (!selectedFile) return;
 
-            // Проверка кредитов
-            if (getCredits() <= 0) {
-                showError('Кредиты закончились. Выберите тариф для продолжения.');
-                document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+            // Email обязателен — сервер проверяет кредиты по нему
+            const emailInput = document.getElementById('user-email');
+            const enteredEmail = (emailInput.value || getEmail()).trim().toLowerCase();
+            if (!isValidEmail(enteredEmail)) {
+                emailInput.classList.add('invalid');
+                emailInput.focus();
+                showError('Введите корректный email — на него зачислится бесплатное видео');
+                document.getElementById('generator').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
+            emailInput.classList.remove('invalid');
+            setEmail(enteredEmail);
 
             generateBtn.disabled = true;
             hideError();
@@ -1801,22 +1850,48 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        email: enteredEmail,
                         image_base64: pureBase64,
                         prompt: document.getElementById('prompt').value || 'Bring this photo to life with natural, gentle motion',
                         session_id: getSessionId()
                     })
                 });
 
-                const data = await resp.json();
+                let data = {};
+                try { data = await resp.json(); } catch (_) {}
 
-                if (data.error || !data.task_id) {
-                    throw new Error(data.error || 'Не удалось создать задачу');
+                // 402 — кредитов нет, нужна оплата
+                if (resp.status === 402) {
+                    progressSection.classList.remove('active');
+                    generateBtn.disabled = false;
+                    setCredits(0);
+                    showError('Кредиты закончились. Купите тариф в Telegram-боте.');
+                    document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+                    return;
+                }
+                // 400 — ошибка валидации (от сервера)
+                if (resp.status === 400 || data.error) {
+                    const code = data.error || 'unknown';
+                    const msg = {
+                        'email_invalid': 'Введите корректный email',
+                        'image_required': 'Сначала загрузите фото',
+                    }[code] || ('Ошибка: ' + code);
+                    throw new Error(msg);
+                }
+                if (!data.task_id) {
+                    throw new Error('Сервер не вернул task_id');
                 }
 
-                // Списываем кредит после успешного запуска
-                useCredit();
+                // Сервер обновил web_users.total_generated и списал кредит.
+                // Обновляем UI: credits_left показывает только paid_credits.
+                // Бесплатный считается через free_used = true.
+                if (typeof data.credits_left === 'number') {
+                    setCredits(data.credits_left);
+                }
 
-                progressStatus.textContent = 'AI генерирует видео...';
+                progressStatus.textContent = data.charge_type === 'free'
+                    ? 'AI генерирует ваше бесплатное видео...'
+                    : 'AI генерирует видео...';
                 progressBar.style.width = '25%';
 
                 startPolling(data.task_id);
@@ -1989,6 +2064,19 @@
                 setTimeout(tick, 8000 + Math.random() * 12000);
             }
             setTimeout(tick, 8000 + Math.random() * 12000);
+        }
+
+        // ===== EMAIL INPUT WIRING =====
+        const emailInputEl = document.getElementById('user-email');
+        if (emailInputEl) {
+            // Подхватываем сохранённый email
+            const saved = getEmail();
+            if (saved) emailInputEl.value = saved;
+            // Сбрасываем подсветку ошибки и обновляем UI при вводе
+            emailInputEl.addEventListener('input', () => {
+                emailInputEl.classList.remove('invalid');
+                if (isValidEmail(emailInputEl.value)) setEmail(emailInputEl.value);
+            });
         }
 
         // ===== INIT =====

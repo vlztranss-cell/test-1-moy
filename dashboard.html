@@ -875,14 +875,21 @@
                     { text: 'Реквизиты ИП Искусных Е.В. подставлены в оферту и политику', date: '19.05.26', tag: 'finance' },
                     { text: 'Подключение домена botisk.ru (CNAME, URL\'ы, video.html → index.html)', date: '19.05.26', tag: 'infra' },
                     { text: 'Яндекс.Метрика 109293181 на лендинге, оферте, политике', date: '19.05.26', tag: 'marketing' },
+                    { text: 'PostgreSQL: таблица web_users + бэкфилл 20 кредитов на vlz.transs@gmail.com', date: '19.05.26', tag: 'infra' },
+                    { text: 'n8n web-video-create: серверная проверка email + списание кредитов (HTTP 400/402)', date: '19.05.26', tag: 'dev' },
+                    { text: 'n8n yukassa-callback: атомарное зачисление paid_credits в web_users (идемпотентно)', date: '19.05.26', tag: 'dev' },
+                    { text: 'Frontend: обязательный email перед генерацией + кредиты из API', date: '19.05.26', tag: 'dev' },
+                    { text: 'Кнопки «Купить» временно ведут в Telegram-бот (до одобрения домена в ЮKassa)', date: '19.05.26', tag: 'finance' },
                 ],
                 todo: [
-                    { text: 'Защита бесплатной генерации (email-gate + watermark + серверные кредиты)', tag: 'dev' },
-                    { text: 'Тест end-to-end: оплата → кредиты → генерация (Python pytest)', tag: 'dev' },
-                    { text: 'DNS botisk.ru → GitHub Pages A-записи (ручной шаг у регистратора)', tag: 'infra' },
+                    { text: 'Фаза 2: watermark на бесплатных видео (ffmpeg на сервере + PNG-лого)', tag: 'dev' },
+                    { text: 'Фаза 3: Python pytest для e2e (оплата → кредиты → генерация)', tag: 'dev' },
+                    { text: 'ЮKassa: разрешить домен botisk.ru в ЛК (повторить через ~1 час, когда выйдет SSL)', tag: 'finance' },
                     { text: 'Метрика: настроить цели на конверсии (купить тариф, генерация, скачивание)', tag: 'marketing' },
                 ],
-                blocked: []
+                blocked: [
+                    { text: 'Ждём пропагацию DNS botisk.ru и выпуск Let\'s Encrypt от GitHub Pages (5 мин – 24 ч)', tag: 'infra' },
+                ]
             },
             {
                 project: 'Photo2Video Bot',

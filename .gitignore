@@ -9,3 +9,7 @@ venv/
 .env
 .claude/
 design/
+
+# n8n workflow экспорты и модификации (содержат plain-text API keys)
+*.exported.json
+*.modified.json

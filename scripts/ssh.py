@@ -22,10 +22,9 @@ _HOST = _env["VPS_HOST"]
 _USER = _env["VPS_USER"]
 _PASS = _env["VPS_SSH_PASSWORD"]
 
-# Имя docker-контейнера PostgreSQL (см. reference_server_access)
-PG_CONTAINER = "n8n-postgres"
-PG_DB = "photo_bot"
-PG_USER = "photo_bot_user"
+# PostgreSQL: photo_bot живёт на host-postgres (port 5432), n8n-postgres — отдельный Docker
+# Для photo_bot используем `sudo -u postgres psql -d photo_bot`
+PHOTO_BOT_DB = "photo_bot"
 
 
 @contextmanager
@@ -59,40 +58,38 @@ def vps_upload(local_path: str | Path, remote_path: str) -> None:
             sftp.close()
 
 
-def vps_psql(sql: str, db: str = PG_DB) -> tuple[str, str]:
+def psql(sql: str, db: str = PHOTO_BOT_DB) -> tuple[str, str]:
     """
-    Выполнить SQL через docker exec n8n-postgres psql.
-    SQL шеллится через -c, поэтому без переносов строк (для миграций — vps_psql_file).
+    Выполнить SQL на host-postgres (где живёт photo_bot) через sudo -u postgres.
+    -tA — tuples only, без выравнивания (удобно парсить).
+    Для многострочных миграций используй psql_file.
     """
-    cmd = (
-        f"docker exec -i {PG_CONTAINER} psql -U {PG_USER} -d {db} "
-        f"-tA -c {shlex.quote(sql)}"
-    )
+    cmd = f"sudo -u postgres psql -d {db} -tA -c {shlex.quote(sql)}"
     return vps_run(cmd)
 
 
-def vps_psql_file(local_sql_path: str | Path, db: str = PG_DB) -> tuple[str, str]:
+def psql_file(local_sql_path: str | Path, db: str = PHOTO_BOT_DB) -> tuple[str, str]:
     """
-    Загрузить SQL-файл на /tmp и прогнать через docker exec.
+    Загрузить SQL-файл на /tmp и прогнать через sudo -u postgres psql -f.
+    ON_ERROR_STOP=1 — миграция атомарна, любая ошибка прерывает прогон.
     """
     local_sql_path = Path(local_sql_path)
     remote = f"/tmp/{local_sql_path.name}"
     vps_upload(local_sql_path, remote)
     cmd = (
-        f"docker exec -i {PG_CONTAINER} psql -U {PG_USER} -d {db} "
-        f"-v ON_ERROR_STOP=1 < {remote}"
+        f"sudo -u postgres psql -d {db} -v ON_ERROR_STOP=1 -f {remote}"
     )
-    # Команда выше не работает с docker exec без -t, используем cat |
-    cmd = (
-        f"cat {remote} | docker exec -i {PG_CONTAINER} psql -U {PG_USER} -d {db} "
-        f"-v ON_ERROR_STOP=1"
-    )
-    return vps_run(cmd)
+    return vps_run(cmd, timeout=120)
 
 
 if __name__ == "__main__":
     out, err = vps_run("hostname && docker ps --format '{{.Names}}' | sort")
     print("=== hostname + containers ===")
+    print(out)
+    if err:
+        print("STDERR:", err)
+    out, err = psql("SELECT current_database(), current_user, version()")
+    print("=== photo_bot psql ===")
     print(out)
     if err:
         print("STDERR:", err)
