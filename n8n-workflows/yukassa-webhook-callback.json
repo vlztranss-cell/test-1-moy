@@ -69,7 +69,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE web_payments\nSET status = 'succeeded',\n    credits_added = CASE\n      WHEN plan = 'starter' THEN 10\n      WHEN plan = 'pro' THEN 50\n      WHEN plan = 'business' THEN 200\n      ELSE 0\n    END,\n    paid_at = NOW()\nWHERE payment_id = '{{ $json.body.object.id }}'",
+        "query": "UPDATE web_orders\nSET is_paid = 'yes',\n    status = 'paid',\n    generations_left = generations_limit,\n    paid_at = NOW()\nWHERE payment_id = '{{ $json.body.object.id }}'",
         "options": {}
       },
       "id": "pg-update-web",
