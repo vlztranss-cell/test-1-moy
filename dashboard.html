@@ -41,6 +41,62 @@
             color: #8b949e;
             margin-top: 4px;
         }
+        .services-section {
+            margin-top: 24px;
+            margin-bottom: 8px;
+        }
+        .services-section h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #c9d1d9;
+        }
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
+        }
+        .service-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s;
+        }
+        .service-card:hover { border-color: #58a6ff; }
+        .service-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .service-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e1e4e8;
+        }
+        .service-desc {
+            font-size: 11px;
+            color: #8b949e;
+        }
+        .service-right {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .service-link {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #58a6ff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .service-link:hover { background: #30363d; border-color: #58a6ff; }
         .projects-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -240,6 +296,121 @@
     </div>
 
     <div class="stats" id="stats"></div>
+    <div class="services-section">
+        <h2>Photo2Video Bot — статистика</h2>
+        <div class="services-grid" id="bot-stats">
+            <div class="stat-card"><div class="number" id="s-users">—</div><div class="label">Пользователей</div></div>
+            <div class="stat-card"><div class="number" style="color:#3fb950" id="s-revenue">—</div><div class="label">Выручка (руб)</div></div>
+            <div class="stat-card"><div class="number" style="color:#58a6ff" id="s-paid">—</div><div class="label">Оплат</div></div>
+            <div class="stat-card"><div class="number" style="color:#bc8cff" id="s-paying">—</div><div class="label">Платящих</div></div>
+            <div class="stat-card"><div class="number" style="color:#8b949e" id="s-trials">—</div><div class="label">Триалов</div></div>
+            <div class="stat-card"><div class="number" id="s-gen">—</div><div class="label">Генераций (выдано/осталось)</div></div>
+            <div class="stat-card"><div class="number" style="color:#f0883e" id="s-7d-orders">—</div><div class="label">Оплат за 7 дней</div></div>
+            <div class="stat-card"><div class="number" style="color:#f0883e" id="s-7d-users">—</div><div class="label">Новых за 7 дней</div></div>
+        </div>
+    </div>
+
+    <div class="services-section">
+        <h2>Сервисы и доступы</h2>
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">PiAPI</div>
+                    <div class="service-desc">Kling 2.5 + Hailuo 2.3 — основной провайдер видео</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://piapi.ai/dashboard" target="_blank">Баланс</a>
+                    <a class="service-link" href="https://piapi.ai/workspace/api-keys" target="_blank">API Keys</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">AIMLAPI</div>
+                    <div class="service-desc">Kling 2.1 — резервный провайдер (~$0.36/видео)</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://aimlapi.com/app/billing" target="_blank">Баланс</a>
+                    <a class="service-link" href="https://aimlapi.com/app/keys" target="_blank">API Keys</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">ЮКасса</div>
+                    <div class="service-desc">Приём платежей для Photo2Video бота</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://yookassa.ru/my/payments" target="_blank">Платежи</a>
+                    <a class="service-link" href="https://yookassa.ru/my/shop-settings" target="_blank">Настройки</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">OpenAI</div>
+                    <div class="service-desc">GPT-4o — SEO, тренды, принты, контроль качества</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://platform.openai.com/usage" target="_blank">Баланс</a>
+                    <a class="service-link" href="https://platform.openai.com/api-keys" target="_blank">API Keys</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">Wildberries API</div>
+                    <div class="service-desc">Карточки, фото, цены, остатки</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://seller.wildberries.ru/supplier-settings/access-to-api" target="_blank">API Keys</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">n8n</div>
+                    <div class="service-desc">Автоматизация — все workflows</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://n8n.24isk.ru/" target="_blank">Открыть</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">PostgreSQL</div>
+                    <div class="service-desc">БД Photo2Video — 72.56.96.64 (photo_bot)</div>
+                </div>
+                <div class="service-right">
+                    <span class="service-desc">SSH: root@72.56.96.64</span>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">Google Sheets</div>
+                    <div class="service-desc">Данные WB, SEO, принты, тренды</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://docs.google.com/spreadsheets/d/10iqOyqoW3yS5U63qPmfMNv4YFcJwwd3b-USXckVqn3M" target="_blank">WB/SEO</a>
+                    <a class="service-link" href="https://docs.google.com/spreadsheets/d/1dMa5qmEjx5TjkUSsVJrQHo40Tn_SBT06tjLvWCHXapo" target="_blank">Принты</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">Yandex Disk</div>
+                    <div class="service-desc">Хранение фото товаров и видео</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://disk.yandex.ru/" target="_blank">Открыть</a>
+                </div>
+            </div>
+            <div class="service-card">
+                <div class="service-left">
+                    <div class="service-name">GitHub</div>
+                    <div class="service-desc">Код, дашборд, документация</div>
+                </div>
+                <div class="service-right">
+                    <a class="service-link" href="https://github.com/vlztranss-cell/test-1-moy" target="_blank">Репо</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="projects-grid" id="projects">
         <div class="loading">Загрузка данных</div>
     </div>
@@ -421,7 +592,23 @@
             return info[name] || '';
         }
 
+        async function loadBotStats() {
+            try {
+                const resp = await fetch('https://n8n.24isk.ru/webhook/bot-stats');
+                const s = await resp.json();
+                document.getElementById('s-users').textContent = s.users;
+                document.getElementById('s-revenue').textContent = s.revenue_rub.toLocaleString('ru-RU') + ' ₽';
+                document.getElementById('s-paid').textContent = s.paid_orders;
+                document.getElementById('s-paying').textContent = s.paying_users;
+                document.getElementById('s-trials').textContent = s.trials;
+                document.getElementById('s-gen').textContent = s.gen_total + ' / ' + s.gen_left;
+                document.getElementById('s-7d-orders').textContent = s.orders_7d;
+                document.getElementById('s-7d-users').textContent = s.users_7d;
+            } catch (e) {}
+        }
+
         loadData();
+        loadBotStats();
     </script>
 </body>
 </html>
