@@ -335,29 +335,21 @@
             updateTimer();
 
             try {
-                // Upload image to free hosting (imgbb)
+                // Resize image to reduce size, then send as base64 via FormData
+                const resized = await resizeImage(selectedFile, 1280);
+
+                progressStatus.textContent = 'Отправка на сервер...';
+                progressBar.style.width = '10%';
+
+                // Send as FormData (n8n handles multipart well)
                 const formData = new FormData();
-                formData.append('image', selectedFile);
-                const uploadResp = await fetch('https://api.imgbb.com/1/upload?key=00c65e1bfe1cba6cf2de9467acfef02c', {
-                    method: 'POST',
-                    body: formData
-                });
-                const uploadData = await uploadResp.json();
-                if (!uploadData.success) throw new Error('Не удалось загрузить фото');
-                const imageUrl = uploadData.data.url;
+                formData.append('photo', resized, 'photo.jpg');
+                formData.append('prompt', document.getElementById('prompt').value || 'Bring this photo to life with natural, gentle motion');
+                formData.append('session_id', getSessionId());
 
-                progressStatus.textContent = 'Создание задачи...';
-                progressBar.style.width = '15%';
-
-                // Create task with URL (small payload)
                 const resp = await fetch(API_CREATE, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image_url: imageUrl,
-                        prompt: document.getElementById('prompt').value || 'Bring this photo to life with natural, gentle motion',
-                        session_id: getSessionId()
-                    })
+                    body: formData
                 });
 
                 const data = await resp.json();
@@ -470,6 +462,25 @@
 
         function showError(msg) { errorEl.textContent = msg; errorEl.classList.add('active'); }
         function hideError() { errorEl.classList.remove('active'); }
+
+        function resizeImage(file, maxSize) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > maxSize || h > maxSize) {
+                        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                        else { w = Math.round(w * maxSize / h); h = maxSize; }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    canvas.toBlob(resolve, 'image/jpeg', 0.85);
+                };
+                img.src = URL.createObjectURL(file);
+            });
+        }
 
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
