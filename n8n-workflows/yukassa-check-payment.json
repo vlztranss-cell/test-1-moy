@@ -1,0 +1,139 @@
+{
+  "name": "Web_YuKassa_Check_Payment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yukassa-check-payment",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://vlztranss-cell.github.io"
+        }
+      },
+      "id": "webhook-check",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT payment_id, plan, amount, status, credits_added\nFROM web_payments\nWHERE (email = '{{ $json.body.email }}' OR session_id = '{{ $json.body.session_id }}')\nORDER BY created_at DESC\nLIMIT 1",
+        "options": {}
+      },
+      "id": "pg-check",
+      "name": "Check PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [480, 300],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "ssh root@72.56.96.64"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "succeeded",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-paid",
+      "name": "Payment Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"succeeded\",\n  \"credits\": {{ {\"starter\": 10, \"pro\": 50, \"business\": 200}[$('Check PostgreSQL').item.json.plan] || 0 }},\n  \"plan\": \"{{ $('Check PostgreSQL').item.json.plan }}\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://vlztranss-cell.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-paid",
+      "name": "Respond Paid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [940, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"{{ $('Check PostgreSQL').item.json.status || 'not_found' }}\",\n  \"credits\": 0\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://vlztranss-cell.github.io"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-pending",
+      "name": "Respond Pending",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [940, 420]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Check PostgreSQL", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check PostgreSQL": {
+      "main": [
+        [
+          { "node": "Payment Succeeded?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Payment Succeeded?": {
+      "main": [
+        [
+          { "node": "Respond Paid", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Pending", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "VideoAI" },
+    { "name": "Payment" }
+  ]
+}
