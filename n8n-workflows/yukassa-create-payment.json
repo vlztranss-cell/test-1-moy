@@ -20,8 +20,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.yookassa.ru/v3/payments",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpBasicAuth",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -37,7 +37,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"amount\": {\n    \"value\": \"{{ $json.body.amount }}.00\",\n    \"currency\": \"RUB\"\n  },\n  \"confirmation\": {\n    \"type\": \"redirect\",\n    \"return_url\": \"{{ $json.body.return_url }}\"\n  },\n  \"capture\": true,\n  \"description\": \"VideoAI — {{ $json.body.plan }}\",\n  \"metadata\": {\n    \"source\": \"web\",\n    \"plan\": \"{{ $json.body.plan }}\",\n    \"email\": \"{{ $json.body.email }}\",\n    \"session_id\": \"{{ $json.body.session_id }}\"\n  }\n}",
+        "jsonBody": "={\"amount\":{\"value\":\"{{ $json.body.amount }}.00\",\"currency\":\"RUB\"},\"capture\":true,\"description\":\"VideoAI - {{ $json.body.plan }}\",\"confirmation\":{\"type\":\"redirect\",\"return_url\":\"{{ $json.body.return_url }}\"},\"receipt\":{\"tax_system_code\":1,\"customer\":{\"email\":\"{{ $json.body.email }}\"},\"items\":[{\"description\":\"VideoAI - {{ $json.body.plan }}\",\"quantity\":\"1.0\",\"amount\":{\"value\":\"{{ $json.body.amount }}.00\",\"currency\":\"RUB\"},\"vat_code\":1,\"payment_subject\":\"service\",\"payment_mode\":\"full_payment\"}]},\"metadata\":{\"source\":\"web\",\"plan\":\"{{ $json.body.plan }}\",\"email\":\"{{ $json.body.email }}\",\"session_id\":\"{{ $json.body.session_id }}\"}}",
         "options": {}
       },
       "id": "yukassa-create",
