@@ -97,6 +97,33 @@
             transition: all 0.2s;
         }
         .service-link:hover { background: #30363d; border-color: #58a6ff; }
+        .finance-table {
+            margin-top: 12px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .finance-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .finance-table th {
+            background: #21262d;
+            color: #8b949e;
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .finance-table td {
+            padding: 8px 12px;
+            border-top: 1px solid #21262d;
+            color: #c9d1d9;
+        }
+        .finance-table tr:hover td { background: #1c2128; }
+        .green { color: #3fb950; }
+        .red { color: #f85149; }
         .projects-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -308,6 +335,29 @@
             <div class="stat-card"><div class="number" style="color:#f0883e" id="s-7d-orders">—</div><div class="label">Оплат за 7 дней</div></div>
             <div class="stat-card"><div class="number" style="color:#f0883e" id="s-7d-users">—</div><div class="label">Новых за 7 дней</div></div>
         </div>
+    </div>
+
+    <div class="services-section">
+        <h2>Финансы</h2>
+        <div class="services-grid" id="finance-cards">
+            <div class="stat-card" style="border-left: 3px solid #3fb950;">
+                <div class="number" style="color:#3fb950" id="f-revenue">—</div>
+                <div class="label">Доход (руб)</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #f85149;">
+                <div class="number" style="color:#f85149" id="f-cost">—</div>
+                <div class="label">Расход на AI (прим.)</div>
+            </div>
+            <div class="stat-card" style="border-left: 3px solid #58a6ff;">
+                <div class="number" style="color:#58a6ff" id="f-profit">—</div>
+                <div class="label">Результат</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="f-gen-used">—</div>
+                <div class="label">Генераций сделано</div>
+            </div>
+        </div>
+        <div class="finance-table" id="finance-detail"></div>
     </div>
 
     <div class="services-section">
@@ -596,15 +646,71 @@
             try {
                 const resp = await fetch('https://n8n.24isk.ru/webhook/bot-stats');
                 const s = await resp.json();
+
+                // Bot stats cards
                 document.getElementById('s-users').textContent = s.users;
-                document.getElementById('s-revenue').textContent = s.revenue_rub.toLocaleString('ru-RU') + ' ₽';
+                document.getElementById('s-revenue').textContent = Number(s.revenue_rub).toLocaleString('ru-RU') + ' ₽';
                 document.getElementById('s-paid').textContent = s.paid_orders;
                 document.getElementById('s-paying').textContent = s.paying_users;
                 document.getElementById('s-trials').textContent = s.trials;
                 document.getElementById('s-gen').textContent = s.gen_total + ' / ' + s.gen_left;
                 document.getElementById('s-7d-orders').textContent = s.orders_7d;
                 document.getElementById('s-7d-users').textContent = s.users_7d;
-            } catch (e) {}
+
+                // Finance cards
+                const revenue = Number(s.revenue_rub);
+                const genUsed = Number(s.gen_used);
+                // PiAPI: ~$0.05-0.15/gen, AIMLAPI: ~$0.36/gen
+                // Hailuo on PiAPI ~15 points = ~$0.08, Kling ~20 points = ~$0.10
+                const costPerGen = 0.10; // avg USD
+                const usdToRub = 90;
+                const estCost = Math.round(genUsed * costPerGen * usdToRub);
+                const profit = revenue - estCost;
+
+                document.getElementById('f-revenue').textContent = revenue.toLocaleString('ru-RU') + ' ₽';
+                document.getElementById('f-cost').textContent = '~' + estCost.toLocaleString('ru-RU') + ' ₽';
+                document.getElementById('f-gen-used').textContent = genUsed;
+                document.getElementById('f-profit').textContent = (profit >= 0 ? '+' : '') + profit.toLocaleString('ru-RU') + ' ₽';
+
+                // Monthly table
+                if (s.months && s.months.length) {
+                    let totalRev = 0, totalGen = 0, totalCost = 0;
+                    const rows = s.months.map(m => {
+                        const rev = Number(m.revenue);
+                        const gen = Number(m.gen_used);
+                        const cost = Math.round(gen * costPerGen * usdToRub);
+                        const prof = rev - cost;
+                        totalRev += rev;
+                        totalGen += gen;
+                        totalCost += cost;
+                        const monthNames = {'01':'Янв','02':'Фев','03':'Мар','04':'Апр','05':'Май','06':'Июн','07':'Июл','08':'Авг','09':'Сен','10':'Окт','11':'Ноя','12':'Дек'};
+                        const [y, mn] = m.month.split('-');
+                        const label = (monthNames[mn] || mn) + ' ' + y;
+                        return `<tr>
+                            <td>${label}</td>
+                            <td class="green">${rev.toLocaleString('ru-RU')} ₽</td>
+                            <td>${gen}</td>
+                            <td class="red">~${cost.toLocaleString('ru-RU')} ₽</td>
+                            <td class="${prof >= 0 ? 'green' : 'red'}">${prof >= 0 ? '+' : ''}${prof.toLocaleString('ru-RU')} ₽</td>
+                        </tr>`;
+                    }).join('');
+                    const totalProf = totalRev - totalCost;
+                    document.getElementById('finance-detail').innerHTML = `
+                        <table>
+                            <tr><th>Месяц</th><th>Доход</th><th>Генераций</th><th>Расход AI</th><th>Результат</th></tr>
+                            ${rows}
+                            <tr style="font-weight:700;border-top:2px solid #30363d">
+                                <td>ИТОГО</td>
+                                <td class="green">${totalRev.toLocaleString('ru-RU')} ₽</td>
+                                <td>${totalGen}</td>
+                                <td class="red">~${totalCost.toLocaleString('ru-RU')} ₽</td>
+                                <td class="${totalProf >= 0 ? 'green' : 'red'}">${totalProf >= 0 ? '+' : ''}${totalProf.toLocaleString('ru-RU')} ₽</td>
+                            </tr>
+                        </table>`;
+                }
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
         }
 
         loadData();
