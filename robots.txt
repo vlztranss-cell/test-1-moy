@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /op-
+Disallow: /scripts/
+Disallow: /n8n-workflows/
+Disallow: /tests/
+
+Sitemap: https://botisk.ru/sitemap.xml
