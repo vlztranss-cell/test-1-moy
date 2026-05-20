@@ -887,11 +887,15 @@
                     { text: 'PiAPI service_mode=public — Kling теперь оплачивается с общего баланса ($55), а не из пустой HYA-квоты', date: '20.05.26', tag: 'dev' },
                     { text: 'Фаза 2.5: свой watermark «botisk.ru» через ffmpeg (static binary + watermark service + Caddy proxy /videos/*)', date: '20.05.26', tag: 'dev' },
                     { text: 'Фаза 3: pytest e2e — 20 тестов (валидация, кредиты, ЮKassa callback, watermark, идемпотентность)', date: '20.05.26', tag: 'dev' },
-                    { text: 'Bug fix: source-check теперь в SQL Update DB (IF v2 пропускал source=bot в true-ветку)', date: '20.05.26', tag: 'dev' },
+                    { text: 'Bug fix: source-check перенесён в SQL Update DB (IF v2 пропускал source=bot в true-ветку)', date: '20.05.26', tag: 'dev' },
+                    { text: 'Bug fix: Charge Credit — INSERT...ON CONFLICT в одном statement (два CTE видели разные снимки таблицы)', date: '20.05.26', tag: 'dev' },
+                    { text: 'Bug fix: crypto.randomUUID fallback для старых браузеров и не-HTTPS контекстов', date: '20.05.26', tag: 'dev' },
+                    { text: 'Watermark увеличен 2.5x (280×70 → 700×175, шрифт 26 → 65pt)', date: '20.05.26', tag: 'design' },
                 ],
                 todo: [
                     { text: 'Метрика: настроить цели на конверсии (купить тариф, генерация, скачивание)', tag: 'marketing' },
                     { text: 'Cron-очистка /srv/videos старше 30 дней (через ~6 мес. накопится)', tag: 'infra' },
+                    { text: 'CI: pytest tests/ в GitHub Actions (когда команда вырастет)', tag: 'dev' },
                 ],
                 blocked: []
             },
