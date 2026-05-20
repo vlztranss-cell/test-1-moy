@@ -1586,7 +1586,7 @@
             const c = getCredits();
             const hasEmail = !!getEmail();
             if (c <= 0) {
-                el.innerHTML = 'Кредиты закончились. <a href="' + TG_BOT_URL + '" target="_blank" style="color:var(--accent-light)">Купить в Telegram</a>';
+                el.innerHTML = 'Кредиты закончились. <a href="#pricing" style="color:var(--accent-light)">Выбрать тариф</a>';
             } else if (!hasEmail) {
                 el.innerHTML = 'Осталось: <span class="credits-count">1</span> бесплатное видео — после ввода email';
             } else {
@@ -1862,7 +1862,7 @@
                     progressSection.classList.remove('active');
                     generateBtn.disabled = false;
                     setCredits(0);
-                    showError('Кредиты закончились. Купите тариф в Telegram-боте.');
+                    showError('Кредиты закончились. Выберите тариф ниже, чтобы продолжить.');
                     document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
                     return;
                 }
