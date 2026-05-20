@@ -1558,6 +1558,16 @@
         // Telegram бот
         const TG_BOT_URL = 'https://t.me/VideoAI_24isk_bot';
 
+        // ===== ANALYTICS =====
+        // Яндекс.Метрика goal-события. Цели создаются в metrika.yandex.ru → Цели,
+        // ID = строка ниже (PHOTO_UPLOADED, PAYMENT_REDIRECT и т.д.).
+        // Безопасный wrapper — не падает если ym недоступен (ad-block, не успел загрузиться).
+        function trackGoal(name, params) {
+            try {
+                if (typeof ym === 'function') ym(109293181, 'reachGoal', name, params || undefined);
+            } catch (e) { /* silent */ }
+        }
+
         // ===== CREDITS SYSTEM =====
         // Источник правды — сервер (web_users). localStorage только кэш для UI,
         // обновляется по ответу /webhook/web-video-create (credits_left).
@@ -1636,6 +1646,7 @@
         function openPayment(plan, amount, description) {
             currentPlan = plan;
             currentAmount = amount;
+            trackGoal('PAYMENT_OPEN', { plan, amount });
             document.getElementById('modal-plan-info').innerHTML =
                 `Тариф: <strong>${description}</strong><br>Сумма: <strong>${amount} &#8381;</strong>`;
             // Префилл email, если уже сохранён в localStorage
@@ -1686,6 +1697,7 @@
                 if (data.confirmation_url) {
                     // Email уже сохранён через setEmail() выше; помечаем pending plan
                     localStorage.setItem('videoai_pending_plan', currentPlan);
+                    trackGoal('PAYMENT_REDIRECT', { plan: currentPlan, amount: currentAmount });
                     window.location.href = data.confirmation_url;
                 } else {
                     throw new Error(data.error || 'Не удалось создать платёж');
@@ -1723,6 +1735,7 @@
                     const current = getCredits();
                     setCredits(current + data.credits);
                     localStorage.removeItem('videoai_pending_plan');
+                    trackGoal('PAYMENT_SUCCESS', { plan: pending, credits: data.credits });
                     // Показываем уведомление об успешной оплате
                     showPaymentSuccess(data.credits);
                 } else if (data.status === 'pending') {
@@ -1797,6 +1810,7 @@
                 return;
             }
             selectedFile = file;
+            trackGoal('PHOTO_UPLOADED', { size_kb: Math.round(file.size / 1024), type: file.type });
             const reader = new FileReader();
             reader.onload = (e) => {
                 preview.src = e.target.result;
@@ -1824,6 +1838,7 @@
             }
             emailInput.classList.remove('invalid');
             setEmail(enteredEmail);
+            trackGoal('GENERATION_STARTED');
 
             generateBtn.disabled = true;
             hideError();
@@ -1924,12 +1939,15 @@
                         clearInterval(pollTimer);
                         progressBar.style.width = '100%';
                         progressStatus.textContent = 'Готово!';
+                        const goalName = data.charge_type === 'free' ? 'FREE_GEN_COMPLETED' : 'PAID_GEN_COMPLETED';
+                        trackGoal(goalName, { task_id: taskId });
                         setTimeout(() => showResult(data.video_url), 500);
                         return;
                     }
 
                     if (data.status === 'failed') {
                         clearInterval(pollTimer);
+                        trackGoal('GEN_FAILED', { error: data.error || 'unknown' });
                         throw new Error(data.error || 'Генерация не удалась');
                     }
                 } catch (e) {
@@ -1955,6 +1973,7 @@
             resultVideo.src = videoUrl;
 
             downloadBtn.onclick = async () => {
+                trackGoal('VIDEO_DOWNLOAD');
                 try {
                     const resp = await fetch(videoUrl);
                     const blob = await resp.blob();

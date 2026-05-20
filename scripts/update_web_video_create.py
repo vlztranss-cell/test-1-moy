@@ -141,6 +141,31 @@ LIMIT 1;"""
 
 # Code-нода: если status=completed AND charge_type=free → POST на watermark-сервис,
 # подменяем video_url на наш с водяным знаком. Иначе пропускаем.
+# Возврат кредита при status=failed. Идемпотентно через WHERE NOT IN ('failed','refunded').
+# Всегда выполняется (на каждый poll), но эффект — только при первом detect'е failure.
+REFUND_IF_FAILED_SQL = """WITH failed_order AS (
+    UPDATE web_orders
+    SET status = 'failed'
+    WHERE piapi_task_id = '{{$('Status Webhook').first().json.query.task_id}}'
+      AND status NOT IN ('failed', 'refunded')
+      AND '{{$json.status}}' = 'failed'
+    RETURNING id, web_user_id, charge_type, email
+),
+refunded AS (
+    UPDATE web_users wu
+    SET
+        paid_credits = wu.paid_credits + CASE WHEN fo.charge_type = 'paid' THEN 1 ELSE 0 END,
+        free_used    = CASE WHEN fo.charge_type = 'free' THEN FALSE ELSE wu.free_used END,
+        total_generated = GREATEST(wu.total_generated - 1, 0)
+    FROM failed_order fo
+    WHERE wu.id = fo.web_user_id
+    RETURNING wu.id, wu.email, fo.charge_type
+)
+SELECT
+    (SELECT COUNT(*)::int FROM refunded) AS refunds,
+    (SELECT charge_type FROM refunded LIMIT 1) AS refunded_type,
+    (SELECT email FROM refunded LIMIT 1) AS refunded_email;"""
+
 WATERMARK_CODE_JS = r"""
 const ps = $input.first().json;
 let video_url = ps.video_url;
@@ -410,8 +435,9 @@ def build_modified_workflow(exported: dict) -> dict:
     # === ФАЗА 2.5: ставим watermark на free-видео через локальный сервис ===
     # Делаем одну Code-ноду с inline httpRequest — это проще, чем IF+HTTP+Build,
     # т.к. ветка с пропуском Apply Watermark ломала ссылки в Respond Status.
+    # Добавлен Refund If Needed после Watermark — авто-возврат кредита при status=failed.
     respond_status = by_name["Respond Status"]
-    respond_status["position"] = [respond_status["position"][0] + 220, 300]
+    respond_status["position"] = [respond_status["position"][0] + 440, 300]
 
     watermark_code_node = {
         "parameters": {"jsCode": WATERMARK_CODE_JS},
@@ -422,13 +448,32 @@ def build_modified_workflow(exported: dict) -> dict:
         "name": "Watermark If Free",
     }
 
-    # Respond Status просто возвращает $json (он уже подготовлен Watermark If Free)
-    respond_status["parameters"]["responseBody"] = '={{ JSON.stringify($json) }}'
+    # Refund If Needed — Postgres-нода, идемпотентно возвращает кредит при PiAPI failed.
+    # Если $json.status != 'failed' или web_orders уже refunded — SQL no-op.
+    refund_node = {
+        "parameters": {
+            "operation": "executeQuery",
+            "query": REFUND_IF_FAILED_SQL,
+            "options": {},
+        },
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [1100, 300],
+        "id": "refund-if-failed-2026",
+        "name": "Refund If Needed",
+        "credentials": {"postgres": PG_CREDENTIAL},
+    }
+
+    # Respond Status берёт данные ИЗ Watermark If Free (не из Postgres-ноды,
+    # т.к. её $json — это {refunds: N})
+    respond_status["parameters"]["responseBody"] = (
+        '={{ JSON.stringify($(\'Watermark If Free\').first().json) }}'
+    )
 
     # Вставляем новые ноды
     nodes.extend([validate_node, validated_node, charge_node, allow_node,
                   respond_400, respond_402, pg_get_charge_node,
-                  watermark_code_node])
+                  watermark_code_node, refund_node])
 
     # Переписываем connections
     # Create Webhook → Validate → Validated? ─ true ─→ Charge → Allow? ─ true ─→ Prepare → ...
@@ -463,11 +508,14 @@ def build_modified_workflow(exported: dict) -> dict:
     new_conn["PG Get Charge Type"] = {
         "main": [[{"node": "PiAPI Get Status", "type": "main", "index": 0}]]
     }
-    # Parse Status → Watermark If Free → Respond Status
+    # Parse Status → Watermark If Free → Refund If Needed → Respond Status
     new_conn["Parse Status"] = {
         "main": [[{"node": "Watermark If Free", "type": "main", "index": 0}]]
     }
     new_conn["Watermark If Free"] = {
+        "main": [[{"node": "Refund If Needed", "type": "main", "index": 0}]]
+    }
+    new_conn["Refund If Needed"] = {
         "main": [[{"node": "Respond Status", "type": "main", "index": 0}]]
     }
 
