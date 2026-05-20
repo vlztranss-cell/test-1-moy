@@ -117,10 +117,10 @@ SELECT
 -- available_paid/available_free показывают состояние ПЕРЕД списанием —
 -- именно это нужно для 402-ответа и определения charge_type."""
 
-# Обновлённый PG Save: добавляем email и web_user_id
+# Обновлённый PG Save: добавляем email, web_user_id, charge_type
 PG_SAVE_SQL = """INSERT INTO web_orders (
     session_id, piapi_task_id, source_photo_url, prompt, status,
-    email, web_user_id
+    email, web_user_id, charge_type
 ) VALUES (
     '{{$json.session_id}}',
     '{{$json.task_id}}',
@@ -128,8 +128,49 @@ PG_SAVE_SQL = """INSERT INTO web_orders (
     '{{ ($json.prompt || "").replace(/'/g, "''") }}',
     '{{$json.status}}',
     '{{$('Validate Input').first().json.email}}',
-    {{$('Charge Credit').first().json.user_id}}
+    {{$('Charge Credit').first().json.user_id}},
+    '{{$('Charge Credit').first().json.charge_type || "paid"}}'
 ) RETURNING order_id;"""
+
+# Status flow: SQL для определения типа списания по task_id
+GET_CHARGE_TYPE_SQL = """SELECT
+    COALESCE(charge_type, 'paid') AS charge_type
+FROM web_orders
+WHERE piapi_task_id = '{{$json.query.task_id}}'
+LIMIT 1;"""
+
+# Новый JS для Parse Status: выбираем URL в зависимости от charge_type
+PARSE_STATUS_JS = r"""
+const d = ($('PiAPI Get Status').first().json).data || {};
+const st = (d.status || 'unknown').toLowerCase();
+const chargeType = (($('PG Get Charge Type').first() || {json:{}}).json.charge_type || 'paid').toLowerCase();
+let url = null;
+if (st === 'completed') {
+    const o = d.output || {};
+    if (o.works && o.works[0]) {
+        const v = o.works[0].video || {};
+        if (chargeType === 'free') {
+            // Бесплатная генерация → отдаём вариант с водяным знаком Kling
+            url = v.resource || v.resource_without_watermark || v.url || o.video_url || null;
+        } else {
+            // Платная → чистый URL без водяного знака
+            url = v.resource_without_watermark || v.resource || v.url || o.video_url || null;
+        }
+    } else {
+        // Старый формат (нет works[]): только один url доступен
+        url = o.video_url || o.video || null;
+    }
+}
+let s = 'processing';
+if (st === 'completed') s = 'completed';
+else if (st === 'failed') s = 'failed';
+return [{json: {
+    status: s,
+    video_url: url,
+    error: d.error && d.error.message ? d.error.message : null,
+    charge_type: chargeType
+}}];
+""".strip()
 
 # Респонсы
 RESPOND_SUCCESS_BODY = (
@@ -290,7 +331,7 @@ def build_modified_workflow(exported: dict) -> dict:
         "name": "Respond 402",
     }
 
-    # Модифицируем PG Save — обновляем query
+    # Модифицируем PG Save — обновляем query (добавили charge_type)
     pg_save = by_name["PG Save"]
     pg_save["parameters"]["query"] = PG_SAVE_SQL
 
@@ -298,8 +339,41 @@ def build_modified_workflow(exported: dict) -> dict:
     respond_ok = by_name["Respond"]
     respond_ok["parameters"]["responseBody"] = RESPOND_SUCCESS_BODY
 
+    # === ФАЗА 2: Status flow с выбором URL по charge_type ===
+    # Сдвигаем status-row ноды на +220 по X, чтобы вписать новую ноду перед PiAPI Get Status
+    for n in nodes:
+        if n["position"][1] == 300 and n["name"] != "Status Webhook":
+            n["position"] = [n["position"][0] + 220, 300]
+
+    # Новая нода: PG Get Charge Type — между Status Webhook и PiAPI Get Status
+    pg_get_charge_node = {
+        "parameters": {
+            "operation": "executeQuery",
+            "query": GET_CHARGE_TYPE_SQL,
+            "options": {},
+        },
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [220, 300],
+        "id": "pg-get-charge-2026",
+        "name": "PG Get Charge Type",
+        "credentials": {"postgres": PG_CREDENTIAL},
+    }
+
+    # Меняем JS в Parse Status — теперь выбирает URL по charge_type
+    parse_status = by_name["Parse Status"]
+    parse_status["parameters"]["jsCode"] = PARSE_STATUS_JS
+
+    # Фикс: после вставки PG Get Charge Type, $json в PiAPI Get Status больше
+    # не содержит query.task_id (это вывод PG). Явно ссылаемся на Status Webhook.
+    piapi_status = by_name["PiAPI Get Status"]
+    piapi_status["parameters"]["url"] = (
+        "=https://api.piapi.ai/api/v1/task/{{$('Status Webhook').first().json.query.task_id}}"
+    )
+
     # Вставляем новые ноды
-    nodes.extend([validate_node, validated_node, charge_node, allow_node, respond_400, respond_402])
+    nodes.extend([validate_node, validated_node, charge_node, allow_node,
+                  respond_400, respond_402, pg_get_charge_node])
 
     # Переписываем connections
     # Create Webhook → Validate → Validated? ─ true ─→ Charge → Allow? ─ true ─→ Prepare → ...
@@ -326,6 +400,13 @@ def build_modified_workflow(exported: dict) -> dict:
             [{"node": "Prepare", "type": "main", "index": 0}],         # true
             [{"node": "Respond 402", "type": "main", "index": 0}],     # false
         ]
+    }
+    # Status flow: Status Webhook → PG Get Charge Type → PiAPI Get Status → ...
+    new_conn["Status Webhook"] = {
+        "main": [[{"node": "PG Get Charge Type", "type": "main", "index": 0}]]
+    }
+    new_conn["PG Get Charge Type"] = {
+        "main": [[{"node": "PiAPI Get Status", "type": "main", "index": 0}]]
     }
 
     modified = {

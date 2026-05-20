@@ -881,11 +881,14 @@
                     { text: 'Frontend: обязательный email перед генерацией + кредиты из API', date: '19.05.26', tag: 'dev' },
                     { text: 'GitHub Pages подключён к botisk.ru (DNS пропагнул, SSL Let\'s Encrypt выпущен)', date: '20.05.26', tag: 'infra' },
                     { text: 'ЮKassa: домен botisk.ru одобрен в ЛК, модалка оплаты восстановлена на лендинге', date: '20.05.26', tag: 'finance' },
+                    { text: 'CORS на n8n workflow\'ах переключен на botisk.ru (фикс «Failed to fetch» при оплате)', date: '20.05.26', tag: 'dev' },
+                    { text: 'Фаза 2: водяной знак на бесплатных видео (Kling-вотермарк через resource vs resource_without_watermark)', date: '20.05.26', tag: 'dev' },
+                    { text: 'PostgreSQL: колонка web_orders.charge_type для различения free/paid в Parse Status', date: '20.05.26', tag: 'infra' },
                 ],
                 todo: [
-                    { text: 'Фаза 2: watermark на бесплатных видео (ffmpeg на сервере + PNG-лого)', tag: 'dev' },
                     { text: 'Фаза 3: Python pytest для e2e (оплата → кредиты → генерация)', tag: 'dev' },
                     { text: 'Метрика: настроить цели на конверсии (купить тариф, генерация, скачивание)', tag: 'marketing' },
+                    { text: 'Опционально: собственный watermark (botisk.ru) через ffmpeg вместо Kling', tag: 'design' },
                 ],
                 blocked: []
             },
