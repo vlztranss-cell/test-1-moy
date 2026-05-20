@@ -507,6 +507,35 @@
             border-radius: 8px; font-size: 12px; color: #d29922;
         }
 
+        /* ===== REFERRAL SECTION ===== */
+        .referral-section { margin-bottom: 32px; }
+        .referral-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
+        .referral-kpis {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px; margin-bottom: 18px;
+        }
+        .ref-kpi {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 10px;
+            padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+        }
+        .ref-kpi span { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ref-kpi b { font-size: 24px; color: #e6edf3; font-weight: 700; }
+        .referral-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+        }
+        @media (max-width: 800px) { .referral-grid { grid-template-columns: 1fr; } }
+        .referral-block {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .referral-block h3 { font-size: 13px; color: #8b949e; margin-bottom: 10px; font-weight: 600; }
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .ref-table th { text-align: left; color: #6e7681; font-weight: 500; padding: 6px 8px; border-bottom: 1px solid #21262d; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ref-table td { color: #c9d1d9; padding: 8px; border-bottom: 1px solid rgba(33, 38, 45, 0.5); }
+        .ref-table tr:last-child td { border-bottom: none; }
+        .ref-table code { background: #1e2633; padding: 2px 6px; border-radius: 4px; color: #d2a8ff; font-size: 11px; }
+        .ref-empty { text-align: center; color: #484f58; padding: 20px !important; font-style: italic; }
+
         /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
         .archive-section {
             margin-top: 40px;
@@ -789,6 +818,33 @@
         <div class="campaigns-foot">
             ⏳ Управление кампаниями подключится после одобрения Direct API (заявка подана 21.05.2026).
             До этого момента панель работает в режиме планирования.
+        </div>
+    </div>
+
+    <!-- REFERRAL STATS -->
+    <div class="referral-section" id="referral-section">
+        <h2>🎁 Реферальная программа</h2>
+        <div class="referral-kpis" id="referral-kpis">
+            <div class="ref-kpi"><span>Рефереров</span><b id="rk-referrers">—</b></div>
+            <div class="ref-kpi"><span>Приглашено</span><b id="rk-invited">—</b></div>
+            <div class="ref-kpi"><span>Оплачено друзей</span><b id="rk-paid">—</b></div>
+            <div class="ref-kpi"><span>Выдано кредитов</span><b id="rk-credits">—</b></div>
+        </div>
+        <div class="referral-grid">
+            <div class="referral-block">
+                <h3>Топ-10 рефереров</h3>
+                <table class="ref-table" id="top-referrers-table">
+                    <thead><tr><th>Email</th><th>Код</th><th>Друзей</th><th>Кредитов</th></tr></thead>
+                    <tbody><tr><td colspan="4" class="ref-empty">пока никого</td></tr></tbody>
+                </table>
+            </div>
+            <div class="referral-block">
+                <h3>Последние реф-платежи</h3>
+                <table class="ref-table" id="recent-referrals-table">
+                    <thead><tr><th>Дата</th><th>Реферер</th><th>Друг</th><th>Кредит</th></tr></thead>
+                    <tbody><tr><td colspan="4" class="ref-empty">пока пусто</td></tr></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -1170,8 +1226,13 @@
                     { text: 'Архив workflow в дашборде: кнопка «📦 В архив» в каждой карточке, свёрнутый блок «Архив (N)» внизу, состояние в localStorage', date: '21.05.26', tag: 'dev' },
                     { text: '9 целей в Метрике созданы (PHOTO_UPLOADED, GENERATION_STARTED, PAYMENT_SUCCESS и т.д.), Goal ID в .env', date: '21.05.26', tag: 'marketing' },
                     { text: 'docs/DIRECT_CAMPAIGN_SETUP.md — брифинг для будущего Claude по настройке кампаний (структура 4 сегмента, API-примеры, OAuth-шаги)', date: '21.05.26', tag: 'marketing' },
+                    { text: 'Реферальная программа: миграция БД (ref_code, ref_by, bonus_credits_earned), функция generate_ref_code()', date: '21.05.26', tag: 'infra' },
+                    { text: 'Реферальная программа: yukassa-create/check/callback расширены (capture ref_by → начисление +10/30/80 referrer, +3/5/10 friend)', date: '21.05.26', tag: 'dev' },
+                    { text: 'Реферальная программа на лендинге: ?ref=CODE → localStorage → передача в YuKassa, карточка «Пригласи друга» после оплаты, кнопка в credits-info', date: '21.05.26', tag: 'dev' },
+                    { text: 'Реферальная программа в дашборде: 4 KPI + топ-10 рефереров + лента последних реф-платежей, отдельный n8n endpoint /webhook/referral-stats', date: '21.05.26', tag: 'dev' },
                 ],
                 todo: [
+                    { text: '⏭ Phase 4 рефералки: deep-link /start ref_CODE + команда /referral в Telegram-боте (отдельный сеанс)', tag: 'dev' },
                     { text: '⚡ Запустить первую тестовую кампанию в Директе (3-5к₽, один сегмент — Память или Детство)', tag: 'marketing' },
                     { text: 'Получить YANDEX_OAUTH_TOKEN (если идём через API) — см. docs/DIRECT_CAMPAIGN_SETUP.md', tag: 'marketing' },
                     { text: '💡 Гипотеза: i18n лендинга — много визитов не-РФ. Проверить долю по странам в Метрике, при >5% сделать EN/ES версии (auto по navigator.language + IP)', tag: 'marketing' },
@@ -1273,6 +1334,48 @@
         renderTaskBoard();
         loadData();
         loadBotStats();
+        loadReferralStats();
+
+        async function loadReferralStats() {
+            try {
+                const resp = await fetch('https://n8n.24isk.ru/webhook/referral-stats');
+                const data = await resp.json();
+                document.getElementById('rk-referrers').textContent = data.total_referrers ?? 0;
+                document.getElementById('rk-invited').textContent  = data.users_invited ?? 0;
+                document.getElementById('rk-paid').textContent     = data.paid_referrals ?? 0;
+                document.getElementById('rk-credits').textContent  = data.total_bonus_credits ?? 0;
+
+                const topTbody = document.querySelector('#top-referrers-table tbody');
+                if (Array.isArray(data.top_referrers) && data.top_referrers.length > 0) {
+                    topTbody.innerHTML = data.top_referrers.map(r => `
+                        <tr>
+                            <td>${r.email || '—'}</td>
+                            <td><code>${r.ref_code || '—'}</code></td>
+                            <td>${r.paid_referred_count ?? 0}</td>
+                            <td><b style="color:#3fb950;">${r.credits_earned ?? 0}</b></td>
+                        </tr>`).join('');
+                } else {
+                    topTbody.innerHTML = '<tr><td colspan="4" class="ref-empty">пока никто не пригласил оплативших друзей</td></tr>';
+                }
+
+                const recentTbody = document.querySelector('#recent-referrals-table tbody');
+                if (Array.isArray(data.recent_referrals) && data.recent_referrals.length > 0) {
+                    recentTbody.innerHTML = data.recent_referrals.map(r => {
+                        const date = r.created_at ? new Date(r.created_at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
+                        return `<tr>
+                            <td>${date}</td>
+                            <td>${r.referrer_email || '—'}</td>
+                            <td>${r.friend_email || '—'}</td>
+                            <td><b style="color:#3fb950;">+${r.bonus_paid_credits ?? 0}</b></td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    recentTbody.innerHTML = '<tr><td colspan="4" class="ref-empty">платежей по реф-ссылкам пока не было</td></tr>';
+                }
+            } catch (e) {
+                console.error('Referral stats failed:', e);
+            }
+        }
     </script>
 </body>
 </html>

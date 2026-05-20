@@ -1558,6 +1558,20 @@
         // Telegram бот
         const TG_BOT_URL = 'https://t.me/VideoAI_24isk_bot';
 
+        // ===== REFERRAL CAPTURE =====
+        // Перехватываем ?ref=CODE из URL → сохраняем в localStorage.
+        // Используется при создании платежа (передаём в yukassa-create-payment).
+        (function captureRef() {
+            const p = new URLSearchParams(location.search);
+            const ref = (p.get('ref') || '').trim().toUpperCase();
+            if (ref && /^[A-Z2-9]{4,12}$/.test(ref)) {
+                localStorage.setItem('videoai_ref_by', ref);
+            }
+        })();
+        function getRefBy() {
+            return (localStorage.getItem('videoai_ref_by') || '').trim();
+        }
+
         // ===== ANALYTICS =====
         // Яндекс.Метрика goal-события. Цели создаются в metrika.yandex.ru → Цели,
         // ID = строка ниже (PHOTO_UPLOADED, PAYMENT_REDIRECT и т.д.).
@@ -1595,12 +1609,13 @@
             if (!el) return;
             const c = getCredits();
             const hasEmail = !!getEmail();
+            const refBtn = getReferralButtonHTML();
             if (c <= 0) {
-                el.innerHTML = 'Кредиты закончились. <a href="#pricing" style="color:var(--accent-light)">Выбрать тариф</a>';
+                el.innerHTML = 'Кредиты закончились. <a href="#pricing" style="color:var(--accent-light)">Выбрать тариф</a>' + refBtn;
             } else if (!hasEmail) {
                 el.innerHTML = 'Осталось: <span class="credits-count">1</span> бесплатное видео — после ввода email';
             } else {
-                el.innerHTML = 'Осталось: <span class="credits-count">' + c + '</span> ' + (c === 1 ? 'видео' : 'видео');
+                el.innerHTML = 'Осталось: <span class="credits-count">' + c + '</span> ' + (c === 1 ? 'видео' : 'видео') + refBtn;
             }
         }
 
@@ -1688,7 +1703,8 @@
                         plan: currentPlan,
                         email: email,
                         session_id: getSessionId(),
-                        return_url: YUKASSA_RETURN_URL
+                        return_url: YUKASSA_RETURN_URL,
+                        ref_by: getRefBy() || undefined
                     })
                 });
 
@@ -1736,8 +1752,11 @@
                     setCredits(current + data.credits);
                     localStorage.removeItem('videoai_pending_plan');
                     trackGoal('PAYMENT_SUCCESS', { plan: pending, credits: data.credits });
-                    // Показываем уведомление об успешной оплате
+                    // Сохраняем свой ref_code (даёт пользователь сервер) для UI «Пригласи друга»
+                    if (data.ref_code) localStorage.setItem('videoai_my_ref_code', data.ref_code);
+                    // Показываем уведомление об успешной оплате + блок реф-ссылки
                     showPaymentSuccess(data.credits);
+                    showReferralCard(data);
                 } else if (data.status === 'pending') {
                     // Платёж ещё обрабатывается
                     if (creditsInfo) creditsInfo.innerHTML = 'Платёж обрабатывается. Кредиты зачислятся автоматически. <a href="#pricing" style="color:var(--accent-light)">Обновить</a>';
@@ -1757,6 +1776,62 @@
             toast.innerHTML = '&#10003; Оплата прошла! Зачислено <strong>' + credits + '</strong> кредитов';
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
+        }
+
+        function showReferralCard(data) {
+            const refCode = data.ref_code || localStorage.getItem('videoai_my_ref_code');
+            if (!refCode) return;
+            const refLink = 'https://botisk.ru/?ref=' + encodeURIComponent(refCode);
+            const earned = data.bonus_credits_earned || 0;
+            const referredCount = data.paid_referred_count || 0;
+
+            // Удаляем старую карточку если была
+            const old = document.getElementById('referral-card');
+            if (old) old.remove();
+
+            const card = document.createElement('div');
+            card.id = 'referral-card';
+            card.style.cssText = 'position:fixed;bottom:24px;right:24px;max-width:380px;background:linear-gradient(135deg,rgba(124,92,252,0.15),rgba(168,85,247,0.1));border:1px solid var(--accent);color:var(--text);padding:20px;border-radius:16px;z-index:9998;font-size:14px;box-shadow:0 10px 40px rgba(0,0,0,0.4);';
+            card.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="font-size:16px;font-weight:700;">🎁 Пригласите друга</div>
+                    <button onclick="document.getElementById('referral-card').remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;line-height:1;">&times;</button>
+                </div>
+                <div style="color:var(--text-muted);margin-bottom:12px;line-height:1.5;">
+                    Каждый друг, оплативший тариф, принесёт вам <b>+10/30/80</b> кредитов
+                    (Старт/Про/Бизнес). Сам друг тоже получит бонусные +3/5/10 кредитов.
+                </div>
+                <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+                    <code id="ref-link-text" style="flex:1;color:var(--accent-light);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${refLink}</code>
+                    <button onclick="copyRefLink()" style="background:var(--accent);border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">Копировать</button>
+                </div>
+                ${referredCount > 0 ? `
+                <div style="display:flex;gap:16px;font-size:12px;color:var(--text-muted);">
+                    <div>Приглашено платно: <b style="color:var(--text);">${referredCount}</b></div>
+                    <div>Заработано кредитов: <b style="color:var(--green);">${earned}</b></div>
+                </div>` : `
+                <div style="font-size:12px;color:var(--text-muted);">Ещё никто не оплатил — поделитесь ссылкой!</div>`}
+            `;
+            document.body.appendChild(card);
+        }
+
+        function copyRefLink() {
+            const text = document.getElementById('ref-link-text');
+            if (!text) return;
+            navigator.clipboard.writeText(text.textContent).then(() => {
+                const btn = event.target;
+                const old = btn.textContent;
+                btn.textContent = 'Скопировано ✓';
+                btn.style.background = 'var(--green)';
+                setTimeout(() => { btn.textContent = old; btn.style.background = 'var(--accent)'; }, 2000);
+            });
+        }
+
+        // Кнопка «Пригласить друга» — показывается в credits-info если у юзера есть ref_code
+        function getReferralButtonHTML() {
+            const code = localStorage.getItem('videoai_my_ref_code');
+            if (!code) return '';
+            return ` · <a href="#" onclick="showReferralCard({ref_code:'${code}'});return false;" style="color:var(--accent-light);text-decoration:none;">🎁 Пригласить друга</a>`;
         }
 
         // ===== GENERATOR =====

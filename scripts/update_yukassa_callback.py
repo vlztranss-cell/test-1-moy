@@ -33,26 +33,93 @@ paid AS (
     WHERE payment_id = '{{ $json.body.object.id }}'
       AND is_paid <> 'yes'
       AND '{{ $json.body.object.metadata.source }}' = 'web'
-    RETURNING id, email, generations_limit
+    RETURNING id, email, generations_limit, tariff_code, ref_by
 ),
-user_upserted AS (
-    INSERT INTO web_users (email, paid_credits, last_seen)
-    SELECT LOWER(email), generations_limit, NOW()
-    FROM paid
-    WHERE email IS NOT NULL AND email <> ''
-    ON CONFLICT (email) DO UPDATE
-        SET paid_credits = web_users.paid_credits + EXCLUDED.paid_credits,
-            last_seen = NOW()
-    RETURNING id, email, paid_credits
+tariff_calc AS (
+    -- Размер бонусов по тарифу: referrer +10/30/80, friend +3/5/10
+    SELECT
+        p.id, LOWER(p.email) AS email, p.generations_limit, p.tariff_code, p.ref_by,
+        CASE p.tariff_code
+            WHEN 'starter'  THEN 10
+            WHEN 'pro'      THEN 30
+            WHEN 'business' THEN 80
+            ELSE 0
+        END AS referrer_bonus,
+        CASE p.tariff_code
+            WHEN 'starter'  THEN 3
+            WHEN 'pro'      THEN 5
+            WHEN 'business' THEN 10
+            ELSE 0
+        END AS friend_bonus
+    FROM paid p
+),
+friend_upserted AS (
+    -- Друг (тот кто оплатил): +paid_credits + friend_bonus (если по реферальной ссылке).
+    -- Также генерим ref_code чтобы он сам мог приглашать.
+    -- ref_by фиксируется ТОЛЬКО при первой привязке (COALESCE).
+    INSERT INTO web_users (email, paid_credits, ref_by, ref_code, last_seen)
+    SELECT
+        t.email,
+        t.generations_limit + CASE WHEN t.ref_by IS NOT NULL THEN t.friend_bonus ELSE 0 END,
+        t.ref_by,
+        generate_ref_code(),
+        NOW()
+    FROM tariff_calc t
+    WHERE t.email IS NOT NULL AND t.email <> ''
+    ON CONFLICT (email) DO UPDATE SET
+        paid_credits = web_users.paid_credits + EXCLUDED.paid_credits,
+        ref_code     = COALESCE(web_users.ref_code, EXCLUDED.ref_code),
+        ref_by       = COALESCE(web_users.ref_by,   EXCLUDED.ref_by),
+        last_seen    = NOW()
+    RETURNING id, email, paid_credits, ref_code, ref_by
+),
+referrer_paid AS (
+    -- Реферер получает +referrer_bonus в paid_credits.
+    -- Защита от self-referral: wu.email <> friend.email
+    UPDATE web_users wu
+    SET
+        paid_credits         = wu.paid_credits + tc.referrer_bonus,
+        bonus_credits_earned = wu.bonus_credits_earned + tc.referrer_bonus,
+        paid_referred_count  = wu.paid_referred_count + 1
+    FROM tariff_calc tc
+    WHERE wu.ref_code = tc.ref_by
+      AND tc.ref_by IS NOT NULL
+      AND tc.referrer_bonus > 0
+      AND LOWER(wu.email) <> tc.email
+    RETURNING wu.id AS referrer_user_id, wu.email AS referrer_email, tc.referrer_bonus AS credited
+),
+referral_log AS (
+    -- Записываем в referrals (если ON CONFLICT — пропускаем, идемпотентно)
+    INSERT INTO referrals (
+        referrer_user_id, referred_user_id, referred_username,
+        platform, bonus_paid_credits, web_user_id, friend_web_user_id,
+        commission_rub, status, first_paid_at
+    )
+    SELECT
+        rp.referrer_user_id::text,
+        f.id::text,
+        f.email,
+        'web',
+        rp.credited,
+        rp.referrer_user_id,
+        f.id,
+        0,
+        'paid',
+        NOW()
+    FROM referrer_paid rp, friend_upserted f
+    ON CONFLICT (referred_user_id) DO NOTHING
+    RETURNING id
 )
 SELECT
-    (SELECT id              FROM paid)          AS order_id,
-    (SELECT email           FROM paid)          AS email,
-    (SELECT generations_limit FROM paid)        AS credits_added,
-    (SELECT id              FROM user_upserted) AS web_user_id,
-    (SELECT paid_credits    FROM user_upserted) AS user_total_credits;
--- web_user_id в web_orders заполняется отдельным заданием (или JOIN по email);
--- в одном CTE два UPDATE на одну строку web_orders запрещены PostgreSQL."""
+    (SELECT id              FROM paid)              AS order_id,
+    (SELECT email           FROM paid)              AS email,
+    (SELECT generations_limit FROM paid)            AS credits_added,
+    (SELECT friend_bonus    FROM tariff_calc)       AS friend_bonus,
+    (SELECT id              FROM friend_upserted)   AS web_user_id,
+    (SELECT ref_code        FROM friend_upserted)   AS friend_ref_code,
+    (SELECT paid_credits    FROM friend_upserted)   AS user_total_credits,
+    (SELECT referrer_email  FROM referrer_paid)     AS referrer_email,
+    (SELECT credited        FROM referrer_paid)     AS referrer_credited;"""
 
 
 def build_modified(exported: dict) -> dict:
