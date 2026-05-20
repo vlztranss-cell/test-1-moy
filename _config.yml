@@ -1,0 +1,10 @@
+# GitHub Pages config: исключаем приватные/служебные файлы из публикации.
+# Эти файлы остаются в репо, но НЕ доступны по botisk.ru.
+exclude:
+  - dashboard.html      # админ-дашборд — живёт на VPS за basic_auth
+  - .env
+  - scripts/
+  - tests/
+  - n8n-workflows/      # JSON-исходники workflow + миграции БД
+  - "*.md"              # документация остаётся в git, на сайте не публикуется
+  - control.py
