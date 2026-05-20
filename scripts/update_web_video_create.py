@@ -61,36 +61,61 @@ return [{json: {
 }}];
 """.strip()
 
-# SQL для charge credit. Email и IP уже провалидированы регекспом в JS,
-# поэтому безопасно интерполируем через n8n {{ }}.
-CHARGE_SQL = """WITH upserted AS (
-    INSERT INTO web_users (email, last_seen, last_ip)
-    VALUES ('{{$json.email}}', NOW(), {{$json.ip ? "'" + $json.ip + "'::inet" : 'NULL'}})
-    ON CONFLICT (email) DO UPDATE SET last_seen = NOW(), last_ip = EXCLUDED.last_ip
-    RETURNING id, paid_credits, free_used, email
-),
-charged AS (
-    UPDATE web_users wu
-    SET
-        paid_credits = CASE WHEN u.paid_credits > 0 THEN wu.paid_credits - 1 ELSE wu.paid_credits END,
-        free_used    = CASE WHEN u.paid_credits = 0 AND NOT u.free_used THEN TRUE ELSE wu.free_used END,
-        total_generated = wu.total_generated + 1
-    FROM upserted u
-    WHERE wu.id = u.id AND (u.paid_credits > 0 OR NOT u.free_used)
-    RETURNING wu.id,
-        u.paid_credits AS prev_paid,
-        u.free_used    AS prev_free,
-        wu.paid_credits AS new_paid,
-        CASE WHEN u.paid_credits > 0 THEN 'paid' ELSE 'free' END AS charge_type
+# SQL для charge credit. Атомарно: один INSERT ... ON CONFLICT DO UPDATE WHERE.
+# Email и IP провалидированы регекспом в JS, безопасно интерполируем.
+#
+# Логика:
+# - Новый email → INSERT с free_used=TRUE, total_generated=1 (использовали бесплатное)
+# - Существующий с paid_credits > 0 → ON CONFLICT WHERE matched, paid_credits -= 1
+# - Существующий с free_used = FALSE и paid = 0 → free_used = TRUE
+# - Существующий с использованным free и paid = 0 → WHERE не matched, RETURNING пуст → 402
+#
+# Почему НЕ два CTE (как было): WITH-подзапросы видят снимок таблицы ДО запроса,
+# поэтому второй CTE не найдёт строку, только что вставленную первым.
+CHARGE_SQL = """WITH chg AS (
+    INSERT INTO web_users (email, free_used, total_generated, last_seen, last_ip)
+    VALUES (
+        '{{$json.email}}',
+        TRUE,
+        1,
+        NOW(),
+        {{$json.ip ? "'" + $json.ip + "'::inet" : 'NULL'}}
+    )
+    ON CONFLICT (email) DO UPDATE SET
+        paid_credits = CASE
+            WHEN web_users.paid_credits > 0 THEN web_users.paid_credits - 1
+            ELSE web_users.paid_credits
+        END,
+        free_used = CASE
+            WHEN web_users.paid_credits = 0 AND NOT web_users.free_used THEN TRUE
+            ELSE web_users.free_used
+        END,
+        total_generated = web_users.total_generated + 1,
+        last_seen = NOW(),
+        last_ip = EXCLUDED.last_ip
+    WHERE web_users.paid_credits > 0 OR NOT web_users.free_used
+    RETURNING id, paid_credits, free_used, (xmax = 0) AS was_insert
 )
 SELECT
-    (SELECT id              FROM upserted) AS user_id,
-    (SELECT email           FROM upserted) AS user_email,
-    (SELECT paid_credits    FROM upserted) AS available_paid,
-    (SELECT free_used       FROM upserted) AS available_free,
-    (SELECT id              FROM charged)  AS charged_id,
-    (SELECT charge_type     FROM charged)  AS charge_type,
-    (SELECT new_paid        FROM charged)  AS credits_left;"""
+    (SELECT id FROM chg)                                                    AS user_id,
+    '{{$json.email}}'                                                       AS user_email,
+    COALESCE((SELECT paid_credits FROM chg), 0)                             AS credits_left,
+    COALESCE((SELECT free_used FROM chg),
+             (SELECT free_used FROM web_users WHERE email = '{{$json.email}}'),
+             FALSE)                                                         AS free_used,
+    COALESCE((SELECT paid_credits FROM web_users WHERE email = '{{$json.email}}'),
+             0)                                                             AS available_paid,
+    COALESCE((SELECT free_used FROM web_users WHERE email = '{{$json.email}}'),
+             FALSE)                                                         AS available_free,
+    CASE
+        WHEN (SELECT was_insert FROM chg) THEN 'free'
+        WHEN (SELECT id FROM chg) IS NULL THEN NULL
+        WHEN (SELECT paid_credits FROM web_users WHERE email = '{{$json.email}}') > 0 THEN 'paid'
+        ELSE 'free'
+    END                                                                     AS charge_type;
+-- Подзапросы к web_users в SELECT видят снимок ТАБЛИЦЫ ДО запроса, поэтому
+-- available_paid/available_free показывают состояние ПЕРЕД списанием —
+-- именно это нужно для 402-ответа и определения charge_type."""
 
 # Обновлённый PG Save: добавляем email и web_user_id
 PG_SAVE_SQL = """INSERT INTO web_orders (
@@ -197,7 +222,7 @@ def build_modified_workflow(exported: dict) -> dict:
         "credentials": {"postgres": PG_CREDENTIAL},
     }
 
-    # 4. Allow? (IF: charged_id NOT NULL — кредит списался)
+    # 4. Allow? (IF: user_id NOT NULL — кредит списался)
     allow_node = {
         "parameters": {
             "conditions": {
@@ -208,7 +233,7 @@ def build_modified_workflow(exported: dict) -> dict:
                 },
                 "conditions": [
                     {
-                        "leftValue": "={{$json.charged_id}}",
+                        "leftValue": "={{$json.user_id}}",
                         "rightValue": "",
                         "operator": {"type": "string", "operation": "notEmpty"},
                     }
