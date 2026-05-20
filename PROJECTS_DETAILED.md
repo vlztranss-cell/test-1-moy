@@ -352,4 +352,4 @@ Telegram-бот для ручной загрузки принтов:
 | Google Sheets (WB Cache) | `1iDkfD_I_zqTAnav-tv8joHwh1wZTvDimzrAwogyXC3g` | Справочники WB |
 | GitHub | github.com/vlztranss-cell | Код, дашборд |
 | Лендинг VideoAI | botisk.ru | Продающий сайт |
-| Дашборд | botisk.ru/op-k7m3x9j2.html | Панель управления |
+| Дашборд | n8n.24isk.ru/op/ (basic_auth) | Панель управления |

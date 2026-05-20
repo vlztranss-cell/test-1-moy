@@ -5,7 +5,7 @@
 | Файл | Что делает |
 |------|-----------|
 | `control.py` | Панель управления n8n. Команды: status, errors, activate, deactivate, notify, online, offline. Отправляет алерты в Telegram. |
-| `op-k7m3x9j2.html` | Веб-дашборд (GitHub Pages). Показывает все workflows по проектам с описаниями, статусами, кнопками вкл/выкл и скачиванием JSON. Спрятан за обскурный URL. |
+| `dashboard.html` | Веб-дашборд. **Source-of-truth в git, НЕ публикуется на botisk.ru** (исключён через `_config.yml`). Деплой на VPS — `python scripts/deploy_dashboard.py`. Реальный URL — `https://n8n.24isk.ru/op/` за basic_auth. |
 | `.env` | Все ключи и пароли (не пушится в Git). n8n API, Telegram, WB, ЮКасса, PostgreSQL, Google, Yandex, OpenAI. |
 | `README.md` | Описание репозитория и инструкция по запуску. |
 | `PROJECTS_SUMMARY.md` | Краткая сводка: 7 проектов, 15 credentials, инфраструктура. |
@@ -32,6 +32,6 @@
 ## Ссылки
 
 - Лендинг VideoAI: https://botisk.ru/
-- Дашборд: https://botisk.ru/op-k7m3x9j2.html
+- Дашборд: https://n8n.24isk.ru/op/ (basic_auth: admin / см. .env DASHBOARD_PASSWORD)
 - GitHub: https://github.com/vlztranss-cell/test-1-moy
 - n8n: https://n8n.24isk.ru/
