@@ -919,30 +919,31 @@
                 blocked: []
             },
             {
-                project: 'Wildberries Cards',
-                desc: 'Автоматизация карточек WB — создание, фото, цены, остатки',
+                project: 'Wildberries Cards ⏸ ПАУЗА',
+                desc: 'На паузе с 20.05.26. Все 5 workflow деактивированы в n8n (CARD_CHECK, CARD_CREATE, PHOTO_UPLOAD, PRICES_STOCKS, ARB-2, TeZilla SEO)',
                 done: [
                     { text: 'Конвейер: Sheets → карточка → фото → цены → LIVE', date: 'ранее', tag: 'dev' },
                     { text: 'Кэш справочников WB', date: 'ранее', tag: 'dev' },
+                    { text: '⏸ Все 6 workflow по WB деактивированы в n8n (карточки, цены, фото, арбитраж, TeZilla SEO)', date: '20.05.26', tag: 'infra' },
                 ],
-                todo: [
-                    { text: 'Мониторинг ошибок создания карточек', tag: 'dev' },
-                ],
-                blocked: []
+                todo: [],
+                blocked: [
+                    { text: 'Проект на паузе. Для возобновления — активировать workflow в n8n', tag: 'dev' },
+                ]
             },
             {
-                project: 'Print-on-Demand',
-                desc: 'Тренды → принты → мокапы → WB',
+                project: 'Print-on-Demand ⏸ ПАУЗА',
+                desc: 'Футболки на паузе с 20.05.26. Trend Scanner + Quality Control деактивированы',
                 done: [
                     { text: 'Trend Scanner работает (SerpAPI + Reddit + GPT)', date: 'ранее', tag: 'dev' },
                     { text: 'Quality Control через GPT-4o Vision', date: 'ранее', tag: 'dev' },
+                    { text: '⏸ Trend Scanner + Quality Control деактивированы в n8n', date: '20.05.26', tag: 'infra' },
+                    { text: '⚠️ Отключить подписку Ideogram (api.ideogram.ai) — основной генератор принтов', date: '20.05.26', tag: 'finance' },
                 ],
-                todo: [
-                    { text: 'Запустить Print Generator v4', tag: 'dev' },
-                    { text: 'Запустить Mockup Generator v9', tag: 'dev' },
-                    { text: 'Связка мокапов → загрузка на WB', tag: 'dev' },
-                ],
-                blocked: []
+                todo: [],
+                blocked: [
+                    { text: 'Проект на паузе. Для возобновления — активировать workflow + подписку Ideogram', tag: 'dev' },
+                ]
             },
         ];
 
