@@ -154,4 +154,4 @@
 | VPS (PostgreSQL) | root@72.56.96.64 |
 | GitHub | https://github.com/vlztranss-cell |
 | Лендинг VideoAI | https://botisk.ru/ |
-| Дашборд | https://botisk.ru/dashboard.html |
+| Дашборд | https://botisk.ru/op-k7m3x9j2.html |
