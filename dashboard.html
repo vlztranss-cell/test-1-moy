@@ -440,7 +440,50 @@
         .action-btn.stop:hover { border-color: #f85149; color: #f85149; }
         .action-btn.open:hover { border-color: #58a6ff; color: #58a6ff; }
         .action-btn.download:hover { border-color: #bc8cff; color: #bc8cff; }
+        .action-btn.archive:hover { border-color: #d29922; color: #d29922; }
+        .action-btn.restore:hover { border-color: #3fb950; color: #3fb950; }
         .action-btn:disabled { opacity: 0.4; cursor: default; }
+
+        /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
+        .archive-section {
+            margin-top: 40px;
+            margin-bottom: 16px;
+            padding: 0;
+            border-top: 1px dashed #21262d;
+            opacity: 0.55;
+            transition: opacity 0.2s;
+        }
+        .archive-section:hover { opacity: 0.9; }
+        .archive-section[open] { opacity: 0.95; }
+        .archive-section summary {
+            cursor: pointer;
+            padding: 12px 4px;
+            font-size: 12px;
+            color: #6e7681;
+            user-select: none;
+            list-style: none;
+        }
+        .archive-section summary::-webkit-details-marker { display: none; }
+        .archive-section summary:hover { color: #8b949e; }
+        .archive-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
+            padding: 12px 4px;
+        }
+        .archive-item {
+            background: rgba(13, 17, 23, 0.6);
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+        .archive-item .arch-name {
+            color: #8b949e;
+            margin-bottom: 6px;
+            word-break: break-all;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -597,10 +640,43 @@
     <div class="projects-grid" id="projects">
         <div class="loading">Загрузка данных</div>
     </div>
+
+    <!-- Архив — workflows скрытые админом (localStorage). Свёрнут по умолчанию. -->
+    <details class="archive-section" id="archive-section" style="display:none;">
+        <summary id="archive-summary">📦 Архив workflow (0)</summary>
+        <div class="archive-list" id="archive-list"></div>
+    </details>
+
     <div class="timestamp" id="timestamp"></div>
 
     <script>
         const API_URL = 'https://n8n.24isk.ru/webhook/dashboard';
+
+        // ===== АРХИВ (клиентский, localStorage) =====
+        // n8n public API не разрешает менять isArchived, поэтому скрываем локально.
+        // Хранится set ID-шек в localStorage. Архивные workflow уходят вниз страницы
+        // в свёрнутый <details> блок.
+        function getLocalArchive() {
+            try { return new Set(JSON.parse(localStorage.getItem('archived_workflows') || '[]')); }
+            catch { return new Set(); }
+        }
+        function saveLocalArchive(set) {
+            localStorage.setItem('archived_workflows', JSON.stringify([...set]));
+        }
+        function archiveWf(id, evt) {
+            if (evt) evt.stopPropagation();
+            const s = getLocalArchive();
+            s.add(id);
+            saveLocalArchive(s);
+            loadData();
+        }
+        function restoreWf(id, evt) {
+            if (evt) evt.stopPropagation();
+            const s = getLocalArchive();
+            s.delete(id);
+            saveLocalArchive(s);
+            loadData();
+        }
         const N8N_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5YzAwMmRkNC1mMDI2LTQ1MWQtYWZmMC0wYzNlNmU2MmE0MjgiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMTM3M2VhYTctYjBlNC00ZjM0LWJkYjQtYzg0OWFlMDBlNzU1IiwiaWF0IjoxNzc5MDU0NTAzLCJleHAiOjE3ODY4Mjc2MDB9.n9QAgjQ_6Jags29Rb4qE8okSOVw_386xgMNYnIFru1A';
         const N8N_BASE = 'https://n8n.24isk.ru';
 
@@ -642,10 +718,24 @@
         }
 
         function renderProjects(projects) {
+            const localArchive = getLocalArchive();
+            const isArchived = w => w.archived || localArchive.has(w.id);
+
+            // Собираем архивные по всем проектам — для отдельного блока внизу
+            const archivedAll = [];
+            for (const p of projects) {
+                for (const w of p.workflows) {
+                    if (isArchived(w)) archivedAll.push({ ...w, projectName: p.name });
+                }
+            }
+
             const el = document.getElementById('projects');
             el.innerHTML = projects
-                .filter(p => p.totalCount > 0 || p.activeCount > 0)
-                .map(p => `
+                .filter(p => p.workflows.some(w => !isArchived(w)))
+                .map(p => {
+                    const visible = p.workflows.filter(w => !isArchived(w));
+                    const activeVisible = visible.filter(w => w.active).length;
+                    return `
                 <div class="project-card" onclick="this.classList.toggle('expanded')">
                     <div class="project-header">
                         <div class="project-name">${p.name}</div>
@@ -654,13 +744,12 @@
                     <div class="project-desc">${p.description}</div>
                     <div class="project-info">${getProjectInfo(p.name)}</div>
                     <div class="project-stats">
-                        <div class="project-stat active">Активных: <span>${p.activeCount}</span></div>
-                        <div class="project-stat">Всего: <span>${p.totalCount}</span></div>
-                        ${p.archivedCount ? `<div class="project-stat">Архив: <span>${p.archivedCount}</span></div>` : ''}
+                        <div class="project-stat active">Активных: <span>${activeVisible}</span></div>
+                        <div class="project-stat">Всего: <span>${visible.length}</span></div>
                     </div>
                     <button class="toggle-btn">Показать workflows</button>
                     <div class="workflows-list">
-                        ${p.workflows.filter(w => !w.archived).map(w => `
+                        ${visible.map(w => `
                             <div class="wf-item-card" onclick="event.stopPropagation()">
                                 <div class="wf-item-header">
                                     <div class="wf-status ${w.active ? 'active' : 'inactive'}"></div>
@@ -675,12 +764,34 @@
                                     }
                                     <a class="action-btn open" href="${N8N_BASE}/workflow/${w.id}" target="_blank">Открыть в n8n</a>
                                     <button class="action-btn download" onclick="downloadWf('${w.id}','${w.name.replace(/'/g,'')}')">Скачать JSON</button>
+                                    <button class="action-btn archive" onclick="archiveWf('${w.id}', event)">📦 В архив</button>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+                }).join('');
+
+            // Рендерим архив-блок отдельно (или скрываем если пуст)
+            const archSection = document.getElementById('archive-section');
+            const archSummary = document.getElementById('archive-summary');
+            const archList = document.getElementById('archive-list');
+            if (archivedAll.length === 0) {
+                archSection.style.display = 'none';
+            } else {
+                archSection.style.display = 'block';
+                archSummary.textContent = `📦 Архив workflow (${archivedAll.length})`;
+                archList.innerHTML = archivedAll.map(w => `
+                    <div class="archive-item">
+                        <div class="arch-name">${w.name}</div>
+                        <div style="color:#484f58;font-size:10px;margin-bottom:6px;">${w.projectName} · ${w.active ? 'ON' : 'OFF'}</div>
+                        <div class="wf-actions">
+                            <button class="action-btn restore" onclick="restoreWf('${w.id}', event)">↩️ Восстановить</button>
+                            <a class="action-btn open" href="${N8N_BASE}/workflow/${w.id}" target="_blank">n8n</a>
+                        </div>
+                    </div>
+                `).join('');
+            }
         }
 
         async function toggleWf(id, action, btn) {
@@ -895,11 +1006,11 @@
                     { text: 'Метрика: 9 reachGoal-событий в index.html (PHOTO_UPLOADED, GENERATION_STARTED, PAYMENT_*, VIDEO_DOWNLOAD)', date: '21.05.26', tag: 'marketing' },
                     { text: 'Auto-refund: при PiAPI status=failed кредит возвращается автоматически (CTE, идемпотентно)', date: '21.05.26', tag: 'dev' },
                     { text: 'docs/AD_LAUNCH.md: шпаргалка по Директу — UTM-шаблон, 4 сегмента, цели Метрики, чек-лист запуска', date: '21.05.26', tag: 'marketing' },
+                    { text: 'Архив workflow в дашборде: кнопка «📦 В архив» в каждой карточке, свёрнутый блок «Архив (N)» внизу, состояние в localStorage', date: '21.05.26', tag: 'dev' },
                 ],
                 todo: [
                     { text: '⚡ Создать 9 целей в Метрике UI (по списку из docs/AD_LAUNCH.md) — без этого Директ не сможет таргетить', tag: 'marketing' },
                     { text: '⚡ Запустить первую тестовую кампанию в Директе (3-5к₽, один сегмент — Память или Детство)', tag: 'marketing' },
-                    { text: 'Архив workflow в дашборде (новый таб + кнопка)', tag: 'dev' },
                     { text: 'Cron-очистка /srv/videos старше 30 дней (через ~6 мес. накопится)', tag: 'infra' },
                     { text: 'CI: pytest tests/ в GitHub Actions (когда команда вырастет)', tag: 'dev' },
                 ],
