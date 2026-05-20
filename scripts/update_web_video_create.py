@@ -139,6 +139,42 @@ FROM web_orders
 WHERE piapi_task_id = '{{$json.query.task_id}}'
 LIMIT 1;"""
 
+# Code-нода: если status=completed AND charge_type=free → POST на watermark-сервис,
+# подменяем video_url на наш с водяным знаком. Иначе пропускаем.
+WATERMARK_CODE_JS = r"""
+const ps = $input.first().json;
+let video_url = ps.video_url;
+let watermarked = false;
+
+if (ps.status === 'completed' && ps.charge_type === 'free' && ps.video_url) {
+    const taskId = $('Status Webhook').first().json.query.task_id;
+    try {
+        const resp = await this.helpers.httpRequest({
+            method: 'POST',
+            url: 'http://172.17.0.1:8765/watermark',
+            body: { task_id: taskId, src_url: ps.video_url },
+            json: true,
+            timeout: 60000,
+        });
+        if (resp && resp.url) {
+            video_url = resp.url;
+            watermarked = true;
+        }
+    } catch (e) {
+        // Если watermark-сервис умер — отдаём исходный URL, не теряем пользователя.
+        console.error('watermark failed:', e.message || e);
+    }
+}
+
+return [{json: {
+    status: ps.status,
+    video_url,
+    error: ps.error,
+    charge_type: ps.charge_type,
+    watermarked,
+}}];
+""".strip()
+
 # Новый JS для Parse Status: выбираем URL в зависимости от charge_type
 PARSE_STATUS_JS = r"""
 const d = ($('PiAPI Get Status').first().json).data || {};
@@ -371,9 +407,28 @@ def build_modified_workflow(exported: dict) -> dict:
         "=https://api.piapi.ai/api/v1/task/{{$('Status Webhook').first().json.query.task_id}}"
     )
 
+    # === ФАЗА 2.5: ставим watermark на free-видео через локальный сервис ===
+    # Делаем одну Code-ноду с inline httpRequest — это проще, чем IF+HTTP+Build,
+    # т.к. ветка с пропуском Apply Watermark ломала ссылки в Respond Status.
+    respond_status = by_name["Respond Status"]
+    respond_status["position"] = [respond_status["position"][0] + 220, 300]
+
+    watermark_code_node = {
+        "parameters": {"jsCode": WATERMARK_CODE_JS},
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [880, 300],
+        "id": "watermark-if-free-2026",
+        "name": "Watermark If Free",
+    }
+
+    # Respond Status просто возвращает $json (он уже подготовлен Watermark If Free)
+    respond_status["parameters"]["responseBody"] = '={{ JSON.stringify($json) }}'
+
     # Вставляем новые ноды
     nodes.extend([validate_node, validated_node, charge_node, allow_node,
-                  respond_400, respond_402, pg_get_charge_node])
+                  respond_400, respond_402, pg_get_charge_node,
+                  watermark_code_node])
 
     # Переписываем connections
     # Create Webhook → Validate → Validated? ─ true ─→ Charge → Allow? ─ true ─→ Prepare → ...
@@ -401,12 +456,19 @@ def build_modified_workflow(exported: dict) -> dict:
             [{"node": "Respond 402", "type": "main", "index": 0}],     # false
         ]
     }
-    # Status flow: Status Webhook → PG Get Charge Type → PiAPI Get Status → ...
+    # Status flow: Status Webhook → PG Get Charge Type → PiAPI Get Status → Parse Status
     new_conn["Status Webhook"] = {
         "main": [[{"node": "PG Get Charge Type", "type": "main", "index": 0}]]
     }
     new_conn["PG Get Charge Type"] = {
         "main": [[{"node": "PiAPI Get Status", "type": "main", "index": 0}]]
+    }
+    # Parse Status → Watermark If Free → Respond Status
+    new_conn["Parse Status"] = {
+        "main": [[{"node": "Watermark If Free", "type": "main", "index": 0}]]
+    }
+    new_conn["Watermark If Free"] = {
+        "main": [[{"node": "Respond Status", "type": "main", "index": 0}]]
     }
 
     modified = {

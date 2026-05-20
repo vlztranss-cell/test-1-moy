@@ -1,0 +1,16 @@
+[Unit]
+Description=VideoAI watermark service (ffmpeg HTTP wrapper)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /srv/watermark/watermark_service.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
