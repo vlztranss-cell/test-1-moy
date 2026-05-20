@@ -32,6 +32,7 @@ paid AS (
         paid_at = NOW()
     WHERE payment_id = '{{ $json.body.object.id }}'
       AND is_paid <> 'yes'
+      AND '{{ $json.body.object.metadata.source }}' = 'web'
     RETURNING id, email, generations_limit
 ),
 user_upserted AS (
