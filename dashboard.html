@@ -444,6 +444,69 @@
         .action-btn.restore:hover { border-color: #3fb950; color: #3fb950; }
         .action-btn:disabled { opacity: 0.4; cursor: default; }
 
+        /* ===== AD CAMPAIGNS ===== */
+        .campaigns-section { margin-bottom: 32px; }
+        .campaigns-section > h2 {
+            font-size: 18px; font-weight: 700; color: #e6edf3;
+            margin-bottom: 8px;
+        }
+        .campaigns-meta {
+            font-size: 12px; color: #8b949e; margin-bottom: 14px;
+        }
+        .campaigns-meta code {
+            background: #0d1117; border: 1px solid #21262d; padding: 1px 6px;
+            border-radius: 4px; font-size: 11px; color: #d2a8ff;
+        }
+        .campaigns-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .campaign-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .campaign-head {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px;
+        }
+        .campaign-name {
+            font-size: 15px; font-weight: 700; color: #e6edf3;
+        }
+        .campaign-status {
+            font-size: 10px; padding: 3px 8px; border-radius: 10px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .status-pending {
+            background: rgba(210, 153, 34, 0.15); color: #d29922; border: 1px solid rgba(210, 153, 34, 0.4);
+        }
+        .status-active {
+            background: rgba(46, 160, 67, 0.15); color: #3fb950; border: 1px solid rgba(46, 160, 67, 0.4);
+        }
+        .status-paused {
+            background: rgba(139, 148, 158, 0.15); color: #8b949e; border: 1px solid rgba(139, 148, 158, 0.4);
+        }
+        .campaign-desc {
+            font-size: 12px; color: #8b949e; margin-bottom: 12px; line-height: 1.4;
+        }
+        .campaign-stats {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            margin-bottom: 12px;
+        }
+        .campaign-stats > div {
+            background: rgba(255,255,255,0.02); padding: 6px 8px; border-radius: 6px;
+            display: flex; justify-content: space-between; font-size: 11px;
+        }
+        .campaign-stats span { color: #6e7681; }
+        .campaign-stats b { color: #e6edf3; font-weight: 600; }
+        .campaign-actions {
+            display: flex; gap: 6px; flex-wrap: wrap;
+        }
+        .campaigns-foot {
+            margin-top: 12px; padding: 10px 14px;
+            background: rgba(210, 153, 34, 0.08); border: 1px solid rgba(210, 153, 34, 0.2);
+            border-radius: 8px; font-size: 12px; color: #d29922;
+        }
+
         /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
         .archive-section {
             margin-top: 40px;
@@ -628,6 +691,104 @@
                     <a class="service-link" href="https://github.com/vlztranss-cell/test-1-moy" target="_blank">Репо</a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- AD CAMPAIGNS (Яндекс.Директ) -->
+    <div class="campaigns-section">
+        <h2>🎯 Рекламные кампании — Яндекс.Директ</h2>
+        <div class="campaigns-meta">
+            Лендинг: <a href="https://botisk.ru/" target="_blank">botisk.ru</a> · Метрика-счётчик: 109293181 ·
+            Главная цель: <code>PAYMENT_SUCCESS</code> (ID 561354986)
+        </div>
+        <div class="campaigns-grid">
+            <div class="campaign-card">
+                <div class="campaign-head">
+                    <div class="campaign-name">Память</div>
+                    <span class="campaign-status status-pending">Ожидает API</span>
+                </div>
+                <div class="campaign-desc">Оживить старое фото близких. Креатив: warm_memory.mp4</div>
+                <div class="campaign-stats">
+                    <div><span>Бюджет/день</span><b>200 ₽</b></div>
+                    <div><span>UTM</span><b>memory</b></div>
+                    <div><span>Показы</span><b>—</b></div>
+                    <div><span>Клики</span><b>—</b></div>
+                    <div><span>Конверсии</span><b>—</b></div>
+                    <div><span>Расход</span><b>—</b></div>
+                </div>
+                <div class="campaign-actions">
+                    <button class="action-btn" disabled>Запустить</button>
+                    <button class="action-btn" disabled>Пауза</button>
+                    <a class="action-btn open" href="https://direct.yandex.ru/" target="_blank">Открыть в Директе</a>
+                </div>
+            </div>
+
+            <div class="campaign-card">
+                <div class="campaign-head">
+                    <div class="campaign-name">Детство</div>
+                    <span class="campaign-status status-pending">Ожидает API</span>
+                </div>
+                <div class="campaign-desc">Оживить детские фото для родителей. Креатив: childhood.mp4</div>
+                <div class="campaign-stats">
+                    <div><span>Бюджет/день</span><b>250 ₽</b></div>
+                    <div><span>UTM</span><b>babies</b></div>
+                    <div><span>Показы</span><b>—</b></div>
+                    <div><span>Клики</span><b>—</b></div>
+                    <div><span>Конверсии</span><b>—</b></div>
+                    <div><span>Расход</span><b>—</b></div>
+                </div>
+                <div class="campaign-actions">
+                    <button class="action-btn" disabled>Запустить</button>
+                    <button class="action-btn" disabled>Пауза</button>
+                    <a class="action-btn open" href="https://direct.yandex.ru/" target="_blank">Открыть в Директе</a>
+                </div>
+            </div>
+
+            <div class="campaign-card">
+                <div class="campaign-head">
+                    <div class="campaign-name">Питомцы</div>
+                    <span class="campaign-status status-pending">Ожидает API</span>
+                </div>
+                <div class="campaign-desc">В память о питомце. Креатив: pet.mp4</div>
+                <div class="campaign-stats">
+                    <div><span>Бюджет/день</span><b>150 ₽</b></div>
+                    <div><span>UTM</span><b>pets</b></div>
+                    <div><span>Показы</span><b>—</b></div>
+                    <div><span>Клики</span><b>—</b></div>
+                    <div><span>Конверсии</span><b>—</b></div>
+                    <div><span>Расход</span><b>—</b></div>
+                </div>
+                <div class="campaign-actions">
+                    <button class="action-btn" disabled>Запустить</button>
+                    <button class="action-btn" disabled>Пауза</button>
+                    <a class="action-btn open" href="https://direct.yandex.ru/" target="_blank">Открыть в Директе</a>
+                </div>
+            </div>
+
+            <div class="campaign-card">
+                <div class="campaign-head">
+                    <div class="campaign-name">Love Story</div>
+                    <span class="campaign-status status-pending">Ожидает API</span>
+                </div>
+                <div class="campaign-desc">Подарок на годовщину. Креатив: love_story.mp4</div>
+                <div class="campaign-stats">
+                    <div><span>Бюджет/день</span><b>150 ₽</b></div>
+                    <div><span>UTM</span><b>love</b></div>
+                    <div><span>Показы</span><b>—</b></div>
+                    <div><span>Клики</span><b>—</b></div>
+                    <div><span>Конверсии</span><b>—</b></div>
+                    <div><span>Расход</span><b>—</b></div>
+                </div>
+                <div class="campaign-actions">
+                    <button class="action-btn" disabled>Запустить</button>
+                    <button class="action-btn" disabled>Пауза</button>
+                    <a class="action-btn open" href="https://direct.yandex.ru/" target="_blank">Открыть в Директе</a>
+                </div>
+            </div>
+        </div>
+        <div class="campaigns-foot">
+            ⏳ Управление кампаниями подключится после одобрения Direct API (заявка подана 21.05.2026).
+            До этого момента панель работает в режиме планирования.
         </div>
     </div>
 
@@ -1012,7 +1173,6 @@
                 ],
                 todo: [
                     { text: '⚡ Запустить первую тестовую кампанию в Директе (3-5к₽, один сегмент — Память или Детство)', tag: 'marketing' },
-                    { text: 'Передать PAYMENT_SUCCESS Goal ID в .env (Денис: проверить в Метрике, прислать число)', tag: 'marketing' },
                     { text: 'Получить YANDEX_OAUTH_TOKEN (если идём через API) — см. docs/DIRECT_CAMPAIGN_SETUP.md', tag: 'marketing' },
                     { text: '💡 Гипотеза: i18n лендинга — много визитов не-РФ. Проверить долю по странам в Метрике, при >5% сделать EN/ES версии (auto по navigator.language + IP)', tag: 'marketing' },
                     { text: 'Cron-очистка /srv/videos старше 30 дней (через ~6 мес. накопится)', tag: 'infra' },
