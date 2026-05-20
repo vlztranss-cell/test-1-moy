@@ -1633,19 +1633,15 @@
         let currentPlan = null;
         let currentAmount = 0;
 
-        // ВРЕМЕННО: ЮKassa не принимает домен botisk.ru в whitelist (баг ЛК),
-        // оплату гоним через Telegram-бот. Когда домен одобрят — закомментируйте
-        // первую строку и раскомментируйте вторую.
         function openPayment(plan, amount, description) {
-            // Перенаправление в Telegram-бот для оплаты
-            window.open(TG_BOT_URL, '_blank');
-            return;
-            // --- Резервный код ниже (восстановить после одобрения домена в ЮKassa) ---
-            // currentPlan = plan;
-            // currentAmount = amount;
-            // document.getElementById('modal-plan-info').innerHTML =
-            //     `Тариф: <strong>${description}</strong><br>Сумма: <strong>${amount} &#8381;</strong>`;
-            // document.getElementById('payment-modal').classList.add('active');
+            currentPlan = plan;
+            currentAmount = amount;
+            document.getElementById('modal-plan-info').innerHTML =
+                `Тариф: <strong>${description}</strong><br>Сумма: <strong>${amount} &#8381;</strong>`;
+            // Префилл email, если уже сохранён в localStorage
+            const savedEmail = getEmail();
+            if (savedEmail) document.getElementById('payment-email').value = savedEmail;
+            document.getElementById('payment-modal').classList.add('active');
         }
 
         document.getElementById('modal-close').addEventListener('click', () => {
@@ -1658,11 +1654,14 @@
         });
 
         document.getElementById('modal-pay-btn').addEventListener('click', async () => {
-            const email = document.getElementById('payment-email').value.trim();
-            if (!email || !email.includes('@')) {
+            const emailRaw = document.getElementById('payment-email').value.trim();
+            if (!isValidEmail(emailRaw)) {
                 alert('Введите корректный email');
                 return;
             }
+            const email = emailRaw.toLowerCase();
+            // Сохраняем email сразу — он же используется для генерации
+            setEmail(email);
 
             const btn = document.getElementById('modal-pay-btn');
             btn.textContent = 'Создаём платёж...';
@@ -1685,10 +1684,8 @@
                 const data = await resp.json();
 
                 if (data.confirmation_url) {
-                    // Сохраняем email для привязки кредитов
-                    localStorage.setItem('videoai_email', email);
+                    // Email уже сохранён через setEmail() выше; помечаем pending plan
                     localStorage.setItem('videoai_pending_plan', currentPlan);
-                    // Редирект на страницу оплаты ЮKassa
                     window.location.href = data.confirmation_url;
                 } else {
                     throw new Error(data.error || 'Не удалось создать платёж');
