@@ -560,6 +560,39 @@
         .support-preview { color: #8b949e; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
         .support-empty { text-align: center; color: #484f58; padding: 30px; font-style: italic; }
 
+        /* ===== PARTNERS ===== */
+        .partners-section { margin-bottom: 32px; }
+        .partners-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
+        .partners-list { display: flex; flex-direction: column; gap: 10px; }
+        .partner-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 10px;
+            padding: 14px 16px;
+        }
+        .partner-card.status-pending { border-left: 3px solid #d29922; }
+        .partner-card.status-approved { border-left: 3px solid #3fb950; }
+        .partner-card.status-rejected { border-left: 3px solid #f85149; opacity: 0.55; }
+        .partner-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 13px; }
+        .partner-name { font-weight: 600; color: #e6edf3; }
+        .partner-meta { color: #8b949e; font-size: 12px; margin-bottom: 8px; }
+        .partner-meta b { color: #c9d1d9; }
+        .partner-traffic {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid #1e2633;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #8b949e;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 8px;
+        }
+        .partner-stats {
+            display: flex; gap: 16px; font-size: 12px; color: #6e7681; margin-top: 6px;
+        }
+        .partner-stats b { color: #e6edf3; }
+        .partner-empty { text-align: center; color: #484f58; padding: 30px; font-style: italic; }
+
         /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
         .archive-section {
             margin-top: 40px;
@@ -842,6 +875,14 @@
         <div class="campaigns-foot">
             ⏳ Управление кампаниями подключится после одобрения Direct API (заявка подана 21.05.2026).
             До этого момента панель работает в режиме планирования.
+        </div>
+    </div>
+
+    <!-- PARTNER APPLICATIONS -->
+    <div class="partners-section" id="partners-section">
+        <h2>🤝 Заявки в партнёрскую программу <span id="partners-count" style="font-size:14px;color:#8b949e;">—</span></h2>
+        <div class="partners-list" id="partners-list">
+            <div class="loading">Загрузка заявок...</div>
         </div>
     </div>
 
@@ -1368,6 +1409,51 @@
         loadBotStats();
         loadReferralStats();
         loadSupportTickets();
+        loadPartnerApplications();
+
+        async function loadPartnerApplications() {
+            try {
+                const resp = await fetch('https://n8n.24isk.ru/webhook/partner-list');
+                const items = await resp.json();
+                const list = document.getElementById('partners-list');
+                const counter = document.getElementById('partners-count');
+                if (!Array.isArray(items) || items.length === 0) {
+                    list.innerHTML = '<div class="partner-empty">заявок ещё не было</div>';
+                    counter.textContent = '(0)';
+                    return;
+                }
+                const pending = items.filter(x => x.status === 'pending').length;
+                const approved = items.filter(x => x.status === 'approved').length;
+                counter.textContent = `(всего ${items.length}, на проверке ${pending}, одобрено ${approved})`;
+                list.innerHTML = items.map(p => {
+                    const date = new Date(p.created_at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                    const tg = p.telegram ? `<a href="https://t.me/${p.telegram.replace(/^@/,'')}" target="_blank" style="color:var(--accent-light);">${p.telegram}</a>` : '—';
+                    return `
+                        <div class="partner-card status-${p.status}">
+                            <div class="partner-head">
+                                <div class="partner-name">#${p.id} · ${escapeHtml(p.name || '—')} · ${escapeHtml(p.email)}</div>
+                                <span class="badge badge-${p.status === 'pending' ? 'open' : (p.status === 'approved' ? 'closed' : 'in_progress')}">${p.status}</span>
+                            </div>
+                            <div class="partner-meta">
+                                ${date} · TG: ${tg} · Объём: <b>${escapeHtml(p.monthly_volume_estimate || '—')}</b> · Юр: <b>${escapeHtml(p.legal_status || '—')}</b>
+                                ${p.ref_code ? ` · Код: <code>${p.ref_code}</code>` : ''}
+                            </div>
+                            <div class="partner-traffic">${escapeHtml(p.traffic_source || '')}</div>
+                            ${p.status === 'approved' ? `
+                            <div class="partner-stats">
+                                <span>Баланс: <b>${p.balance_rub || 0} ₽</b></span>
+                                <span>Выплачено всего: <b>${p.total_paid_out || 0} ₽</b></span>
+                                <span>Ставки: <b>${p.payout_starter}/${p.payout_pro}/${p.payout_business} ₽</b></span>
+                            </div>` : ''}
+                            ${p.admin_note ? `<div class="partner-meta" style="margin-top:6px;font-style:italic;">📝 ${escapeHtml(p.admin_note)}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Partners failed:', e);
+                document.getElementById('partners-list').innerHTML = '<div class="partner-empty">ошибка загрузки</div>';
+            }
+        }
 
         async function loadSupportTickets() {
             try {
