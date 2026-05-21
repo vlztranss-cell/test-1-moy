@@ -536,6 +536,30 @@
         .ref-table code { background: #1e2633; padding: 2px 6px; border-radius: 4px; color: #d2a8ff; font-size: 11px; }
         .ref-empty { text-align: center; color: #484f58; padding: 20px !important; font-style: italic; }
 
+        /* ===== SUPPORT TICKETS ===== */
+        .support-section { margin-bottom: 32px; }
+        .support-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
+        .support-list { display: flex; flex-direction: column; gap: 8px; }
+        .support-ticket {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .support-ticket.status-open { border-left: 3px solid #d29922; }
+        .support-ticket.status-in_progress { border-left: 3px solid #58a6ff; }
+        .support-ticket.status-closed { border-left: 3px solid #3fb950; opacity: 0.55; }
+        .support-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: 12px; }
+        .support-head .meta { color: #8b949e; }
+        .support-head .meta b { color: #e6edf3; }
+        .support-head .badge {
+            padding: 2px 8px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge-open { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.4); }
+        .badge-in_progress { background: rgba(88,166,255,0.15); color: #58a6ff; border: 1px solid rgba(88,166,255,0.4); }
+        .badge-closed { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.4); }
+        .support-subject { font-weight: 600; color: #e6edf3; font-size: 13px; margin-bottom: 4px; }
+        .support-preview { color: #8b949e; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+        .support-empty { text-align: center; color: #484f58; padding: 30px; font-style: italic; }
+
         /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
         .archive-section {
             margin-top: 40px;
@@ -818,6 +842,14 @@
         <div class="campaigns-foot">
             ⏳ Управление кампаниями подключится после одобрения Direct API (заявка подана 21.05.2026).
             До этого момента панель работает в режиме планирования.
+        </div>
+    </div>
+
+    <!-- SUPPORT TICKETS -->
+    <div class="support-section" id="support-section">
+        <h2>💬 Тикеты поддержки <span id="support-count" style="font-size:14px;color:#8b949e;">—</span></h2>
+        <div class="support-list" id="support-list">
+            <div class="loading">Загрузка тикетов...</div>
         </div>
     </div>
 
@@ -1335,6 +1367,45 @@
         loadData();
         loadBotStats();
         loadReferralStats();
+        loadSupportTickets();
+
+        async function loadSupportTickets() {
+            try {
+                const resp = await fetch('https://n8n.24isk.ru/webhook/support-list');
+                const tickets = await resp.json();
+                const list = document.getElementById('support-list');
+                const counter = document.getElementById('support-count');
+                if (!Array.isArray(tickets) || tickets.length === 0) {
+                    list.innerHTML = '<div class=\"support-empty\">тикетов пока нет</div>';
+                    counter.textContent = '(0)';
+                    return;
+                }
+                const openCount = tickets.filter(t => t.status === 'open').length;
+                counter.textContent = `(всего ${tickets.length}, открытых ${openCount})`;
+                list.innerHTML = tickets.map(t => {
+                    const date = new Date(t.created_at).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                    const statusBadge = `<span class=\"badge badge-${t.status}\">${t.status}</span>`;
+                    return `
+                        <div class=\"support-ticket status-${t.status}\">
+                            <div class=\"support-head\">
+                                <div class=\"meta\">
+                                    <b>#${t.id}</b> · ${date} · ${t.email}${t.name ? ' (' + t.name + ')' : ''}
+                                </div>
+                                ${statusBadge}
+                            </div>
+                            ${t.subject ? `<div class=\"support-subject\">${escapeHtml(t.subject)}</div>` : ''}
+                            <div class=\"support-preview\">${escapeHtml(t.message_preview)}${t.message_length > 200 ? '...' : ''}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error('Support tickets failed:', e);
+                document.getElementById('support-list').innerHTML = '<div class=\"support-empty\">ошибка загрузки</div>';
+            }
+        }
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));
+        }
 
         async function loadReferralStats() {
             try {
