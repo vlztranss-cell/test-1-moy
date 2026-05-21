@@ -36,6 +36,12 @@ ON CONFLICT (user_id) DO UPDATE SET
     updated_at = NOW()
 RETURNING user_id, ref_by, ref_captured_at;"""
 
+# ── /webhook/bot-get-ref-by: вернуть ref_by пользователя из user_state ──────
+GET_REF_BY_SQL = """SELECT COALESCE(ref_by, '') AS ref_by
+FROM user_state
+WHERE user_id = '{{$json.query.user_id}}'
+LIMIT 1;"""
+
 # ── /webhook/bot-referral-link: дать боту ref_code этого юзера ──────────────
 LINK_SQL = """SELECT
     ensure_web_user_for_bot(
@@ -64,39 +70,57 @@ LINK_SQL = """SELECT
 #                   friend +3 / +5 / +10
 BONUS_SQL = """WITH
 target_order AS (
-    SELECT id, user_telegram_id, tariff_code, generations_limit, ref_by
+    SELECT id, user_telegram_id, username, tariff_code, generations_limit, ref_by
     FROM orders
     WHERE id = {{$json.body.order_id}}
-      AND ref_by IS NOT NULL
+      AND ref_by IS NOT NULL AND ref_by <> ''
       AND referral_bonus_paid = FALSE
       AND is_paid = 'yes'
 ),
 tariff_calc AS (
+    -- Бот-тарифы (pack_start, pack_pro, pack_business) и web-тарифы (starter, pro, business) — общий маппинг
     SELECT
         t.*,
-        CASE t.tariff_code
-            WHEN 'starter'  THEN 10
-            WHEN 'pro'      THEN 30
-            WHEN 'business' THEN 80
+        CASE
+            WHEN t.tariff_code IN ('starter',  'pack_start')    THEN 10
+            WHEN t.tariff_code IN ('pro',      'pack_pro')      THEN 30
+            WHEN t.tariff_code IN ('business', 'pack_business') THEN 80
             ELSE 0
         END AS referrer_bonus,
-        CASE t.tariff_code
-            WHEN 'starter'  THEN 3
-            WHEN 'pro'      THEN 5
-            WHEN 'business' THEN 10
+        CASE
+            WHEN t.tariff_code IN ('starter',  'pack_start')    THEN 3
+            WHEN t.tariff_code IN ('pro',      'pack_pro')      THEN 5
+            WHEN t.tariff_code IN ('business', 'pack_business') THEN 10
             ELSE 0
         END AS friend_bonus
     FROM target_order t
 ),
+-- Если friend (платящий бот-юзер) ещё не в web_users — создаём placeholder
+friend_upserted AS (
+    INSERT INTO web_users (email, telegram_user_id, telegram_username, last_seen, ref_code)
+    SELECT 'tg-' || t.user_telegram_id || '@bot.local',
+           t.user_telegram_id,
+           NULLIF(t.username, ''),
+           NOW(),
+           generate_ref_code()
+    FROM target_order t
+    WHERE t.user_telegram_id IS NOT NULL AND t.user_telegram_id <> ''
+    ON CONFLICT (email) DO UPDATE SET
+        telegram_user_id = COALESCE(web_users.telegram_user_id, EXCLUDED.telegram_user_id),
+        ref_code = COALESCE(web_users.ref_code, EXCLUDED.ref_code),
+        last_seen = NOW()
+    RETURNING id, telegram_user_id, ref_code
+),
 referrer_paid AS (
-    -- Защита от self-ref: web_users.telegram_user_id <> target.user_telegram_id (если поле есть)
+    -- Match по ref_code (web-стиль, буквенный) ИЛИ по telegram_user_id (bot-стиль, numeric).
+    -- Self-ref защита: referrer.tg_id <> friend.tg_id
     UPDATE web_users wu
     SET
         paid_credits = wu.paid_credits + tc.referrer_bonus,
         bonus_credits_earned = wu.bonus_credits_earned + tc.referrer_bonus,
         paid_referred_count = wu.paid_referred_count + 1
     FROM tariff_calc tc
-    WHERE wu.ref_code = tc.ref_by
+    WHERE (wu.ref_code = tc.ref_by OR wu.telegram_user_id = tc.ref_by)
       AND tc.referrer_bonus > 0
       AND (wu.telegram_user_id IS NULL OR wu.telegram_user_id <> tc.user_telegram_id)
     RETURNING wu.id AS referrer_user_id, wu.email AS referrer_email, tc.referrer_bonus AS credited
@@ -165,6 +189,8 @@ def build_workflow():
     link_wh["position"] = [0, 220]
     bonus_wh = w("bot-referral-bonus")
     bonus_wh["position"] = [0, 440]
+    getref_wh = w("bot-get-ref-by", http="GET")
+    getref_wh["position"] = [0, 660]
 
     return {
         "name": "Bot_Referral_API",
@@ -178,6 +204,9 @@ def build_workflow():
             bonus_wh,
             pg("Apply Bonus", BONUS_SQL, 220, 440),
             resp("Bonus Respond", 440, 440),
+            getref_wh,
+            pg("Lookup Ref By", GET_REF_BY_SQL, 220, 660),
+            resp("Ref By Respond", 440, 660),
         ],
         "connections": {
             "bot-referral-save-webhook":  {"main": [[{"node": "Save Ref By", "type": "main", "index": 0}]]},
@@ -186,6 +215,8 @@ def build_workflow():
             "Get Ref Link":                {"main": [[{"node": "Link Respond", "type": "main", "index": 0}]]},
             "bot-referral-bonus-webhook": {"main": [[{"node": "Apply Bonus", "type": "main", "index": 0}]]},
             "Apply Bonus":                 {"main": [[{"node": "Bonus Respond", "type": "main", "index": 0}]]},
+            "bot-get-ref-by-webhook":     {"main": [[{"node": "Lookup Ref By", "type": "main", "index": 0}]]},
+            "Lookup Ref By":               {"main": [[{"node": "Ref By Respond", "type": "main", "index": 0}]]},
         },
         "settings": {"executionOrder": "v1"},
     }
