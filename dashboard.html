@@ -1303,9 +1303,12 @@
                     { text: 'Реферальная программа: yukassa-create/check/callback расширены (capture ref_by → начисление +10/30/80 referrer, +3/5/10 friend)', date: '21.05.26', tag: 'dev' },
                     { text: 'Реферальная программа на лендинге: ?ref=CODE → localStorage → передача в YuKassa, карточка «Пригласи друга» после оплаты, кнопка в credits-info', date: '21.05.26', tag: 'dev' },
                     { text: 'Реферальная программа в дашборде: 4 KPI + топ-10 рефереров + лента последних реф-платежей, отдельный n8n endpoint /webhook/referral-stats', date: '21.05.26', tag: 'dev' },
+                    { text: 'Форма поддержки: плавающая кнопка + модалка, n8n /webhook/support, раздел тикетов в дашборде с приоритезацией по статусу', date: '21.05.26', tag: 'dev' },
+                    { text: 'Партнёрская cash-программа: partners.html лендинг, форма заявки, БД (partner_applications/conversions/payouts), раздел заявок в дашборде, docs/REFERRAL_CASH_PROGRAM.md', date: '21.05.26', tag: 'marketing' },
+                    { text: 'Phase 4 backend: Bot_Referral_API workflow с 3 endpoints (save/link/bonus), миграция user_state.ref_by, orders.ref_by, web_users.telegram_user_id, функция ensure_web_user_for_bot', date: '21.05.26', tag: 'dev' },
                 ],
                 todo: [
-                    { text: '⏭ Phase 4 рефералки: deep-link /start ref_CODE + команда /referral в Telegram-боте (отдельный сеанс)', tag: 'dev' },
+                    { text: '⏭ Phase 4 рефералки FRONTEND: добавить 3 группы нод в AI_Photo2Video_Bot workflow по инструкции из docs/BOT_REFERRAL_INTEGRATION.md (сесть рядом с компом, ~1 час)', tag: 'dev' },
                     { text: '⚡ Запустить первую тестовую кампанию в Директе (3-5к₽, один сегмент — Память или Детство)', tag: 'marketing' },
                     { text: 'Получить YANDEX_OAUTH_TOKEN (если идём через API) — см. docs/DIRECT_CAMPAIGN_SETUP.md', tag: 'marketing' },
                     { text: '💡 Гипотеза: i18n лендинга — много визитов не-РФ. Проверить долю по странам в Метрике, при >5% сделать EN/ES версии (auto по navigator.language + IP)', tag: 'marketing' },
