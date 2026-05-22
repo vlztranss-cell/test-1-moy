@@ -593,6 +593,43 @@
         .partner-stats b { color: #e6edf3; }
         .partner-empty { text-align: center; color: #484f58; padding: 30px; font-style: italic; }
 
+        /* ===== HISTORY TIMELINE ===== */
+        .history-section {
+            margin-bottom: 32px;
+            background: linear-gradient(135deg, rgba(124,92,252,0.04), rgba(168,85,247,0.02));
+            border: 1px solid rgba(124, 92, 252, 0.25);
+            border-radius: 12px;
+        }
+        .history-section summary {
+            cursor: pointer; padding: 16px 20px;
+            font-size: 16px; font-weight: 700; color: #e6edf3;
+            list-style: none; user-select: none;
+        }
+        .history-section summary::-webkit-details-marker { display: none; }
+        .history-section summary:hover { color: var(--accent-light, #9d85fd); }
+        .history-section[open] summary { border-bottom: 1px solid rgba(124,92,252,0.15); margin-bottom: 4px; }
+        .history-timeline { padding: 8px 20px 24px; }
+        .hist-day {
+            padding: 14px 0 14px 18px;
+            border-left: 2px solid rgba(124, 92, 252, 0.45);
+            margin-left: 4px;
+            position: relative;
+        }
+        .hist-day::before {
+            content: ""; position: absolute; left: -7px; top: 18px;
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #7c5cfc;
+            box-shadow: 0 0 0 3px #06080d, 0 0 0 5px rgba(124,92,252,0.3);
+        }
+        .hist-day.hist-future { opacity: 0.65; }
+        .hist-day.hist-future::before { background: #6e7681; box-shadow: 0 0 0 3px #06080d, 0 0 0 5px rgba(110,118,129,0.2); }
+        .hist-date { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .hist-title { font-size: 15px; font-weight: 700; color: #e6edf3; margin-bottom: 8px; }
+        .hist-day ul { padding-left: 18px; margin: 0; }
+        .hist-day li { font-size: 13px; color: #c9d1d9; margin-bottom: 4px; line-height: 1.55; }
+        .hist-day li b { color: #d2a8ff; font-weight: 600; }
+        .hist-day li a { color: var(--accent-light, #9d85fd); }
+
         /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
         .archive-section {
             margin-top: 40px;
@@ -780,6 +817,102 @@
         </div>
     </div>
 
+    <!-- HISTORY / PATH TIMELINE -->
+    <details class="history-section" id="history-section">
+        <summary>📜 История пути проекта — раскрыть</summary>
+        <div class="history-timeline">
+
+            <div class="hist-day">
+                <div class="hist-date">18 мая 2026</div>
+                <div class="hist-title">🚀 День 1 — старт VideoAI</div>
+                <ul>
+                    <li>Создан лендинг video.html (hero, тарифы, FAQ, footer)</li>
+                    <li>3 тарифа: Старт 290₽/10 · Про 790₽/50 · Бизнес 2490₽/200</li>
+                    <li>Встроен генератор видео + первая система кредитов (localStorage)</li>
+                    <li>n8n webhook ЮKassa: create/check/callback с receipt 54-ФЗ</li>
+                    <li>Адаптивная вёрстка, демо-видео, цены синхронизированы с ботом</li>
+                </ul>
+            </div>
+
+            <div class="hist-day">
+                <div class="hist-date">19 мая 2026</div>
+                <div class="hist-title">🛡️ День 2 — серверная защита и юр.документы</div>
+                <ul>
+                    <li>Live-счётчик в hero (детерминированный, с визитами браузера)</li>
+                    <li>OG meta-теги + картинка 1200×630 для шаринга</li>
+                    <li>Оферта и Политика конфиденциальности с реквизитами ИП Искусных Е.В.</li>
+                    <li><b>Фаза 1: серверная защита кредитов</b> — таблица web_users, проверка email на бэке, HTTP 400/402</li>
+                    <li>Бэкфилл 20 кредитов на vlz.transs@gmail.com из реальных платежей</li>
+                </ul>
+            </div>
+
+            <div class="hist-day">
+                <div class="hist-date">20 мая 2026</div>
+                <div class="hist-title">💎 День 3 — домен, watermark, e2e тесты, dashboard auth</div>
+                <ul>
+                    <li>Подключён домен <a href="https://botisk.ru/" target="_blank">botisk.ru</a> (DNS, SSL Let's Encrypt, CNAME)</li>
+                    <li>Яндекс.Метрика 109293181 + 9 reachGoal-событий</li>
+                    <li>ЮKassa whitelisted botisk.ru, модалка оплаты восстановлена</li>
+                    <li>CORS на всех n8n workflow → botisk.ru</li>
+                    <li><b>Фаза 2: Kling-watermark</b> для free через resource vs resource_without_watermark</li>
+                    <li><b>Фаза 2.5: свой watermark «botisk.ru»</b> — ffmpeg static + Python HTTP-сервис на VPS + Caddy /videos/*</li>
+                    <li>service_mode=public для PiAPI Kling — оплата с общего баланса</li>
+                    <li><b>Фаза 3: pytest e2e</b> — 20 тестов (валидация, кредиты, ЮKassa, watermark)</li>
+                    <li>Bug fix: source-check в SQL Update DB (IF v2 пропускал source=bot)</li>
+                    <li>Bug fix: Charge Credit INSERT...ON CONFLICT (CTE видели разные снимки)</li>
+                    <li>Bug fix: crypto.randomUUID fallback для старых браузеров</li>
+                    <li>Dashboard переехал за basic_auth на n8n.24isk.ru/op/ (исключён из GH Pages)</li>
+                    <li>WB и Print-on-Demand projects поставлены на паузу (8 workflows OFF)</li>
+                    <li>Подписка Ideogram отменена</li>
+                </ul>
+            </div>
+
+            <div class="hist-day">
+                <div class="hist-date">21 мая 2026</div>
+                <div class="hist-title">🎁 День 4 — рефералы, партнёры, поддержка, Phase 4</div>
+                <ul>
+                    <li>9 целей в Метрике созданы (PHOTO_UPLOADED, PAYMENT_SUCCESS и др.)</li>
+                    <li>docs/AD_LAUNCH.md + docs/DIRECT_CAMPAIGN_SETUP.md — брифинги</li>
+                    <li>OAuth Yandex Direct получен, приложение botisk-admin зарегистрировано</li>
+                    <li><b>Реферальная программа (Phase 1-3)</b>: миграция БД, n8n workflows, UI карточка после оплаты, KPI-раздел в дашборде</li>
+                    <li><b>Форма поддержки</b> на лендинге + раздел тикетов в дашборде</li>
+                    <li><b>Cash-партнёрская программа (Вариант B)</b>: partners.html, БД (applications/conversions/payouts), раздел заявок в дашборде, docs/REFERRAL_CASH_PROGRAM.md</li>
+                    <li><b>Phase 4: backend бот-рефералов</b> — Bot_Referral_API с 3 endpoints, миграция user_state.ref_by</li>
+                    <li><b>Phase 4: интеграция в бот</b> — 4 точечные правки workflow через n8n API, end-to-end протестировано (+30 кредитов рефереру)</li>
+                    <li>Заявка в Я.Директ на расширенный доступ к API подана</li>
+                </ul>
+            </div>
+
+            <div class="hist-day">
+                <div class="hist-date">22 мая 2026</div>
+                <div class="hist-title">🎯 День 5 — Direct API одобрен, рекламные кампании в эфире</div>
+                <ul>
+                    <li><b>Yandex Direct API одобрен</b> — лимит 240 000 баллов/сутки</li>
+                    <li>Через API созданы 4 кампании: Память (id=710122418), Детство (id=710122420), Питомцы (id=710122422), Love Story (id=710122424)</li>
+                    <li>41 ключевое слово, 4 объявления (Title2≤30, Text≤81 после фикса)</li>
+                    <li>Стратегия: WB_MAXIMUM_CLICKS на Поиск, РСЯ отключена (SERVING_OFF)</li>
+                    <li>UTM-разметка на всех ссылках, привязка к Метрике 109293181</li>
+                    <li>Баланс пополнен → ads.moderate отправил объявления на модерацию</li>
+                    <li>Статус кампаний: DRAFT → MODERATION (ожидание 30 мин – 24 ч)</li>
+                </ul>
+            </div>
+
+            <div class="hist-day hist-future">
+                <div class="hist-date">Дальше</div>
+                <div class="hist-title">🔮 Что впереди</div>
+                <ul>
+                    <li>После модерации → запуск открутки (direct_resume_campaigns.py)</li>
+                    <li>Сбор первых 50 конверсий → переключение на PAY_FOR_CONVERSION (оплата за конверсии)</li>
+                    <li>Phase 5: /referral в боте — выдавать alphanum ref_code (полный cross-platform)</li>
+                    <li>Phase 5: автоматическое начисление в partner_conversions для partner_applications</li>
+                    <li>i18n: проверить долю не-РФ трафика, при >5% — EN/ES версии лендинга</li>
+                    <li>CI: pytest tests/ в GitHub Actions</li>
+                </ul>
+            </div>
+
+        </div>
+    </details>
+
     <!-- AD CAMPAIGNS (Яндекс.Директ) -->
     <div class="campaigns-section">
         <h2>🎯 Рекламные кампании — Яндекс.Директ</h2>
@@ -791,7 +924,7 @@
             <div class="campaign-card">
                 <div class="campaign-head">
                     <div class="campaign-name">Память <span style="font-size:10px;color:#6e7681;">id=710122418</span></div>
-                    <span class="campaign-status status-paused">DRAFT / OFF</span>
+                    <span class="campaign-status status-pending">На модерации</span>
                 </div>
                 <div class="campaign-desc">Оживить старое фото близких. Креатив: warm_memory.mp4</div>
                 <div class="campaign-stats">
@@ -812,7 +945,7 @@
             <div class="campaign-card">
                 <div class="campaign-head">
                     <div class="campaign-name">Детство <span style="font-size:10px;color:#6e7681;">id=710122420</span></div>
-                    <span class="campaign-status status-paused">DRAFT / OFF</span>
+                    <span class="campaign-status status-pending">На модерации</span>
                 </div>
                 <div class="campaign-desc">Оживить детские фото для родителей. Креатив: childhood.mp4</div>
                 <div class="campaign-stats">
@@ -833,7 +966,7 @@
             <div class="campaign-card">
                 <div class="campaign-head">
                     <div class="campaign-name">Питомцы <span style="font-size:10px;color:#6e7681;">id=710122422</span></div>
-                    <span class="campaign-status status-paused">DRAFT / OFF</span>
+                    <span class="campaign-status status-pending">На модерации</span>
                 </div>
                 <div class="campaign-desc">В память о питомце. Креатив: pet.mp4</div>
                 <div class="campaign-stats">
@@ -854,7 +987,7 @@
             <div class="campaign-card">
                 <div class="campaign-head">
                     <div class="campaign-name">Love Story <span style="font-size:10px;color:#6e7681;">id=710122424</span></div>
-                    <span class="campaign-status status-paused">DRAFT / OFF</span>
+                    <span class="campaign-status status-pending">На модерации</span>
                 </div>
                 <div class="campaign-desc">Подарок на годовщину. Креатив: love_story.mp4</div>
                 <div class="campaign-stats">
@@ -873,9 +1006,9 @@
             </div>
         </div>
         <div class="campaigns-foot">
-            ✅ Direct API одобрен. Все 4 кампании созданы через API в статусе DRAFT/OFF.
-            Для запуска: пополнить баланс кампании в <a href="https://direct.yandex.ru/" target="_blank" style="color:#d29922;">direct.yandex.ru</a>,
-            затем переключить State в ON (либо вручную в UI, либо через scripts/direct_resume_campaigns.py).
+            🕐 Все 4 кампании отправлены на модерацию Яндекса 22.05.2026 (обычно 30 мин – 24 ч).
+            После Status=ACCEPTED — запустить через scripts/direct_resume_campaigns.py --apply
+            или вручную в <a href="https://direct.yandex.ru/" target="_blank" style="color:#d29922;">direct.yandex.ru</a>.
         </div>
     </div>
 
@@ -1308,13 +1441,14 @@
                     { text: 'Партнёрская cash-программа: partners.html лендинг, форма заявки, БД (partner_applications/conversions/payouts), раздел заявок в дашборде, docs/REFERRAL_CASH_PROGRAM.md', date: '21.05.26', tag: 'marketing' },
                     { text: 'Phase 4 backend: Bot_Referral_API workflow с 3 endpoints (save/link/bonus), миграция user_state.ref_by, orders.ref_by, web_users.telegram_user_id, функция ensure_web_user_for_bot', date: '21.05.26', tag: 'dev' },
                     { text: 'Phase 4 FRONTEND: 4 правки в боте через n8n API — fresh idempotence читает ref_by, YuKassa metadata содержит ref_by, PG: Save payment RETURNING id, новая нода Call bot-referral-bonus. End-to-end протестировано: бонус +30 кредитов начислился рефереру', date: '21.05.26', tag: 'dev' },
-                    { text: 'Direct API ОДОБРЕН — токен работает (50/240000 баллов). 4 кампании созданы через API: Память/Детство/Питомцы/Love, 41 ключевое слово, 4 объявления. Статус DRAFT/OFF — ждут пополнения баланса', date: '22.05.26', tag: 'marketing' },
+                    { text: 'Direct API ОДОБРЕН — токен работает (50/240000 баллов). 4 кампании созданы через API: Память/Детство/Питомцы/Love, 41 ключевое слово, 4 объявления', date: '22.05.26', tag: 'marketing' },
+                    { text: 'Баланс Директа пополнен. ads.moderate отправил все 4 объявления на модерацию Яндекса. Status кампаний: DRAFT → MODERATION', date: '22.05.26', tag: 'marketing' },
                 ],
                 todo: [
                     { text: 'Phase 5: /referral в боте должна выдавать наш alphanum ref_code (cross-platform), а не tg_user_id. Сейчас бот-only flow работает', tag: 'dev' },
                     { text: 'Phase 5: автоматическое начисление в partner_conversions при ref_by начинающемся с P- (текущий MVP — ручные выплаты)', tag: 'marketing' },
-                    { text: '⚡ Пополнить баланс 4 кампаний в Direct UI (от 100₽ каждая, рекомендую по 1000₽ для теста)', tag: 'marketing' },
-                    { text: '⚡ Включить кампании: scripts/direct_resume_campaigns.py или вручную в UI', tag: 'marketing' },
+                    { text: '🕐 Дождаться прохождения модерации (30 мин – 24 ч), Status станет ACCEPTED', tag: 'marketing' },
+                    { text: '⚡ После одобрения: scripts/direct_resume_campaigns.py --apply — запустить открутку', tag: 'marketing' },
                     { text: '💡 Гипотеза: i18n лендинга — много визитов не-РФ. Проверить долю по странам в Метрике, при >5% сделать EN/ES версии (auto по navigator.language + IP)', tag: 'marketing' },
                     { text: 'Cron-очистка /srv/videos старше 30 дней (через ~6 мес. накопится)', tag: 'infra' },
                     { text: 'CI: pytest tests/ в GitHub Actions (когда команда вырастет)', tag: 'dev' },
