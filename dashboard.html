@@ -689,6 +689,91 @@
         .creative-actions button:hover { border-color: #f85149; color: #f85149; }
         .creatives-empty { grid-column: 1/-1; text-align: center; color: #484f58; padding: 30px; font-style: italic; }
 
+        /* ===== PROJECT TABS ===== */
+        .project-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #21262d;
+            overflow-x: auto;
+            padding-bottom: 0;
+            scrollbar-width: thin;
+        }
+        .project-tabs::-webkit-scrollbar { height: 4px; }
+        .ptab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: #8b949e;
+            padding: 12px 18px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            white-space: nowrap;
+            transition: all 0.15s;
+            border-radius: 4px 4px 0 0;
+        }
+        .ptab:hover { color: #e6edf3; background: rgba(255,255,255,0.03); }
+        .ptab.active {
+            color: #e6edf3;
+            border-bottom-color: #7c5cfc;
+            background: rgba(124,92,252,0.06);
+        }
+        .ptab-icon { font-size: 18px; }
+        .ptab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 20px;
+            background: rgba(124,92,252,0.15);
+            color: #d2a8ff;
+            border: 1px solid rgba(124,92,252,0.3);
+            border-radius: 10px;
+            padding: 0 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .ptab-badge.paused {
+            background: rgba(139,148,158,0.15);
+            color: #8b949e;
+            border-color: rgba(139,148,158,0.3);
+        }
+        .ptab.active .ptab-badge { background: rgba(124,92,252,0.25); }
+
+        /* ===== QUICK LINKS ===== */
+        .quick-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .qlink {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 10px 14px;
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            color: #c9d1d9;
+            text-decoration: none;
+            font-size: 13px;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .qlink:hover { border-color: #7c5cfc; color: #e6edf3; }
+        .qlink.primary { border-color: rgba(124,92,252,0.5); background: rgba(124,92,252,0.08); }
+        .qlink b { color: #e6edf3; font-weight: 600; }
+        .qlink span { color: #6e7681; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Скрываем секции не активного проекта */
+        [data-project-view] { display: block; }
+        [data-project-view].project-hidden { display: none !important; }
+
         /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
         .archive-section {
             margin-top: 40px;
@@ -737,8 +822,75 @@
         <button class="refresh-btn" onclick="loadData()">Обновить</button>
     </div>
 
+    <!-- PROJECT TABS -->
+    <nav class="project-tabs" id="project-tabs">
+        <button data-tab="videoai" class="ptab active">
+            <span class="ptab-icon">🎬</span>
+            <span class="ptab-name">VideoAI Лендинг</span>
+            <span class="ptab-badge" id="tab-badge-videoai">—</span>
+        </button>
+        <button data-tab="bot" class="ptab">
+            <span class="ptab-icon">🤖</span>
+            <span class="ptab-name">Telegram-бот</span>
+            <span class="ptab-badge" id="tab-badge-bot">—</span>
+        </button>
+        <button data-tab="wb" class="ptab">
+            <span class="ptab-icon">📦</span>
+            <span class="ptab-name">WB Cards</span>
+            <span class="ptab-badge paused">⏸</span>
+        </button>
+        <button data-tab="print" class="ptab">
+            <span class="ptab-icon">🎨</span>
+            <span class="ptab-name">Print-on-Demand</span>
+            <span class="ptab-badge paused">⏸</span>
+        </button>
+        <button data-tab="infra" class="ptab">
+            <span class="ptab-icon">⚙️</span>
+            <span class="ptab-name">Инфраструктура</span>
+        </button>
+    </nav>
+
+    <!-- VIDEOAI: QUICK LINKS -->
+    <div class="quick-links" data-project-view="videoai">
+        <a class="qlink primary" href="https://botisk.ru/" target="_blank"><b>botisk.ru</b><span>лендинг</span></a>
+        <a class="qlink" href="https://botisk.ru/blog/" target="_blank">📝 Блог<span>SEO-контент</span></a>
+        <a class="qlink" href="https://botisk.ru/partners.html" target="_blank">🤝 Партнёрам<span>cash программа</span></a>
+        <a class="qlink" href="https://botisk.ru/oferta.html" target="_blank">📜 Оферта</a>
+        <a class="qlink" href="https://botisk.ru/privacy.html" target="_blank">🔒 Политика</a>
+        <a class="qlink" href="https://direct.yandex.ru/" target="_blank">🎯 Я.Директ</a>
+        <a class="qlink" href="https://metrika.yandex.ru/dashboard?id=109293181" target="_blank">📊 Метрика</a>
+        <a class="qlink" href="https://webmaster.yandex.ru/" target="_blank">🌐 Webmaster</a>
+        <a class="qlink" href="https://search.google.com/search-console" target="_blank">🌐 GSC</a>
+    </div>
+
+    <!-- BOT: QUICK LINKS -->
+    <div class="quick-links" data-project-view="bot" style="display:none;">
+        <a class="qlink primary" href="https://t.me/VideoAI_24isk_bot" target="_blank"><b>@VideoAI_24isk_bot</b><span>основной бот</span></a>
+        <a class="qlink" href="https://n8n.24isk.ru/" target="_blank">⚙️ n8n editor</a>
+        <a class="qlink" href="https://piapi.ai/dashboard" target="_blank">🎬 PiAPI баланс</a>
+        <a class="qlink" href="https://yookassa.ru/my/payments" target="_blank">💳 ЮKassa платежи</a>
+    </div>
+
+    <!-- WB: QUICK LINKS -->
+    <div class="quick-links" data-project-view="wb" style="display:none;">
+        <a class="qlink primary" href="https://seller.wildberries.ru/" target="_blank"><b>WB Seller</b></a>
+        <a class="qlink" href="https://n8n.24isk.ru/" target="_blank">⚙️ n8n editor</a>
+    </div>
+
+    <!-- PRINT: QUICK LINKS -->
+    <div class="quick-links" data-project-view="print" style="display:none;">
+        <a class="qlink primary" href="https://ideogram.ai/" target="_blank"><b>Ideogram</b><span>подписка отменена</span></a>
+        <a class="qlink" href="https://n8n.24isk.ru/" target="_blank">⚙️ n8n editor</a>
+    </div>
+
+    <!-- INFRA: QUICK LINKS -->
+    <div class="quick-links" data-project-view="infra" style="display:none;">
+        <a class="qlink primary" href="https://n8n.24isk.ru/" target="_blank"><b>n8n editor</b><span>workflows</span></a>
+        <a class="qlink" href="https://github.com/vlztranss-cell/test-1-moy" target="_blank">📦 GitHub</a>
+    </div>
+
     <div class="stats" id="stats"></div>
-    <div class="services-section">
+    <div class="services-section" data-project-view="bot">
         <h2>Photo2Video Bot — статистика</h2>
         <div class="services-grid" id="bot-stats">
             <div class="stat-card"><div class="number" id="s-users">—</div><div class="label">Пользователей</div></div>
@@ -752,7 +904,7 @@
         </div>
     </div>
 
-    <div class="services-section">
+    <div class="services-section" data-project-view="bot">
         <h2>Финансы</h2>
         <div class="services-grid" id="finance-cards">
             <div class="stat-card" style="border-left: 3px solid #3fb950;">
@@ -775,7 +927,7 @@
         <div class="finance-table" id="finance-detail"></div>
     </div>
 
-    <div class="services-section">
+    <div class="services-section" data-project-view="infra">
         <h2>Сервисы и доступы</h2>
         <div class="services-grid">
             <div class="service-card">
@@ -876,8 +1028,8 @@
         </div>
     </div>
 
-    <!-- HISTORY / PATH TIMELINE -->
-    <details class="history-section" id="history-section">
+    <!-- HISTORY / PATH TIMELINE — относится к VideoAI Лендингу (основной проект эволюции) -->
+    <details class="history-section" id="history-section" data-project-view="videoai">
         <summary>📜 История пути проекта — раскрыть</summary>
         <div class="history-timeline">
 
@@ -977,7 +1129,7 @@
     </details>
 
     <!-- CREATIVES UPLOAD -->
-    <div class="creatives-section" id="creatives-section">
+    <div class="creatives-section" id="creatives-section" data-project-view="videoai">
         <h2>📤 Креативы для соцсетей <span id="creatives-meta" style="font-size:13px;color:#8b949e;">—</span></h2>
         <div class="creatives-drop" id="creatives-drop">
             <div class="creatives-drop-icon">📁</div>
@@ -997,7 +1149,7 @@
     </div>
 
     <!-- AD CAMPAIGNS (Яндекс.Директ) -->
-    <div class="campaigns-section">
+    <div class="campaigns-section" data-project-view="videoai">
         <h2>🎯 Рекламные кампании — Яндекс.Директ</h2>
         <div class="campaigns-meta">
             Лендинг: <a href="https://botisk.ru/" target="_blank">botisk.ru</a> · Метрика-счётчик: 109293181 ·
@@ -1086,7 +1238,7 @@
     </div>
 
     <!-- PARTNER APPLICATIONS -->
-    <div class="partners-section" id="partners-section">
+    <div class="partners-section" id="partners-section" data-project-view="videoai">
         <h2>🤝 Заявки в партнёрскую программу <span id="partners-count" style="font-size:14px;color:#8b949e;">—</span></h2>
         <div class="partners-list" id="partners-list">
             <div class="loading">Загрузка заявок...</div>
@@ -1094,7 +1246,7 @@
     </div>
 
     <!-- SUPPORT TICKETS -->
-    <div class="support-section" id="support-section">
+    <div class="support-section" id="support-section" data-project-view="videoai">
         <h2>💬 Тикеты поддержки <span id="support-count" style="font-size:14px;color:#8b949e;">—</span></h2>
         <div class="support-list" id="support-list">
             <div class="loading">Загрузка тикетов...</div>
@@ -1102,7 +1254,7 @@
     </div>
 
     <!-- REFERRAL STATS -->
-    <div class="referral-section" id="referral-section">
+    <div class="referral-section" id="referral-section" data-project-view="videoai">
         <h2>🎁 Реферальная программа</h2>
         <div class="referral-kpis" id="referral-kpis">
             <div class="ref-kpi"><span>Рефереров</span><b id="rk-referrers">—</b></div>
@@ -1128,21 +1280,23 @@
         </div>
     </div>
 
-    <!-- TASK BOARD -->
+    <!-- TASK BOARD — рендерится только под текущий выбранный проект -->
     <div class="tasks-section">
-        <h2>Задачи по проектам</h2>
+        <h2 id="tasks-section-title">Задачи проекта</h2>
         <div class="task-projects" id="task-board"></div>
     </div>
 
-    <div class="projects-grid" id="projects">
-        <div class="loading">Загрузка данных</div>
+    <!-- Workflows: рендерятся только в Инфраструктуре (общий список всех n8n) -->
+    <div data-project-view="infra">
+        <h2 style="font-size:18px;font-weight:700;color:#e6edf3;margin-bottom:14px;">⚙️ n8n Workflows по проектам</h2>
+        <div class="projects-grid" id="projects">
+            <div class="loading">Загрузка данных</div>
+        </div>
+        <details class="archive-section" id="archive-section" style="display:none;">
+            <summary id="archive-summary">📦 Архив workflow (0)</summary>
+            <div class="archive-list" id="archive-list"></div>
+        </details>
     </div>
-
-    <!-- Архив — workflows скрытые админом (localStorage). Свёрнут по умолчанию. -->
-    <details class="archive-section" id="archive-section" style="display:none;">
-        <summary id="archive-summary">📦 Архив workflow (0)</summary>
-        <div class="archive-list" id="archive-list"></div>
-    </details>
 
     <div class="timestamp" id="timestamp"></div>
 
@@ -1586,9 +1740,41 @@
             },
         ];
 
+        // Маппинг tab-key → имя проекта в TASK_DATA (для рендера тасков)
+        const TAB_TO_PROJECT = {
+            'videoai': p => p.startsWith('VideoAI'),
+            'bot':     p => p.includes('Photo2Video Bot') && !p.includes('VideoAI'),
+            'wb':      p => p.includes('Wildberries'),
+            'print':   p => p.includes('Print-on-Demand'),
+            'infra':   () => false, // в infra своих тасков нет — будут пустыми
+        };
+
         function renderTaskBoard() {
             const el = document.getElementById('task-board');
-            el.innerHTML = TASK_DATA.map(p => {
+            const tab = (window.currentTab || 'videoai');
+            const filter = TAB_TO_PROJECT[tab] || (() => true);
+            const filtered = TAB_TO_PROJECT[tab] ? TASK_DATA.filter(p => filter(p.project)) : TASK_DATA;
+
+            // Обновляем заголовок секции
+            const projectNames = {
+                'videoai':'🎬 VideoAI Лендинг',
+                'bot':'🤖 Telegram-бот',
+                'wb':'📦 WB Cards',
+                'print':'🎨 Print-on-Demand',
+                'infra':'⚙️ Инфраструктура (общие задачи)',
+            };
+            const titleEl = document.getElementById('tasks-section-title');
+            if (titleEl) titleEl.textContent = 'Задачи: ' + (projectNames[tab] || tab);
+
+            // Считаем общие счётчики для бейджей в табах
+            updateTabBadges();
+
+            if (filtered.length === 0) {
+                el.innerHTML = '<div class="creatives-empty">для этого проекта пока нет задач в task board</div>';
+                return;
+            }
+
+            el.innerHTML = filtered.map(p => {
                 const total = p.done.length + p.todo.length + p.blocked.length;
                 const doneCount = p.done.length;
                 const pct = total ? Math.round(doneCount / total * 100) : 0;
@@ -1628,6 +1814,46 @@
                 </div>`;
             }).join('');
         }
+
+        // ===== PROJECT TABS =====
+        window.currentTab = localStorage.getItem('dashboard_tab') || 'videoai';
+
+        function updateTabBadges() {
+            // Считаем кол-во TODO+BLOCKED для каждого проекта
+            for (const [tab, filter] of Object.entries(TAB_TO_PROJECT)) {
+                if (tab === 'infra') continue;
+                const projects = TASK_DATA.filter(p => filter(p.project));
+                const openCount = projects.reduce((acc, p) => acc + (p.todo?.length || 0) + (p.blocked?.length || 0), 0);
+                const badge = document.getElementById('tab-badge-' + tab);
+                if (badge) {
+                    if (tab === 'wb' || tab === 'print') return; // оставляем ⏸
+                    badge.textContent = openCount > 0 ? String(openCount) : '0';
+                }
+            }
+        }
+
+        function selectProject(tab) {
+            window.currentTab = tab;
+            localStorage.setItem('dashboard_tab', tab);
+            // Активная вкладка
+            document.querySelectorAll('.ptab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            // Показываем/прячем секции по data-project-view
+            document.querySelectorAll('[data-project-view]').forEach(el => {
+                el.classList.toggle('project-hidden', el.dataset.projectView !== tab);
+            });
+            // Перерисовываем task board под текущий проект
+            renderTaskBoard();
+            // Прокрутка к верху
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Привязка кликов
+        document.querySelectorAll('.ptab').forEach(btn => {
+            btn.addEventListener('click', () => selectProject(btn.dataset.tab));
+        });
+
+        // Применяем сохранённый таб при загрузке
+        selectProject(window.currentTab);
 
         renderTaskBoard();
         loadData();
