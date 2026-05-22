@@ -72,15 +72,46 @@ return [{json: {
 #
 # Почему НЕ два CTE (как было): WITH-подзапросы видят снимок таблицы ДО запроса,
 # поэтому второй CTE не найдёт строку, только что вставленную первым.
-CHARGE_SQL = """WITH chg AS (
+CHARGE_SQL = """WITH
+ip_check AS (
+    -- Сколько free-юзеров уже было с этого IP за последние 24 часа?
+    -- Считаем ТОЛЬКО free_used = TRUE (платных не блокируем).
+    -- Исключаем собственно текущий email (если он уже есть и refresh-запрос).
+    SELECT COUNT(*) AS free_from_ip
+    FROM web_users
+    WHERE last_ip = {{$json.ip ? "'" + $json.ip + "'::inet" : 'NULL'}}
+      AND last_ip IS NOT NULL
+      AND free_used = TRUE
+      AND first_seen > NOW() - INTERVAL '24 hours'
+      AND LOWER(email) <> '{{$json.email}}'
+),
+abuse_log AS (
+    -- Логируем попытку при превышении (но не блокируем существующих пэйд-юзеров)
+    INSERT INTO web_abuse_log (email, ip, reason, free_users_from_ip)
+    SELECT '{{$json.email}}',
+           {{$json.ip ? "'" + $json.ip + "'::inet" : 'NULL'}},
+           'ip_too_many_free',
+           (SELECT free_from_ip FROM ip_check)
+    WHERE (SELECT free_from_ip FROM ip_check) >= 1
+      AND NOT EXISTS (
+          SELECT 1 FROM web_users
+          WHERE LOWER(email) = '{{$json.email}}' AND (paid_credits > 0 OR free_used = FALSE)
+      )
+    RETURNING id
+),
+chg AS (
+    -- Перед INSERT проверяем: если новый email + грязный IP — НЕ создаём,
+    -- блок происходит через SELECT в VALUES. Существующий email пройдёт ON CONFLICT
+    -- путь и там сработает WHERE (paid > 0 или новый free + чистый IP).
     INSERT INTO web_users (email, free_used, total_generated, last_seen, last_ip)
-    VALUES (
-        '{{$json.email}}',
-        TRUE,
-        1,
-        NOW(),
-        {{$json.ip ? "'" + $json.ip + "'::inet" : 'NULL'}}
-    )
+    SELECT '{{$json.email}}', TRUE, 1, NOW(),
+           {{$json.ip ? "'" + $json.ip + "'::inet" : 'NULL'}}
+    WHERE
+        -- Юзер уже есть в БД — INSERT провалится через ON CONFLICT (норма)
+        EXISTS (SELECT 1 FROM web_users WHERE LOWER(email) = '{{$json.email}}')
+        OR
+        -- Юзера нет, но IP чистый — создаём
+        (SELECT free_from_ip FROM ip_check) < 1
     ON CONFLICT (email) DO UPDATE SET
         paid_credits = CASE
             WHEN web_users.paid_credits > 0 THEN web_users.paid_credits - 1
@@ -93,7 +124,15 @@ CHARGE_SQL = """WITH chg AS (
         total_generated = web_users.total_generated + 1,
         last_seen = NOW(),
         last_ip = EXCLUDED.last_ip
-    WHERE web_users.paid_credits > 0 OR NOT web_users.free_used
+    -- БЛОКИРОВКА: новому юзеру (INSERT) запрещаем если с IP уже было >= 1 free.
+    -- Существующим paid-юзерам (paid_credits > 0) НЕ блокируем.
+    -- Существующих free-юзеров не пускаем повторно (это и так работало).
+    WHERE
+        -- условие 1: есть paid-кредиты — пропускаем всегда
+        web_users.paid_credits > 0
+        OR
+        -- условие 2: ещё не использовал free И на этом IP < 1 другого free
+        (NOT web_users.free_used AND (SELECT free_from_ip FROM ip_check) < 1)
     RETURNING id, paid_credits, free_used, (xmax = 0) AS was_insert
 )
 SELECT
@@ -112,7 +151,12 @@ SELECT
         WHEN (SELECT id FROM chg) IS NULL THEN NULL
         WHEN (SELECT paid_credits FROM web_users WHERE email = '{{$json.email}}') > 0 THEN 'paid'
         ELSE 'free'
-    END                                                                     AS charge_type;
+    END                                                                     AS charge_type,
+    -- Маркер ip-фрода: TRUE если на IP уже > 0 free-юзеров за 24ч И chg.id NULL
+    CASE
+        WHEN (SELECT id FROM chg) IS NULL AND (SELECT free_from_ip FROM ip_check) >= 1 THEN TRUE
+        ELSE FALSE
+    END                                                                     AS ip_abuse;
 -- Подзапросы к web_users в SELECT видят снимок ТАБЛИЦЫ ДО запроса, поэтому
 -- available_paid/available_free показывают состояние ПЕРЕД списанием —
 -- именно это нужно для 402-ответа и определения charge_type."""
@@ -250,8 +294,11 @@ RESPOND_400_BODY = (
 
 RESPOND_402_BODY = (
     '={{ JSON.stringify({'
-    'error: "no_credits", '
-    'need_payment: true, '
+    'error: $json.ip_abuse ? "ip_abuse_detected" : "no_credits", '
+    'need_payment: !$json.ip_abuse, '
+    'message: $json.ip_abuse '
+        '? "С этого устройства уже было создано бесплатное видео. Для продолжения купите тариф." '
+        ': "Кредиты закончились. Купите тариф для продолжения.", '
     'credits_left: 0, '
     'available_paid: $json.available_paid || 0, '
     'available_free: $json.available_free === false}) }}'
