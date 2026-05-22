@@ -2156,12 +2156,17 @@
                 let data = {};
                 try { data = await resp.json(); } catch (_) {}
 
-                // 402 — кредитов нет, нужна оплата
+                // 402 — кредитов нет, нужна оплата (либо обнаружен IP-абуз)
                 if (resp.status === 402) {
                     progressSection.classList.remove('active');
                     generateBtn.disabled = false;
                     setCredits(0);
-                    showError('Кредиты закончились. Выберите тариф ниже, чтобы продолжить.');
+                    trackGoal(data.error === 'ip_abuse_detected' ? 'IP_ABUSE_BLOCKED' : 'PAYMENT_REQUIRED');
+                    const msg = data.message ||
+                        (data.error === 'ip_abuse_detected'
+                            ? 'С этого устройства уже было бесплатное видео. Купите тариф для продолжения.'
+                            : 'Кредиты закончились. Выберите тариф ниже, чтобы продолжить.');
+                    showError(msg);
                     document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
                     return;
                 }
