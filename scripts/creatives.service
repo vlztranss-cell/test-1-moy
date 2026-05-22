@@ -1,0 +1,18 @@
+[Unit]
+Description=VideoAI creatives upload/list service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /srv/creatives/creatives_service.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+# Лимит на размер запроса (видео могут быть до 200МБ)
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

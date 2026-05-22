@@ -630,6 +630,65 @@
         .hist-day li b { color: #d2a8ff; font-weight: 600; }
         .hist-day li a { color: var(--accent-light, #9d85fd); }
 
+        /* ===== CREATIVES ===== */
+        .creatives-section { margin-bottom: 32px; }
+        .creatives-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
+        .creatives-drop {
+            border: 2px dashed #21262d;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            padding: 32px 20px;
+            text-align: center;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 16px;
+        }
+        .creatives-drop.dragover {
+            border-color: #7c5cfc;
+            background: rgba(124,92,252,0.08);
+        }
+        .creatives-drop-icon { font-size: 36px; margin-bottom: 8px; }
+        .creatives-drop-text { font-size: 14px; color: #c9d1d9; margin-bottom: 6px; }
+        .creatives-drop-text b { color: #e6edf3; }
+        .creatives-pick { color: #9d85fd; cursor: pointer; text-decoration: underline; }
+        .creatives-drop-hint { font-size: 11px; color: #6e7681; }
+        .upload-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 6px 10px; margin-top: 6px;
+            background: rgba(124,92,252,0.08);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .upload-row .progress { flex: 1; height: 4px; background: #1e2633; border-radius: 2px; overflow: hidden; }
+        .upload-row .progress-bar { height: 100%; background: #7c5cfc; transition: width 0.2s; }
+        .upload-row.ok { background: rgba(63,185,80,0.1); }
+        .upload-row.err { background: rgba(248,81,73,0.1); }
+        .creatives-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+        }
+        .creative-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 8px;
+            overflow: hidden;
+        }
+        .creative-thumb {
+            width: 100%; aspect-ratio: 9/16;
+            background: #06080d url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23484f58"><path d="M8 5v14l11-7z"/></svg>') center/40% no-repeat;
+            display: block; object-fit: cover;
+        }
+        .creative-info {
+            padding: 8px 10px; font-size: 11px;
+        }
+        .creative-name { color: #c9d1d9; word-break: break-all; margin-bottom: 4px; line-height: 1.3; }
+        .creative-meta { color: #6e7681; display: flex; justify-content: space-between; }
+        .creative-actions { display: flex; gap: 4px; padding: 0 8px 8px; }
+        .creative-actions button, .creative-actions a {
+            flex: 1; padding: 3px 6px; font-size: 10px;
+            background: #21262d; border: 1px solid #30363d; color: #8b949e;
+            border-radius: 4px; cursor: pointer; text-decoration: none; text-align: center;
+        }
+        .creative-actions button:hover { border-color: #f85149; color: #f85149; }
+        .creatives-empty { grid-column: 1/-1; text-align: center; color: #484f58; padding: 30px; font-style: italic; }
+
         /* ===== ARCHIVE SECTION (свёрнут, неприметный) ===== */
         .archive-section {
             margin-top: 40px;
@@ -916,6 +975,26 @@
 
         </div>
     </details>
+
+    <!-- CREATIVES UPLOAD -->
+    <div class="creatives-section" id="creatives-section">
+        <h2>📤 Креативы для соцсетей <span id="creatives-meta" style="font-size:13px;color:#8b949e;">—</span></h2>
+        <div class="creatives-drop" id="creatives-drop">
+            <div class="creatives-drop-icon">📁</div>
+            <div class="creatives-drop-text">
+                <b>Перетащите файлы сюда</b> или
+                <label class="creatives-pick">
+                    <input type="file" id="creatives-file" multiple accept="video/*,image/*" style="display:none;">
+                    выберите вручную
+                </label>
+            </div>
+            <div class="creatives-drop-hint">MP4 / MOV / WEBM / JPG / PNG · до 200 МБ за файл</div>
+            <div id="creatives-upload-progress"></div>
+        </div>
+        <div class="creatives-grid" id="creatives-grid">
+            <div class="creatives-empty">креативов пока нет — загрузите первые</div>
+        </div>
+    </div>
 
     <!-- AD CAMPAIGNS (Яндекс.Директ) -->
     <div class="campaigns-section">
@@ -1557,6 +1636,122 @@
         loadSupportTickets();
         loadPartnerApplications();
         loadDirectStats();
+        loadCreatives();
+        initCreativesUpload();
+
+        async function loadCreatives() {
+            try {
+                const resp = await fetch('/creatives/list', {credentials: 'include'});
+                const data = await resp.json();
+                const grid = document.getElementById('creatives-grid');
+                const meta = document.getElementById('creatives-meta');
+                meta.textContent = `(${data.count} файлов · ${data.used_mb} МБ занято · ${data.free_gb} ГБ свободно)`;
+                if (!data.items || data.items.length === 0) {
+                    grid.innerHTML = '<div class="creatives-empty">креативов пока нет — загрузите первые</div>';
+                    return;
+                }
+                grid.innerHTML = data.items.map(it => {
+                    const isVideo = /\.(mp4|mov|webm)$/i.test(it.name);
+                    const thumbSrc = isVideo ? it.thumb : it.url;
+                    return `
+                        <div class="creative-card" data-name="${it.name}">
+                            <img class="creative-thumb" src="${thumbSrc}" loading="lazy" alt="">
+                            <div class="creative-info">
+                                <div class="creative-name" title="${it.name}">${it.name}</div>
+                                <div class="creative-meta">
+                                    <span>${it.size_mb} МБ</span>
+                                    <span>${new Date(it.mtime * 1000).toLocaleDateString('ru-RU')}</span>
+                                </div>
+                            </div>
+                            <div class="creative-actions">
+                                <a href="${it.url}" target="_blank">Открыть</a>
+                                <button onclick="deleteCreative('${it.name}')">Удалить</button>
+                            </div>
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('creatives load failed:', e);
+                document.getElementById('creatives-grid').innerHTML = '<div class="creatives-empty">ошибка загрузки</div>';
+            }
+        }
+
+        async function deleteCreative(name) {
+            if (!confirm(`Удалить «${name}»? Действие необратимо.`)) return;
+            try {
+                const resp = await fetch('/creatives/file/' + encodeURIComponent(name), {method:'DELETE', credentials:'include'});
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                loadCreatives();
+            } catch (e) {
+                alert('Не удалось удалить: ' + e.message);
+            }
+        }
+
+        function initCreativesUpload() {
+            const drop = document.getElementById('creatives-drop');
+            const file = document.getElementById('creatives-file');
+            const progressBox = document.getElementById('creatives-upload-progress');
+
+            ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
+                e.preventDefault(); e.stopPropagation();
+                drop.classList.add('dragover');
+            }));
+            ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {
+                e.preventDefault(); e.stopPropagation();
+                drop.classList.remove('dragover');
+            }));
+            drop.addEventListener('drop', e => uploadFiles(e.dataTransfer.files));
+            file.addEventListener('change', e => uploadFiles(e.target.files));
+
+            async function uploadFiles(files) {
+                for (const f of files) {
+                    const row = document.createElement('div');
+                    row.className = 'upload-row';
+                    row.innerHTML = `
+                        <span>${f.name} (${(f.size/1e6).toFixed(1)} МБ)</span>
+                        <div class="progress"><div class="progress-bar" style="width:0%"></div></div>
+                        <span class="upload-row-status">…</span>
+                    `;
+                    progressBox.appendChild(row);
+                    try {
+                        await uploadOne(f, row);
+                    } catch (e) {
+                        row.classList.add('err');
+                        row.querySelector('.upload-row-status').textContent = '❌ ' + e.message;
+                    }
+                }
+                file.value = '';
+                loadCreatives();
+            }
+
+            function uploadOne(f, row) {
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    const fd = new FormData();
+                    fd.append('file', f);
+                    xhr.open('POST', '/creatives/upload', true);
+                    xhr.withCredentials = true;
+                    xhr.upload.onprogress = ev => {
+                        if (ev.lengthComputable) {
+                            const pct = Math.round(ev.loaded * 100 / ev.total);
+                            row.querySelector('.progress-bar').style.width = pct + '%';
+                            row.querySelector('.upload-row-status').textContent = pct + '%';
+                        }
+                    };
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            row.classList.add('ok');
+                            row.querySelector('.upload-row-status').textContent = '✓';
+                            setTimeout(() => row.remove(), 3000);
+                            resolve();
+                        } else {
+                            reject(new Error('HTTP ' + xhr.status));
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('network'));
+                    xhr.send(fd);
+                });
+            }
+        }
         // Авто-апдейт статистики Direct каждые 60 секунд
         setInterval(loadDirectStats, 60000);
 
