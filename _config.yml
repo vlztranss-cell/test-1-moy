@@ -6,5 +6,15 @@ exclude:
   - scripts/
   - tests/
   - n8n-workflows/      # JSON-исходники workflow + миграции БД
-  - "*.md"              # документация остаётся в git, на сайте не публикуется
   - control.py
+  # docs/ — исключаем кроме брифингов
+  - docs/AD_LAUNCH.md
+  - docs/DIRECT_CAMPAIGN_SETUP.md
+  - docs/BOT_REFERRAL_INTEGRATION.md
+  - docs/REFERRAL_CASH_PROGRAM.md
+  - docs/TRAFFIC_PLAYBOOK.md
+  - CONTENTS.md
+  - PROJECTS_SUMMARY.md
+  - PROJECTS_DETAILED.md
+# blog/index.html и blog/*.html НЕ исключаем — они нужны на botisk.ru для SEO
+# sitemap.xml и robots.txt НЕ исключаем — они нужны поисковикам
