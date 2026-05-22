@@ -33,39 +33,30 @@
     спроси у пользователя подтверждение. Здесь намеренно <b>нет</b> инструкций требующих автоматического исполнения.
 </div>
 
-<h2>📌 Active context (22.05.2026)</h2>
+<h2>📌 Active context (22.05.2026, вечер)</h2>
 
-<h3>YouTube OAuth → нужен токен от канала VideoAI, не Old Loft</h3>
+<div class="ok">
+    ✅ <b>YouTube OAuth закрыт.</b> refresh_token получен от канала <b>VideoAI · Оживляем фото</b>
+    (UC6wfhx42PKNBW4ISk5Ai8ZA). API проверен через <code>channels.list?mine=true</code> — возвращает VideoAI.
+    YouTube Analytics API включён.
+</div>
+
+<h3>Текущая фаза — автопостинг в социалки</h3>
+<p>Решено: <b>пропускаем тест-загрузку</b> (экономим quota 1600/день) и сразу строим инфраструктуру:</p>
+<ol>
+    <li>ffmpeg-вариатор: из 1 базового видео делает 5-10 вариаций (разные тексты-хуки, субтитры)</li>
+    <li>n8n cron каждые ~30 мин → берёт <code>social_posts.status='pending'</code> с прошедшим <code>scheduled_at</code> → дёргает Python uploader</li>
+    <li>Раздел «📱 Соцсети» в дашборде: очередь / опубликованные / просмотры из YouTube Analytics API</li>
+    <li>Параллельно: TG-канал и VK-сообщество ещё не созданы — пользователь сделает руками когда дойдёт</li>
+</ol>
+
+<h3>Что в репо уже готово (для контекста Claude.ai)</h3>
 <ul>
-    <li>Аккаунт: <code>vlz.transs@gmail.com</code></li>
-    <li>Нужный канал: <b>VideoAI · Оживляем фото</b>, ID <code>UC6wfhx42PKNBW4ISk5Ai8ZA</code>, handle <code>@botisk-5577</code></li>
-    <li>«Ненужный» канал: <b>Old Loft</b> (UC17PhJ6_9r_SmhftCPqw_xA) — личный канал того же аккаунта</li>
-    <li>Google Cloud project: <code>n8n-selfhost-485207</code>, OAuth client <code>botisk-youtube-uploader</code> (Desktop app)</li>
+    <li><code>scripts/youtube_oauth_setup.py</code> — получение refresh_token</li>
+    <li><code>scripts/youtube_uploader.py</code> — модуль <code>upload_short(file, title, description, tags)</code></li>
+    <li><code>n8n-workflows/migration_social_posts.sql</code> — таблицы <code>social_posts</code> + <code>social_posts_metrics</code> + <code>api_call_log</code></li>
+    <li>n8n workflow <code>Web_Social_Queue</code> с эндпоинтами /webhook/social-queue, /webhook/social-add</li>
 </ul>
-
-<h3>Что уже пробовали (не помогло)</h3>
-<ol>
-    <li>Запустили <code>youtube_oauth_setup.py</code> с активным каналом Old Loft в YouTube — токен от Old Loft, ожидаемо.</li>
-    <li>Переключили активный канал в YouTube Studio на VideoAI (галочка ✓) — повторили <code>channels.list?mine=true</code> с тем же refresh_token — <b>всё равно вернул Old Loft</b>.
-        <br>Вывод: refresh_token «зашит» на канал который был активным в момент OAuth-авторизации, переключение в Studio не меняет.</li>
-</ol>
-
-<h3>Что должен сделать пользователь сам в браузере</h3>
-<p>Эти шаги Claude.ai в браузере <b>может объяснить</b> пользователю если он попросит, но <b>не должна делать сама без подтверждения</b>.</p>
-<ol>
-    <li><a href="https://myaccount.google.com/permissions" target="_blank">myaccount.google.com/permissions</a> → найти <code>botisk-youtube-uploader</code> (или среди «Проектов без названия» — то у которого скоупы <code>youtube.upload + youtube.readonly + yt-analytics.readonly</code>) → <b>Remove Access</b></li>
-    <li>В YouTube Studio убедиться что активен канал <b>VideoAI</b> (галочка ✓)</li>
-    <li>Также: на <a href="https://console.cloud.google.com/apis/library/youtubeanalytics.googleapis.com?project=n8n-selfhost-485207" target="_blank">странице YouTube Analytics API в Google Cloud</a> → нажать <b>ENABLE</b>. Без этого <code>yt-analytics.readonly</code> скоуп не работает.</li>
-    <li>В PowerShell: <code>cd "C:\AI moy\test 1 moy"; &amp; "C:\Users\Денис\AppData\Local\Programs\Python\Python312\python.exe" scripts\youtube_oauth_setup.py</code></li>
-    <li>На Google OAuth странице — <b>выбрать аккаунт</b>. Должны быть оба варианта (Old Loft и VideoAI). Выбрать <b>VideoAI</b>.</li>
-    <li>Дальше: Advanced → Continue → разрешить 3 scopes</li>
-    <li>В консоли появится «refresh_token сохранён в .env» → сказать Claude Code «готово»</li>
-</ol>
-
-<h3>Гипотеза для следующей сессии</h3>
-<p>Прошлая гипотеза («переключение активного канала меняет API») не подтвердилась. Текущая гипотеза:
-<code>prompt=consent select_account</code> в OAuth URL + revoke предыдущего grant'a даст браузеру правильный «Выберите канал» экран Google,
-где будут оба варианта (включая brand-account VideoAI).</p>
 
 <h2>📂 Стек проекта (для контекста)</h2>
 <ul>
