@@ -790,8 +790,8 @@
         <div class="campaigns-grid">
             <div class="campaign-card">
                 <div class="campaign-head">
-                    <div class="campaign-name">Память</div>
-                    <span class="campaign-status status-pending">Ожидает API</span>
+                    <div class="campaign-name">Память <span style="font-size:10px;color:#6e7681;">id=710122418</span></div>
+                    <span class="campaign-status status-paused">DRAFT / OFF</span>
                 </div>
                 <div class="campaign-desc">Оживить старое фото близких. Креатив: warm_memory.mp4</div>
                 <div class="campaign-stats">
@@ -811,8 +811,8 @@
 
             <div class="campaign-card">
                 <div class="campaign-head">
-                    <div class="campaign-name">Детство</div>
-                    <span class="campaign-status status-pending">Ожидает API</span>
+                    <div class="campaign-name">Детство <span style="font-size:10px;color:#6e7681;">id=710122420</span></div>
+                    <span class="campaign-status status-paused">DRAFT / OFF</span>
                 </div>
                 <div class="campaign-desc">Оживить детские фото для родителей. Креатив: childhood.mp4</div>
                 <div class="campaign-stats">
@@ -832,8 +832,8 @@
 
             <div class="campaign-card">
                 <div class="campaign-head">
-                    <div class="campaign-name">Питомцы</div>
-                    <span class="campaign-status status-pending">Ожидает API</span>
+                    <div class="campaign-name">Питомцы <span style="font-size:10px;color:#6e7681;">id=710122422</span></div>
+                    <span class="campaign-status status-paused">DRAFT / OFF</span>
                 </div>
                 <div class="campaign-desc">В память о питомце. Креатив: pet.mp4</div>
                 <div class="campaign-stats">
@@ -853,8 +853,8 @@
 
             <div class="campaign-card">
                 <div class="campaign-head">
-                    <div class="campaign-name">Love Story</div>
-                    <span class="campaign-status status-pending">Ожидает API</span>
+                    <div class="campaign-name">Love Story <span style="font-size:10px;color:#6e7681;">id=710122424</span></div>
+                    <span class="campaign-status status-paused">DRAFT / OFF</span>
                 </div>
                 <div class="campaign-desc">Подарок на годовщину. Креатив: love_story.mp4</div>
                 <div class="campaign-stats">
@@ -873,8 +873,9 @@
             </div>
         </div>
         <div class="campaigns-foot">
-            ⏳ Управление кампаниями подключится после одобрения Direct API (заявка подана 21.05.2026).
-            До этого момента панель работает в режиме планирования.
+            ✅ Direct API одобрен. Все 4 кампании созданы через API в статусе DRAFT/OFF.
+            Для запуска: пополнить баланс кампании в <a href="https://direct.yandex.ru/" target="_blank" style="color:#d29922;">direct.yandex.ru</a>,
+            затем переключить State в ON (либо вручную в UI, либо через scripts/direct_resume_campaigns.py).
         </div>
     </div>
 
@@ -1307,12 +1308,13 @@
                     { text: 'Партнёрская cash-программа: partners.html лендинг, форма заявки, БД (partner_applications/conversions/payouts), раздел заявок в дашборде, docs/REFERRAL_CASH_PROGRAM.md', date: '21.05.26', tag: 'marketing' },
                     { text: 'Phase 4 backend: Bot_Referral_API workflow с 3 endpoints (save/link/bonus), миграция user_state.ref_by, orders.ref_by, web_users.telegram_user_id, функция ensure_web_user_for_bot', date: '21.05.26', tag: 'dev' },
                     { text: 'Phase 4 FRONTEND: 4 правки в боте через n8n API — fresh idempotence читает ref_by, YuKassa metadata содержит ref_by, PG: Save payment RETURNING id, новая нода Call bot-referral-bonus. End-to-end протестировано: бонус +30 кредитов начислился рефереру', date: '21.05.26', tag: 'dev' },
+                    { text: 'Direct API ОДОБРЕН — токен работает (50/240000 баллов). 4 кампании созданы через API: Память/Детство/Питомцы/Love, 41 ключевое слово, 4 объявления. Статус DRAFT/OFF — ждут пополнения баланса', date: '22.05.26', tag: 'marketing' },
                 ],
                 todo: [
                     { text: 'Phase 5: /referral в боте должна выдавать наш alphanum ref_code (cross-platform), а не tg_user_id. Сейчас бот-only flow работает', tag: 'dev' },
                     { text: 'Phase 5: автоматическое начисление в partner_conversions при ref_by начинающемся с P- (текущий MVP — ручные выплаты)', tag: 'marketing' },
-                    { text: '⚡ Запустить первую тестовую кампанию в Директе (3-5к₽, один сегмент — Память или Детство)', tag: 'marketing' },
-                    { text: 'Получить YANDEX_OAUTH_TOKEN (если идём через API) — см. docs/DIRECT_CAMPAIGN_SETUP.md', tag: 'marketing' },
+                    { text: '⚡ Пополнить баланс 4 кампаний в Direct UI (от 100₽ каждая, рекомендую по 1000₽ для теста)', tag: 'marketing' },
+                    { text: '⚡ Включить кампании: scripts/direct_resume_campaigns.py или вручную в UI', tag: 'marketing' },
                     { text: '💡 Гипотеза: i18n лендинга — много визитов не-РФ. Проверить долю по странам в Метрике, при >5% сделать EN/ES версии (auto по navigator.language + IP)', tag: 'marketing' },
                     { text: 'Cron-очистка /srv/videos старше 30 дней (через ~6 мес. накопится)', tag: 'infra' },
                     { text: 'CI: pytest tests/ в GitHub Actions (когда команда вырастет)', tag: 'dev' },
