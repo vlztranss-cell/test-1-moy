@@ -2,5 +2,18 @@ User-agent: *
 Disallow: /scripts/
 Disallow: /n8n-workflows/
 Disallow: /tests/
+Disallow: /docs/
+Disallow: /design/
+Disallow: /playground/
+Disallow: /videos/        # /srv/videos на VPS, не путать с GH Pages /videos
+Allow: /
 
+# Спецбот Яндекса — приоритет
+User-agent: Yandex
+Allow: /
+Disallow: /scripts/
+Disallow: /n8n-workflows/
+Disallow: /tests/
+
+Host: botisk.ru
 Sitemap: https://botisk.ru/sitemap.xml

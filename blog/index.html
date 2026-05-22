@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Блог VideoAI — как оживить фотографии с помощью нейросетей</title>
+    <meta name="description" content="Статьи о технологиях оживления фото: как работает AI, чем отличается Kling от MidJourney, идеи подарков с AI-видео, реальные истории клиентов.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://botisk.ru/blog/">
+    <meta property="og:title" content="Блог VideoAI">
+    <meta property="og:description" content="Технологии AI-видео, идеи использования, разбор кейсов.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://botisk.ru/blog/">
+    <meta property="og:image" content="https://botisk.ru/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+        (window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=109293181','ym');
+        ym(109293181,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:true});
+    </script>
+
+    <style>
+        :root {
+            --bg:#06080d; --bg-card:#0d1117; --border:#1e2633;
+            --text:#e6edf3; --text-muted:#8b949e; --text-dim:#484f58;
+            --accent:#7c5cfc; --accent-light:#9d85fd;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.7; }
+        .wrap { max-width:900px; margin:0 auto; padding:60px 24px 80px; }
+        .back { color:var(--accent-light); text-decoration:none; font-size:14px; }
+        .back:hover { color:var(--accent); }
+        h1 { font-size:42px; font-weight:800; margin:24px 0 16px; line-height:1.15; }
+        h1 .gradient { background:linear-gradient(135deg,#7c5cfc,#a855f7); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .lead { font-size:18px; color:var(--text-muted); margin-bottom:48px; max-width:700px; }
+        h2 { font-size:26px; font-weight:700; margin:40px 0 16px; }
+        .post-list { display:flex; flex-direction:column; gap:20px; }
+        .post-card {
+            background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
+            padding:24px 28px; transition:transform 0.15s, border-color 0.15s;
+            text-decoration:none; display:block;
+        }
+        .post-card:hover { transform:translateY(-2px); border-color:var(--accent); }
+        .post-meta { font-size:12px; color:var(--text-dim); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
+        .post-title { font-size:22px; font-weight:700; color:var(--text); margin-bottom:10px; }
+        .post-excerpt { font-size:14px; color:var(--text-muted); margin-bottom:8px; }
+        .post-tags { display:flex; gap:8px; flex-wrap:wrap; }
+        .post-tag { background:rgba(124,92,252,0.12); color:var(--accent-light); border:1px solid rgba(124,92,252,0.3); border-radius:12px; padding:2px 10px; font-size:11px; }
+        .cta-block { background:linear-gradient(135deg,rgba(124,92,252,0.1),rgba(168,85,247,0.05)); border:1px solid var(--accent); border-radius:16px; padding:28px; margin-top:60px; text-align:center; }
+        .cta-block h3 { font-size:22px; font-weight:700; margin-bottom:12px; }
+        .cta-block p { font-size:15px; color:var(--text-muted); margin-bottom:20px; }
+        .cta-btn { background:linear-gradient(135deg,#7c5cfc,#a855f7); color:white; padding:14px 32px; border-radius:12px; text-decoration:none; font-weight:700; display:inline-block; }
+        .cta-btn:hover { transform:translateY(-2px); }
+        @media (max-width:600px) { h1 { font-size:32px; } }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <a href="/" class="back">← botisk.ru</a>
+
+        <h1>Блог <span class="gradient">VideoAI</span></h1>
+        <p class="lead">Технологии AI-видео, идеи использования, разбор реальных кейсов клиентов.</p>
+
+        <h2>Свежие статьи</h2>
+        <div class="post-list">
+            <a href="kak-ozhivit-staroe-foto.html" class="post-card">
+                <div class="post-meta">22 мая 2026 · 7 мин чтения</div>
+                <div class="post-title">Как оживить старое фото: 5 способов превратить снимок в видео</div>
+                <div class="post-excerpt">
+                    Семейные снимки бабушки и дедушки, детские портреты, фото со свадьбы родителей — все они хранят моменты,
+                    которые хочется увидеть «вживую». Разбираем 5 способов оживить старую фотографию: от Photoshop до AI Kling.
+                </div>
+                <div class="post-tags">
+                    <span class="post-tag">AI-видео</span>
+                    <span class="post-tag">Память</span>
+                    <span class="post-tag">Подарки</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="cta-block">
+            <h3>Попробуйте сами — первое видео бесплатно</h3>
+            <p>Загрузите любую фотографию и получите 5-секундное видео через минуту. Без регистрации.</p>
+            <a href="/#generator" class="cta-btn">Создать видео из фото</a>
+        </div>
+    </div>
+</body>
+</html>
