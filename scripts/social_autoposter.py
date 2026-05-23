@@ -310,7 +310,11 @@ def main():
             print(f"  ⏭ Telegram: TG_CHANNEL_CHAT_ID не в .env")
 
     if post["target_vk"] == "t" and post["vk_status"] == "pending":
-        print(f"  ⏭ VK: сообщество не настроено")
+        # VK не настроен — переводим в skipped, чтобы пост не зависал в выборке
+        sql = (f"UPDATE social_posts SET vk_status='skipped', "
+               f"vk_error='VK not configured', updated_at=NOW() WHERE id={post['id']}")
+        psql_fetch(sql)
+        print(f"  ⏭ VK: сообщество не настроено → vk_status=skipped")
 
 
 if __name__ == "__main__":

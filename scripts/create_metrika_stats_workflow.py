@@ -48,13 +48,13 @@ function qs(params) {{
 const baseUrl = 'https://api-metrika.yandex.net/stat/v1/data';
 const auth = {{'Authorization': 'OAuth ' + TOKEN}};
 
-// Сводка
+// Сводка — за СЕГОДНЯ (date1=date2=today), точно как dashboard Метрики
 const summary = await this.helpers.httpRequest({{
     method: 'GET',
     url: baseUrl + '?' + qs({{
         ids: COUNTER,
         metrics: 'ym:s:visits,ym:s:users,ym:s:bounceRate,ym:s:pageDepth,ym:s:avgVisitDurationSeconds',
-        date1: 'yesterday',
+        date1: 'today',
         date2: 'today',
         accuracy: 'full',
     }}),
@@ -73,12 +73,13 @@ for (const [name, goalId] of Object.entries(GOALS)) {{
             url: baseUrl + '?' + qs({{
                 ids: COUNTER,
                 metrics: 'ym:s:goal' + goalId + 'reaches,ym:s:goal' + goalId + 'users',
-                date1: 'yesterday', date2: 'today', accuracy: 'full',
+                date1: '7daysAgo', date2: 'today', accuracy: 'full',
             }}),
             headers: auth, json: true, timeout: 10000,
         }});
-        const totals = (data.totals || [[0,0]])[0];
-        goalsStats[name] = {{ id: goalId, reaches: totals[0] || 0, users: totals[1] || 0 }};
+        // totals — это плоский массив metrics, НЕ array-of-arrays
+        const totals = data.totals || [0, 0];
+        goalsStats[name] = {{ id: goalId, reaches: Math.round(totals[0] || 0), users: Math.round(totals[1] || 0) }};
     }} catch (e) {{
         goalsStats[name] = {{ id: goalId, error: String(e).substring(0, 120) }};
     }}
@@ -87,29 +88,30 @@ for (const [name, goalId] of Object.entries(GOALS)) {{
 // UTM-источники
 let traffic = [];
 try {{
-    const t = await this.helpers.httpRequest({{
+    const tr = await this.helpers.httpRequest({{
         method: 'GET',
         url: baseUrl + '?' + qs({{
             ids: COUNTER,
             metrics: 'ym:s:visits',
             dimensions: 'ym:s:UTMCampaign',
-            date1: 'yesterday', date2: 'today',
+            date1: '7daysAgo', date2: 'today',
             filters: 'ym:s:UTMCampaign!n',
             accuracy: 'full', limit: 10,
         }}),
         headers: auth, json: true, timeout: 10000,
     }});
-    traffic = (t.data || []).map(d => ({{
+    traffic = (tr.data || []).map(d => ({{
         campaign: d.dimensions[0].name,
-        visits: d.metrics[0],
+        visits: Math.round(d.metrics[0] || 0),
     }}));
 }} catch (e) {{}}
 
-const t = (summary.totals && summary.totals[0]) || [0,0,0,0,0];
+// summary.totals — плоский массив metrics
+const t = summary.totals || [0,0,0,0,0];
 return [{{json: {{
     summary: {{
-        visits: t[0] || 0,
-        users: t[1] || 0,
+        visits: Math.round(t[0] || 0),
+        users: Math.round(t[1] || 0),
         bounce_rate: Math.round((t[2] || 0) * 10) / 10,
         avg_pages: Math.round((t[3] || 0) * 10) / 10,
         avg_duration_sec: Math.round(t[4] || 0),
