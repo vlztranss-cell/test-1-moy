@@ -26,13 +26,37 @@
     </url>
     <url>
         <loc>https://botisk.ru/blog/</loc>
-        <lastmod>2026-05-22</lastmod>
+        <lastmod>2026-05-23</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
         <loc>https://botisk.ru/blog/kak-ozhivit-staroe-foto.html</loc>
         <lastmod>2026-05-22</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://botisk.ru/blog/podarok-mame-iz-foto-na-den-rozhdeniya.html</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://botisk.ru/blog/kak-ozhivit-foto-babushki.html</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://botisk.ru/blog/video-iz-foto-pitomtsa.html</loc>
+        <lastmod>2026-05-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://botisk.ru/blog/svadebnoe-foto-v-video.html</loc>
+        <lastmod>2026-05-23</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
