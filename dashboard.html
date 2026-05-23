@@ -1031,6 +1031,11 @@
             <span class="ptab-name">Print-on-Demand</span>
             <span class="ptab-badge paused">⏸</span>
         </button>
+        <button data-tab="markirovka2d" class="ptab">
+            <span class="ptab-icon">📦</span>
+            <span class="ptab-name">Маркировка 2D</span>
+            <span class="ptab-badge" id="tab-badge-markirovka2d">new</span>
+        </button>
         <button data-tab="infra" class="ptab">
             <span class="ptab-icon">⚙️</span>
             <span class="ptab-name">Инфраструктура</span>
@@ -2012,6 +2017,23 @@
                     { text: 'Проект на паузе. Для возобновления — активировать workflow + подписку Ideogram', tag: 'dev' },
                 ]
             },
+            {
+                project: 'Маркировка 2D',
+                desc: 'Новый проект — концепция определяется. Папка C:\\AI moy\\markirovka2d\\ создана 23.05.26',
+                done: [
+                    { text: 'Папка C:\\AI moy\\markirovka2d\\ создана, git init', date: '23.05.26', tag: 'infra' },
+                    { text: 'Базовая структура: .env (общие VPS/n8n/dashboard), CLAUDE.md, README.md, scripts/ (env_loader, ssh)', date: '23.05.26', tag: 'infra' },
+                    { text: 'Memory bootstrap: server-access, legal-entity, dashboard-location, botisk-relationship', date: '23.05.26', tag: 'infra' },
+                    { text: 'Вкладка markirovka2d добавлена в дашборд (этот блок)', date: '23.05.26', tag: 'dev' },
+                ],
+                todo: [
+                    { text: 'Определить концепцию проекта (что именно делает markirovka2d)', tag: 'product' },
+                    { text: 'Создать БД markirovka2d на общем PostgreSQL', tag: 'infra' },
+                    { text: 'Завести n8n-папку workflow Mark_* для проекта', tag: 'infra' },
+                    { text: 'Каталог /srv/markirovka2d/ на VPS — для скриптов/данных проекта', tag: 'infra' },
+                ],
+                blocked: []
+            },
         ];
 
         // Маппинг tab-key → имя проекта в TASK_DATA (для рендера тасков)
@@ -2020,6 +2042,7 @@
             'bot':     p => p.includes('Photo2Video Bot') && !p.includes('VideoAI'),
             'wb':      p => p.includes('Wildberries'),
             'print':   p => p.includes('Print-on-Demand'),
+            'markirovka2d': p => p === 'Маркировка 2D',
             'infra':   () => false, // в infra своих тасков нет — будут пустыми
         };
 
@@ -2111,6 +2134,7 @@
             'bot':     {icon:'🤖', name:'Telegram-бот VideoAI', desc:'Основной продукт — оживление фото через бот'},
             'wb':      {icon:'📦', name:'Wildberries Cards (пауза)', desc:'Автоматизация WB-карточек — на паузе с 20.05.26'},
             'print':   {icon:'🎨', name:'Print-on-Demand (пауза)', desc:'Тренды → принты → мокапы — на паузе с 20.05.26'},
+            'markirovka2d': {icon:'📦', name:'Маркировка 2D', desc:'Новый проект — концепция определяется'},
             'infra':   {icon:'⚙️', name:'Инфраструктура', desc:'n8n workflows, сервисы, общие доступы'},
         };
 
