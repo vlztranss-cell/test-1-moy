@@ -213,14 +213,17 @@ def variate_v2(source_video: str | Path, category: str, hooks: list[str]) -> lis
         # Делаем все парты отдельным проходом и склеиваем — проще
 
         # PART 1: «до» — статичное изображение
+        # Safe zones (см. feedback_video_layout.md):
+        #   label_before «ВАШЕ ФОТО» — сверху по центру, y≈160 (8% от верха 1920)
+        #   hook (заголовок) — внизу по центру, поднят чтобы не пересекался с watermark
         part1 = TMP_DIR / f"p1_{base_id}_{i}_{ts}.mp4"
         f1 = (
             f"[0:v]scale={TARGET_W}:{TARGET_H}:force_original_aspect_ratio=decrease[fg];"
             f"[0:v]scale={TARGET_W}:{TARGET_H}:force_original_aspect_ratio=increase,"
             f"crop={TARGET_W}:{TARGET_H},gblur=sigma=20[bg];"
             f"[bg][fg]overlay=(W-w)/2:(H-h)/2[base];"
-            f"[base][1:v]overlay=20:(H-h)/2-200[lbl];"   # label_before в левой части
-            f"[lbl][2:v]overlay=(W-w)/2:H-h-60[out]"     # hook внизу по центру
+            f"[base][1:v]overlay=(W-w)/2:160[lbl];"      # label_before сверху по центру
+            f"[lbl][2:v]overlay=(W-w)/2:H-h-280[out]"    # hook поднят на 280px от низа
         )
         subprocess.run([
             FFMPEG, "-y",
@@ -236,15 +239,19 @@ def variate_v2(source_video: str | Path, category: str, hooks: list[str]) -> lis
         ], capture_output=True, timeout=60)
 
         # PART 2: видео оживления + label_after + hook + watermark
+        # Safe zones:
+        #   label_after «AI ОЖИВЛЯЕТ» — сверху по центру (не перекрывает лицо)
+        #   hook — внизу по центру, выше watermark с зазором
+        #   watermark — правый нижний угол, отступ 30px
         part2 = TMP_DIR / f"p2_{base_id}_{i}_{ts}.mp4"
         f2 = (
             f"[0:v]scale={TARGET_W}:{TARGET_H}:force_original_aspect_ratio=decrease[scaled];"
             f"[0:v]scale={TARGET_W}:{TARGET_H}:force_original_aspect_ratio=increase,"
             f"crop={TARGET_W}:{TARGET_H},gblur=sigma=20[bg];"
             f"[bg][scaled]overlay=(W-w)/2:(H-h)/2[base];"
-            f"[base][1:v]overlay=20:(H-h)/2-200[lbl];"           # label_after слева
-            f"[lbl][2:v]overlay=W-w-20:H-h-20[wm];"               # watermark правый нижний
-            f"[wm][3:v]overlay=(W-w)/2:H-h-60[out]"               # hook внизу
+            f"[base][1:v]overlay=(W-w)/2:160[lbl];"                # label_after сверху по центру
+            f"[lbl][2:v]overlay=W-w-30:H-h-30[wm];"                 # watermark правый нижний
+            f"[wm][3:v]overlay=(W-w)/2:H-h-280[out]"                # hook поднят над watermark
         )
         subprocess.run([
             FFMPEG, "-y",
