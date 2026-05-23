@@ -29,6 +29,15 @@ sys.path.insert(0, str(Path(__file__).parent))
 from env_loader import load_env
 
 CREATIVES_DIR = Path("/srv/creatives/processed")
+CREATIVES_DIR_V2 = Path("/srv/creatives/processed_v2")
+
+
+def resolve_video_path(filename: str) -> Path:
+    """Ищет файл по имени в v2-папке (приоритет) и старой processed-папке."""
+    v2 = CREATIVES_DIR_V2 / filename
+    if v2.exists():
+        return v2
+    return CREATIVES_DIR / filename
 
 
 # ─── PostgreSQL через psql CLI ───
@@ -189,16 +198,30 @@ def update_telegram_status(post_id: int, status: str, msg_id: int = 0, url: str 
 
 # ─── Main loop ───
 def get_next_pending_post() -> dict | None:
-    """Возвращает следующий пост готовый к публикации (хотя бы 1 платформа = pending)."""
+    """Возвращает следующий пост готовый к публикации.
+
+    Фильтр разнообразия: пропускаем посты с тем же kling-task_id что был
+    опубликован за последние 48 часов (см. feedback_creative_variety.md).
+    """
     sql = (
         "SELECT id, creative_file, title, caption, hashtags, "
         "target_youtube, target_telegram, target_vk, "
         "youtube_status, telegram_status, vk_status "
-        "FROM social_posts "
+        "FROM social_posts sp "
         "WHERE scheduled_at <= NOW() "
         "  AND ((target_youtube AND youtube_status = 'pending') "
         "    OR (target_telegram AND telegram_status = 'pending') "
         "    OR (target_vk AND vk_status = 'pending')) "
+        # Извлекаем UUID-task из creative_file и проверяем — не было ли поста
+        # с этим же task_id опубликовано за последние 48 ч.
+        "  AND NOT EXISTS ("
+        "    SELECT 1 FROM social_posts past "
+        "    WHERE (past.youtube_posted_at > NOW() - interval '48 hours' "
+        "        OR past.telegram_posted_at > NOW() - interval '48 hours') "
+        "      AND substring(past.creative_file from 'kling_([0-9a-f-]+)_') "
+        "        = substring(sp.creative_file from 'kling_([0-9a-f-]+)_') "
+        "      AND past.id != sp.id"
+        "  ) "
         "ORDER BY scheduled_at "
         "LIMIT 1"
     )
@@ -236,9 +259,9 @@ def main():
 
     print(f"[{time.strftime('%Y-%m-%d %H:%M')}] обработка post_id={post['id']} файл={post['creative_file']}")
 
-    video_path = CREATIVES_DIR / post["creative_file"]
+    video_path = resolve_video_path(post["creative_file"])
     if not video_path.exists():
-        msg = f"file not found: {video_path}"
+        msg = f"file not found: {post['creative_file']} (checked processed_v2 + processed)"
         print(f"  ❌ {msg}")
         if post["target_youtube"] == "t" and post["youtube_status"] == "pending":
             update_youtube_status(post["id"], "failed", error=msg)

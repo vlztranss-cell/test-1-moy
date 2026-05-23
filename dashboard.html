@@ -507,6 +507,52 @@
             border-radius: 8px; font-size: 12px; color: #d29922;
         }
 
+        /* ===== YOUTUBE STATS SECTION ===== */
+        .ytstats-section { margin-bottom: 32px; }
+        .ytstats-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
+        .yt-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 4px; }
+        .yt-card {
+            background: linear-gradient(135deg, #0d1117 0%, #1a1f29 100%);
+            border: 1px solid #21262d; border-radius: 10px;
+            padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;
+            position: relative;
+        }
+        .yt-card span { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+        .yt-card b { font-size: 22px; color: #ff6b6b; font-weight: 700; }
+        .yt-card i { font-size: 9px; color: #6e7681; font-style: normal; position: absolute; right: 14px; bottom: 10px; }
+        .yt-categories {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+        .yt-cat-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .yt-cat-card .yc-name { font-size: 11px; color: #d2a8ff; font-weight: 600; margin-bottom: 4px; text-transform: capitalize; }
+        .yt-cat-card .yc-bar { height: 4px; background: #1e2633; border-radius: 2px; overflow: hidden; margin: 6px 0; }
+        .yt-cat-card .yc-bar > div { height: 100%; background: linear-gradient(90deg, #ff6b6b, #ffa94d); }
+        .yt-cat-card .yc-views { font-size: 14px; color: #e6edf3; font-weight: 700; }
+        .yt-cat-card .yc-views span { font-size: 10px; color: #6e7681; font-weight: 400; margin-left: 4px; }
+        .yt-top { display: flex; flex-direction: column; gap: 8px; }
+        .yt-video-row {
+            display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 10px;
+            align-items: center; padding: 10px 14px;
+            background: #0d1117; border: 1px solid #21262d; border-radius: 8px;
+            font-size: 12px; transition: border-color 0.15s;
+        }
+        .yt-video-row:hover { border-color: rgba(255, 107, 107, 0.4); }
+        .yt-video-row .yvr-rank { font-size: 16px; font-weight: 800; color: #6e7681; width: 28px; text-align: right; }
+        .yt-video-row .yvr-title { color: #c9d1d9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .yt-video-row .yvr-title a { color: #58a6ff; text-decoration: none; }
+        .yt-video-row .yvr-title a:hover { text-decoration: underline; }
+        .yt-video-row .yvr-cat {
+            font-size: 10px; padding: 2px 8px; border-radius: 8px;
+            background: rgba(210, 168, 255, 0.12); color: #d2a8ff;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .yt-video-row .yvr-views { color: #ff6b6b; font-weight: 700; font-size: 14px; min-width: 60px; text-align: right; }
+        .yt-video-row .yvr-likes { color: #8b949e; min-width: 40px; text-align: right; }
+
         /* ===== METRIKA SECTION ===== */
         .metrika-section { margin-bottom: 32px; }
         .metrika-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
@@ -1304,6 +1350,25 @@
         </div>
         <div class="social-queue" id="social-queue">
             <div class="creatives-empty">постов в очереди пока нет</div>
+        </div>
+    </div>
+
+    <!-- YOUTUBE STATS -->
+    <div class="ytstats-section" data-project-view="videoai">
+        <h2>📺 YouTube — статистика просмотров <span id="yt-fetched" style="font-size:12px;color:#8b949e;">—</span></h2>
+        <div class="yt-summary" id="yt-summary">
+            <div class="yt-card"><span>Видео</span><b id="yts-count">—</b></div>
+            <div class="yt-card"><span>Просмотры</span><b id="yts-views">—</b></div>
+            <div class="yt-card"><span>Лайки</span><b id="yts-likes">—</b></div>
+            <div class="yt-card"><span>Среднее</span><b id="yts-avg">—</b><i>views/видео</i></div>
+        </div>
+        <h3 style="margin:18px 0 8px;font-size:14px;color:#c9d1d9;">По категориям</h3>
+        <div class="yt-categories" id="yt-categories">
+            <div class="loading">Загрузка…</div>
+        </div>
+        <h3 style="margin:18px 0 8px;font-size:14px;color:#c9d1d9;">Топ видео</h3>
+        <div class="yt-top" id="yt-top">
+            <div class="loading">Загрузка…</div>
         </div>
     </div>
 
@@ -2317,6 +2382,61 @@
             }
         }
         loadMetrikaStats();
+
+        // YouTube stats — обновляется каждые 5 минут (collector на VPS пишет раз в час)
+        setInterval(loadYouTubeStats, 300000);
+        const CAT_LABELS = {memory:'🎞 Память', babies:'👶 Детство', pets:'🐶 Питомцы', love:'💍 Love'};
+        async function loadYouTubeStats() {
+            try {
+                const resp = await fetch('https://n8n.24isk.ru/webhook/youtube-stats');
+                const data = await resp.json();
+                if (data.error) return;
+                const s = data.summary || {};
+                document.getElementById('yts-count').textContent = (s.videos_count || 0).toLocaleString('ru-RU');
+                document.getElementById('yts-views').textContent = (s.total_views || 0).toLocaleString('ru-RU');
+                document.getElementById('yts-likes').textContent = (s.total_likes || 0).toLocaleString('ru-RU');
+                document.getElementById('yts-avg').textContent = (s.avg_views || 0).toLocaleString('ru-RU');
+
+                const catEl = document.getElementById('yt-categories');
+                const cats = data.by_category || [];
+                if (!cats.length) {
+                    catEl.innerHTML = '<div style="color:#6e7681;font-size:12px;padding:8px;">пока нет данных</div>';
+                } else {
+                    const max = Math.max(...cats.map(c => c.views)) || 1;
+                    catEl.innerHTML = cats.map(c => {
+                        const w = Math.round((c.views / max) * 100);
+                        const label = CAT_LABELS[c.category] || c.category;
+                        return `<div class="yt-cat-card">
+                            <div class="yc-name">${label}</div>
+                            <div class="yc-bar"><div style="width:${w}%"></div></div>
+                            <div class="yc-views">${c.views.toLocaleString('ru-RU')}<span>views · ${c.videos} видео · avg ${c.avg_views}</span></div>
+                        </div>`;
+                    }).join('');
+                }
+
+                const topEl = document.getElementById('yt-top');
+                const top = data.top_videos || [];
+                if (!top.length) {
+                    topEl.innerHTML = '<div style="color:#6e7681;font-size:12px;padding:8px;">пока нет видео</div>';
+                } else {
+                    topEl.innerHTML = top.map((v, i) => `
+                        <div class="yt-video-row">
+                            <div class="yvr-rank">#${i + 1}</div>
+                            <div class="yvr-title"><a href="${v.url}" target="_blank">${(v.title || '').slice(0, 80)}</a></div>
+                            <div class="yvr-cat">${v.category || '?'}</div>
+                            <div class="yvr-views">${v.views.toLocaleString('ru-RU')}</div>
+                            <div class="yvr-likes">♥ ${v.likes}</div>
+                        </div>
+                    `).join('');
+                }
+                const ts = data.fetched_at ? new Date(data.fetched_at).toLocaleTimeString('ru-RU') : '—';
+                document.getElementById('yt-fetched').textContent = 'обновлено ' + ts;
+            } catch (e) {
+                console.error('youtube-stats failed:', e);
+                document.getElementById('yt-fetched').textContent = 'ошибка загрузки';
+            }
+        }
+        loadYouTubeStats();
 
         async function loadDirectStats() {
             try {
