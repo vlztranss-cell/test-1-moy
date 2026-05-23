@@ -42,6 +42,9 @@ SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube.readonly",
     "https://www.googleapis.com/auth/yt-analytics.readonly",
+    # write-доступ нужен для channels.update (описание/branding),
+    # playlists.insert (создание плейлистов), videos.update (правка описания загруженных видео).
+    "https://www.googleapis.com/auth/youtube",
 ]
 
 
