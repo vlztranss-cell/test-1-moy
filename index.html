@@ -1953,8 +1953,18 @@
                 if (data.confirmation_url) {
                     // Email уже сохранён через setEmail() выше; помечаем pending plan
                     localStorage.setItem('videoai_pending_plan', currentPlan);
-                    trackGoal('PAYMENT_REDIRECT', { plan: currentPlan, amount: currentAmount });
-                    window.location.href = data.confirmation_url;
+                    // ВАЖНО: Метрика отправляет reachGoal асинхронно через pixel.
+                    // window.location.href = немедленный редирект отменяет pending запросы → goal не уходит.
+                    // Используем callback ym() — он гарантирует что pixel ушёл перед редиректом.
+                    if (typeof ym !== 'undefined') {
+                        ym(109293181, 'reachGoal', 'PAYMENT_REDIRECT',
+                            { plan: currentPlan, amount: currentAmount },
+                            () => { window.location.href = data.confirmation_url; });
+                        // fallback на случай если Метрика заблокирована — редирект через 800мс
+                        setTimeout(() => { window.location.href = data.confirmation_url; }, 800);
+                    } else {
+                        window.location.href = data.confirmation_url;
+                    }
                 } else {
                     throw new Error(data.error || 'Не удалось создать платёж');
                 }
