@@ -18,6 +18,7 @@ Cron:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import urllib.parse
@@ -202,29 +203,42 @@ def get_next_pending_post() -> dict | None:
 
     Фильтр разнообразия: пропускаем посты с тем же kling-task_id что был
     опубликован за последние 48 часов (см. feedback_creative_variety.md).
+
+    ENV-override:
+      FORCE_POST_ID=<id> — берёт именно этот post без фильтра variety
+        (для тестов / ручных перезаливов).
     """
-    sql = (
-        "SELECT id, creative_file, title, caption, hashtags, "
-        "target_youtube, target_telegram, target_vk, "
-        "youtube_status, telegram_status, vk_status "
-        "FROM social_posts sp "
-        "WHERE scheduled_at <= NOW() "
-        "  AND ((target_youtube AND youtube_status = 'pending') "
-        "    OR (target_telegram AND telegram_status = 'pending') "
-        "    OR (target_vk AND vk_status = 'pending')) "
-        # Извлекаем UUID-task из creative_file и проверяем — не было ли поста
-        # с этим же task_id опубликовано за последние 48 ч.
-        "  AND NOT EXISTS ("
-        "    SELECT 1 FROM social_posts past "
-        "    WHERE (past.youtube_posted_at > NOW() - interval '48 hours' "
-        "        OR past.telegram_posted_at > NOW() - interval '48 hours') "
-        "      AND substring(past.creative_file from 'kling_([0-9a-f-]+)_') "
-        "        = substring(sp.creative_file from 'kling_([0-9a-f-]+)_') "
-        "      AND past.id != sp.id"
-        "  ) "
-        "ORDER BY scheduled_at "
-        "LIMIT 1"
-    )
+    force_id = os.environ.get("FORCE_POST_ID")
+    if force_id:
+        sql = (
+            "SELECT id, creative_file, title, caption, hashtags, "
+            "target_youtube, target_telegram, target_vk, "
+            "youtube_status, telegram_status, vk_status "
+            f"FROM social_posts WHERE id = {int(force_id)} LIMIT 1"
+        )
+    else:
+        sql = (
+            "SELECT id, creative_file, title, caption, hashtags, "
+            "target_youtube, target_telegram, target_vk, "
+            "youtube_status, telegram_status, vk_status "
+            "FROM social_posts sp "
+            "WHERE scheduled_at <= NOW() "
+            "  AND ((target_youtube AND youtube_status = 'pending') "
+            "    OR (target_telegram AND telegram_status = 'pending') "
+            "    OR (target_vk AND vk_status = 'pending')) "
+            # Извлекаем UUID-task из creative_file и проверяем — не было ли поста
+            # с этим же task_id опубликовано за последние 48 ч.
+            "  AND NOT EXISTS ("
+            "    SELECT 1 FROM social_posts past "
+            "    WHERE (past.youtube_posted_at > NOW() - interval '48 hours' "
+            "        OR past.telegram_posted_at > NOW() - interval '48 hours') "
+            "      AND substring(past.creative_file from 'kling_([0-9a-f-]+)_') "
+            "        = substring(sp.creative_file from 'kling_([0-9a-f-]+)_') "
+            "      AND past.id != sp.id"
+            "  ) "
+            "ORDER BY scheduled_at "
+            "LIMIT 1"
+        )
     out = psql_fetch(sql)
     if not out:
         return None
