@@ -507,6 +507,54 @@
             border-radius: 8px; font-size: 12px; color: #d29922;
         }
 
+        /* ===== METRIKA SECTION ===== */
+        .metrika-section { margin-bottom: 32px; }
+        .metrika-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
+        .metrika-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 4px; }
+        .msm-card {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            border: 1px solid #21262d; border-radius: 10px;
+            padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;
+            position: relative;
+        }
+        .msm-card span { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+        .msm-card b { font-size: 22px; color: #58a6ff; font-weight: 700; }
+        .msm-card i { font-size: 10px; color: #6e7681; font-style: normal; position: absolute; right: 14px; bottom: 12px; }
+        .metrika-goals {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 8px;
+        }
+        .goal-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 8px;
+            padding: 10px 12px;
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            transition: border-color 0.15s;
+        }
+        .goal-card.has-data { border-color: rgba(63, 185, 80, 0.4); background: rgba(63, 185, 80, 0.05); }
+        .goal-card .gn { font-size: 11px; color: #c9d1d9; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .goal-card .gv { font-size: 18px; color: #e6edf3; font-weight: 700; white-space: nowrap; }
+        .goal-card .gu { font-size: 10px; color: #6e7681; }
+        .metrika-traffic {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+        .traffic-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .traffic-card .tc-name {
+            font-size: 11px; color: #d2a8ff; font-weight: 600; margin-bottom: 4px;
+            text-transform: lowercase;
+        }
+        .traffic-card .tc-bar {
+            height: 4px; background: #1e2633; border-radius: 2px; overflow: hidden; margin: 6px 0;
+        }
+        .traffic-card .tc-bar > div {
+            height: 100%; background: linear-gradient(90deg, #58a6ff, #d2a8ff);
+        }
+        .traffic-card .tc-visits { font-size: 14px; color: #e6edf3; font-weight: 700; }
+        .traffic-card .tc-visits span { font-size: 10px; color: #6e7681; font-weight: 400; margin-left: 4px; }
+
         /* ===== REFERRAL SECTION ===== */
         .referral-section { margin-bottom: 32px; }
         .referral-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
@@ -774,6 +822,28 @@
         [data-project-view] { display: block; }
         [data-project-view].project-hidden { display: none !important; }
 
+        /* ===== PROJECT HERO ===== */
+        .project-hero {
+            display: flex; align-items: center; gap: 18px;
+            padding: 20px 24px;
+            background: linear-gradient(135deg, rgba(124,92,252,0.10), rgba(168,85,247,0.04));
+            border: 1px solid rgba(124,92,252,0.3);
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+        .ph-icon { font-size: 56px; line-height: 1; flex-shrink: 0; }
+        .ph-body { flex: 1; min-width: 0; }
+        .ph-name { font-size: 26px; font-weight: 800; color: #e6edf3; line-height: 1.2; }
+        .ph-desc { font-size: 13px; color: #8b949e; margin-top: 4px; }
+        .ph-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #8b949e; }
+        .ph-stat-box { background: rgba(255,255,255,0.04); padding: 8px 14px; border-radius: 8px; text-align: center; min-width: 100px; }
+        .ph-stat-box span { display: block; color: #6e7681; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ph-stat-box b { color: #e6edf3; font-size: 18px; }
+        @media (max-width: 700px) {
+            .project-hero { flex-direction: column; text-align: center; }
+            .ph-stats { justify-content: center; }
+        }
+
         /* ===== SOCIAL ===== */
         .social-section { margin-bottom: 32px; }
         .social-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
@@ -920,6 +990,16 @@
             <span class="ptab-name">Инфраструктура</span>
         </button>
     </nav>
+
+    <!-- PROJECT HERO — большое явное название текущего проекта -->
+    <div class="project-hero" id="project-hero">
+        <div class="ph-icon" id="ph-icon">🎬</div>
+        <div class="ph-body">
+            <div class="ph-name" id="ph-name">VideoAI Лендинг</div>
+            <div class="ph-desc" id="ph-desc">Продающий сайт для генерации видео из фото</div>
+        </div>
+        <div class="ph-stats" id="ph-stats"></div>
+    </div>
 
     <!-- VIDEOAI: QUICK LINKS -->
     <div class="quick-links" data-project-view="videoai">
@@ -1333,6 +1413,26 @@
         </div>
         <div class="campaigns-foot" id="direct-stats-foot">
             Данные обновляются автоматически каждые 60 секунд из Yandex Direct API.
+        </div>
+    </div>
+
+    <!-- METRIKA GOALS -->
+    <div class="metrika-section" data-project-view="videoai">
+        <h2>📊 Цели Метрики — конверсии за 24 часа <span id="metrika-fetched" style="font-size:12px;color:#8b949e;">—</span></h2>
+        <div class="metrika-summary" id="metrika-summary">
+            <div class="msm-card"><span>Визиты</span><b id="msm-visits">—</b></div>
+            <div class="msm-card"><span>Пользователи</span><b id="msm-users">—</b></div>
+            <div class="msm-card"><span>Отказы</span><b id="msm-bounce">—</b><i>%</i></div>
+            <div class="msm-card"><span>Глубина</span><b id="msm-depth">—</b><i>стр</i></div>
+            <div class="msm-card"><span>Время</span><b id="msm-time">—</b><i>сек</i></div>
+        </div>
+        <h3 style="margin:18px 0 8px;font-size:14px;color:#c9d1d9;">Воронка конверсий</h3>
+        <div class="metrika-goals" id="metrika-goals">
+            <div class="loading">Загрузка…</div>
+        </div>
+        <h3 style="margin:18px 0 8px;font-size:14px;color:#c9d1d9;">Трафик по UTM-кампаниям</h3>
+        <div class="metrika-traffic" id="metrika-traffic">
+            <div class="loading">Загрузка…</div>
         </div>
     </div>
 
@@ -1780,11 +1880,18 @@
                     { text: '🎬 YouTube канал «VideoAI · Оживляем фото» создан, OAuth настроен (refresh_token от brand-канала), Analytics API включён', date: '22.05.26', tag: 'marketing' },
                     { text: '⚡ Автогенератор креативов: Unsplash фото → PiAPI Kling → ffmpeg variator (1080×1920 с текст-хуками + watermark) → social_posts queue → cron autoposter в YouTube. ПЕРВОЕ ВИДЕО ОПУБЛИКОВАНО: youtu.be/WRU3uCIFPNk', date: '22.05.26', tag: 'dev' },
                     { text: 'Раздел «📱 Соцсети» в дашборде: 3 платформы (YouTube подключён, TG/VK ждут создания), очередь с превью и chip-статусами', date: '22.05.26', tag: 'dev' },
+                    { text: '🎬 Видео-формат v2 «до-после-CTA»: статичное «ВАШЕ ФОТО» (2.5с) → «AI ОЖИВЛЯЕТ» (5с) → CTA-экран botisk.ru/@VideoAI_24isk_bot (4.5с). 13 pending видео перегенерены, autoposter тянет уже v2', date: '23.05.26', tag: 'dev' },
+                    { text: '📊 Цели Метрики в дашборде: новый workflow Web_Metrika_Stats — endpoint /webhook/metrika-stats возвращает 9 целей за 24ч + UTM-breakdown. Секция «Цели Метрики» с воронкой конверсий и графиком трафика по кампаниям', date: '23.05.26', tag: 'dev' },
+                    { text: '🎯 Hero-блок проекта в дашборде: при переключении вкладки сверху показывается крупная иконка + название проекта + статистика — снимает путаницу «куда я попал»', date: '23.05.26', tag: 'design' },
+                    { text: '🎨 Тексты Love Story и Питомцы в Direct переписаны через ads.add + ads.archive: 2 новых текста в каждой кампании на модерации, старые с низким CTR (0.9% и 2.2%) архивированы. CTR-эксперимент перезапущен с чистого листа', date: '23.05.26', tag: 'marketing' },
+                    { text: '📱 TG-канал @botisk_canal упакован: название «VideoAI — оживить фото», описание, аватар из og-image, закреплённое приветствие. Опубликовано 5 контент-постов (что такое оживление, выбор фото, идеи подарков, и т.д.)', date: '23.05.26', tag: 'marketing' },
+                    { text: '📝 Контент-конвейер TG: 20 постов-полезностей подготовлены (tg_content_posts.json), 5 опубликованы, остальные 15 публикуются по одному в день в 13:00 МСК через cron (tg_content_cron.py)', date: '23.05.26', tag: 'marketing' },
                 ],
                 todo: [
                     { text: 'Phase 5: /referral в боте должна выдавать наш alphanum ref_code (cross-platform), а не tg_user_id. Сейчас бот-only flow работает', tag: 'dev' },
                     { text: 'Phase 5: автоматическое начисление в partner_conversions при ref_by начинающемся с P- (текущий MVP — ручные выплаты)', tag: 'marketing' },
-                    { text: '📱 Создать TG-канал @videoai_botisk + VK сообщество (потом подключим к автопостеру)', tag: 'marketing' },
+                    { text: '📸 BotFather: создать @botisk_collect_bot, токен в .env TELEGRAM_BOT_COLLECT, запустить systemd unit collect-bot. Скрипт scripts/tg_collect_bot.py готов (фото от юзеров → /srv/creatives/raw/source/from_bot/ + БД user_uploads + согласие)', tag: 'marketing' },
+                    { text: 'YouTube write-scope re-auth: чтобы запустить scripts/youtube_channel_packaging.py (описание канала + 4 плейлиста: Память/Дети/Питомцы/Love), нужно revoke в myaccount.google.com → youtube_oauth_setup.py (scope обновлён) → выбрать канал VideoAI', tag: 'marketing' },
                     { text: '📸 Зарегистрировать Unsplash API (для свежих фото) или использовать собственные через папку /srv/creatives/raw/source/', tag: 'marketing' },
                     { text: '📨 Подобрать 5 TG-каналов для пилотного посева через TGStat.ru (бюджет 5к₽)', tag: 'marketing' },
                     { text: '📝 Написать ещё 4 SEO-статьи в blog/ под long-tail запросы (подарок маме/бабушке, оживить фото питомца, и т.д.)', tag: 'marketing' },
@@ -1934,6 +2041,14 @@
             }
         }
 
+        const PROJECT_META = {
+            'videoai': {icon:'🎬', name:'VideoAI Лендинг', desc:'Продающий сайт + автопостинг + реклама'},
+            'bot':     {icon:'🤖', name:'Telegram-бот VideoAI', desc:'Основной продукт — оживление фото через бот'},
+            'wb':      {icon:'📦', name:'Wildberries Cards (пауза)', desc:'Автоматизация WB-карточек — на паузе с 20.05.26'},
+            'print':   {icon:'🎨', name:'Print-on-Demand (пауза)', desc:'Тренды → принты → мокапы — на паузе с 20.05.26'},
+            'infra':   {icon:'⚙️', name:'Инфраструктура', desc:'n8n workflows, сервисы, общие доступы'},
+        };
+
         function selectProject(tab) {
             window.currentTab = tab;
             localStorage.setItem('dashboard_tab', tab);
@@ -1943,6 +2058,11 @@
             document.querySelectorAll('[data-project-view]').forEach(el => {
                 el.classList.toggle('project-hidden', el.dataset.projectView !== tab);
             });
+            // Обновляем hero-блок
+            const meta = PROJECT_META[tab] || PROJECT_META['videoai'];
+            document.getElementById('ph-icon').textContent = meta.icon;
+            document.getElementById('ph-name').textContent = meta.name;
+            document.getElementById('ph-desc').textContent = meta.desc;
             // Перерисовываем task board под текущий проект
             renderTaskBoard();
             // Прокрутка к верху
@@ -2132,6 +2252,71 @@
         }
         // Авто-апдейт статистики Direct каждые 60 секунд
         setInterval(loadDirectStats, 60000);
+        // Авто-апдейт целей Метрики каждые 5 минут (Metrika кеширует ~5 мин)
+        setInterval(loadMetrikaStats, 300000);
+
+        const GOAL_LABELS = {
+            'PHOTO_UPLOADED':     '📸 Фото загружено',
+            'GENERATION_STARTED': '🎬 Генерация начата',
+            'FREE_GEN_COMPLETED': '🎁 Бесплатная готова',
+            'PAID_GEN_COMPLETED': '💎 Платная готова',
+            'GEN_FAILED':         '⚠️ Ошибка генерации',
+            'PAYMENT_OPEN':       '💳 Открыта оплата',
+            'PAYMENT_REDIRECT':   '➡️ Переход в ЮKassa',
+            'PAYMENT_SUCCESS':    '✅ Оплата успешна',
+            'VIDEO_DOWNLOAD':     '⬇️ Скачивание',
+        };
+
+        async function loadMetrikaStats() {
+            try {
+                const resp = await fetch('https://n8n.24isk.ru/webhook/metrika-stats');
+                const data = await resp.json();
+                if (data.error) return;
+                const s = data.summary || {};
+                document.getElementById('msm-visits').textContent = (s.visits || 0).toLocaleString('ru-RU');
+                document.getElementById('msm-users').textContent  = (s.users || 0).toLocaleString('ru-RU');
+                document.getElementById('msm-bounce').textContent = (s.bounce_rate || 0).toFixed(1);
+                document.getElementById('msm-depth').textContent  = (s.avg_pages || 0).toFixed(1);
+                document.getElementById('msm-time').textContent   = s.avg_duration_sec || 0;
+
+                const goalsEl = document.getElementById('metrika-goals');
+                const goals = data.goals || {};
+                const order = ['PHOTO_UPLOADED','GENERATION_STARTED','FREE_GEN_COMPLETED','PAID_GEN_COMPLETED',
+                               'PAYMENT_OPEN','PAYMENT_REDIRECT','PAYMENT_SUCCESS','VIDEO_DOWNLOAD','GEN_FAILED'];
+                goalsEl.innerHTML = order.map(key => {
+                    const g = goals[key] || {};
+                    const r = g.reaches || 0, u = g.users || 0;
+                    const cls = r > 0 ? 'goal-card has-data' : 'goal-card';
+                    return `<div class="${cls}" title="goal id ${g.id || '?'}">
+                        <div class="gn">${GOAL_LABELS[key] || key}</div>
+                        <div><span class="gv">${r}</span> <span class="gu">/ ${u} чел</span></div>
+                    </div>`;
+                }).join('');
+
+                const trafficEl = document.getElementById('metrika-traffic');
+                const traffic = data.traffic_by_campaign || [];
+                if (traffic.length === 0) {
+                    trafficEl.innerHTML = '<div style="color:#6e7681;font-size:12px;padding:8px;">UTM-трафика за период нет.</div>';
+                } else {
+                    const max = Math.max(...traffic.map(t => t.visits || 0)) || 1;
+                    trafficEl.innerHTML = traffic.map(t => {
+                        const w = Math.round((t.visits / max) * 100);
+                        return `<div class="traffic-card">
+                            <div class="tc-name">utm: ${t.campaign}</div>
+                            <div class="tc-bar"><div style="width:${w}%"></div></div>
+                            <div class="tc-visits">${t.visits}<span>визитов</span></div>
+                        </div>`;
+                    }).join('');
+                }
+
+                const ts = data.fetched_at ? new Date(data.fetched_at).toLocaleTimeString('ru-RU') : '—';
+                document.getElementById('metrika-fetched').textContent = 'обновлено ' + ts;
+            } catch (e) {
+                console.error('metrika-stats failed:', e);
+                document.getElementById('metrika-fetched').textContent = 'ошибка загрузки';
+            }
+        }
+        loadMetrikaStats();
 
         async function loadDirectStats() {
             try {

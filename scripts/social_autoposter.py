@@ -108,6 +108,85 @@ def upload_to_youtube(env: dict, video_path: Path, title: str, description: str,
         return {"error": f"upload {e.code}: {body[:300]}"}
 
 
+# ─── Telegram channel posting ───
+def upload_to_telegram(token: str, chat_id: str, video_path: Path,
+                       title: str, caption: str) -> dict:
+    """Постит видео в TG-канал через sendVideo. Возвращает {msg_id, url, error}."""
+    url = f"https://api.telegram.org/bot{token}/sendVideo"
+    # Подпись: title + caption + ссылка на сервис
+    text = f"{title}\n\n{caption[:900]}"  # TG лимит 1024 символа
+    if len(text) > 1000:
+        text = text[:997] + "..."
+
+    # multipart/form-data
+    import uuid as uuid_mod
+    boundary = f"---tg-{uuid_mod.uuid4().hex[:16]}"
+    parts = []
+    # chat_id
+    parts.append(f"--{boundary}\r\n".encode())
+    parts.append(b'Content-Disposition: form-data; name="chat_id"\r\n\r\n')
+    parts.append(str(chat_id).encode())
+    parts.append(b"\r\n")
+    # caption
+    parts.append(f"--{boundary}\r\n".encode())
+    parts.append(b'Content-Disposition: form-data; name="caption"\r\n\r\n')
+    parts.append(text.encode("utf-8"))
+    parts.append(b"\r\n")
+    # supports_streaming
+    parts.append(f"--{boundary}\r\n".encode())
+    parts.append(b'Content-Disposition: form-data; name="supports_streaming"\r\n\r\n')
+    parts.append(b"true")
+    parts.append(b"\r\n")
+    # video file
+    parts.append(f"--{boundary}\r\n".encode())
+    parts.append(
+        f'Content-Disposition: form-data; name="video"; filename="{video_path.name}"\r\n'
+        f'Content-Type: video/mp4\r\n\r\n'.encode()
+    )
+    parts.append(video_path.read_bytes())
+    parts.append(f"\r\n--{boundary}--\r\n".encode())
+    body = b"".join(parts)
+
+    try:
+        req = urllib.request.Request(url, data=body, method="POST", headers={
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "Content-Length": str(len(body)),
+        })
+        with urllib.request.urlopen(req, timeout=300) as r:
+            data = json.loads(r.read())
+        if not data.get("ok"):
+            return {"error": data.get("description", "unknown")}
+        result = data.get("result", {})
+        msg_id = result.get("message_id")
+        # Если канал публичный с username — формируем URL
+        chat = result.get("chat", {})
+        username = chat.get("username")
+        if username:
+            url_str = f"https://t.me/{username}/{msg_id}"
+        else:
+            # private channel: t.me/c/{id_без_-100}/{msg_id}
+            cid = str(chat.get("id", "")).replace("-100", "")
+            url_str = f"https://t.me/c/{cid}/{msg_id}"
+        return {"msg_id": msg_id, "url": url_str}
+    except urllib.error.HTTPError as e:
+        return {"error": f"TG {e.code}: {e.read().decode()[:300]}"}
+
+
+def update_telegram_status(post_id: int, status: str, msg_id: int = 0, url: str = "", error: str = "") -> None:
+    error_safe = error.replace("'", "''")[:500]
+    sql = (
+        f"UPDATE social_posts SET "
+        f"telegram_status = '{status}', "
+        f"telegram_msg_id = NULLIF({msg_id or 0}, 0), "
+        f"telegram_url = NULLIF('{url}', ''), "
+        f"telegram_error = NULLIF('{error_safe}', ''), "
+        f"telegram_posted_at = CASE WHEN '{status}' = 'posted' THEN NOW() ELSE telegram_posted_at END, "
+        f"updated_at = NOW() "
+        f"WHERE id = {post_id}"
+    )
+    psql_fetch(sql)
+
+
 # ─── Main loop ───
 def get_next_pending_post() -> dict | None:
     """Возвращает следующий пост готовый к публикации (хотя бы 1 платформа = pending)."""
@@ -167,9 +246,34 @@ def main():
 
     # YouTube
     if post["target_youtube"] == "t" and post["youtube_status"] == "pending":
-        title = post["title"][:100] or "AI оживляет фотографии"
-        description = (post["caption"] or "") + "\n\n#shorts"
-        tags = ["AI", "оживить фото", "Kling", "VideoAI", "Shorts"]
+        # Заголовок: hook + ясный context
+        raw_title = (post["title"] or "AI оживляет фотографии").strip()
+        # YouTube любит до 100 символов в title. Конверсионный паттерн:
+        # «<хук> — оживите ваше фото за 60 сек | botisk.ru»
+        title = (raw_title + " — оживите ваше фото за 60 сек | botisk.ru")[:100]
+
+        # Description с явным CTA и хештегами для алгоритма
+        description = (
+            f"{raw_title}\n\n"
+            f"🎬 Это AI оживляет любую фотографию: свадебную, детскую, фото близких. "
+            f"Превращаем статичный снимок в живое видео за 60 секунд через нейросеть Kling AI.\n\n"
+            f"🔗 Попробуйте бесплатно: botisk.ru\n"
+            f"🤖 Или через Telegram-бот: @VideoAI_24isk_bot\n\n"
+            f"❓ Как это работает:\n"
+            f"1. Загружаете фото\n"
+            f"2. AI генерирует 5-секундное видео\n"
+            f"3. Скачиваете и делитесь с близкими\n\n"
+            f"💡 Идеи: оживить фото бабушки, дедушки, детское фото малыша, "
+            f"свадебный снимок, фото потерянного питомца.\n\n"
+            f"#оживитьфото #нейросеть #AI #shorts #память #подарок "
+            f"#семейноевидео #искусственныйинтеллект #ai_video"
+        )
+        tags = [
+            "оживить фото", "AI", "нейросеть", "оживить старое фото",
+            "видео из фото", "Kling AI", "VideoAI", "Shorts",
+            "подарок маме", "подарок бабушке", "семейный архив",
+            "память", "AI видео", "искусственный интеллект",
+        ]
         print(f"  → YouTube upload: {title[:50]}")
         try:
             result = upload_to_youtube(env, video_path, title, description, tags)
@@ -184,9 +288,27 @@ def main():
                                   video_id=result.get("video_id", ""),
                                   url=result.get("url", ""))
 
-    # Telegram / VK — пока заглушки (платформы не созданы)
+    # Telegram канал
     if post["target_telegram"] == "t" and post["telegram_status"] == "pending":
-        print(f"  ⏭ Telegram: канал не настроен")
+        token = env.get("TELEGRAM_BOT_PHOTO2VIDEO")
+        chat_id = env.get("TG_CHANNEL_CHAT_ID")
+        if token and chat_id:
+            print(f"  → Telegram канал: {post['title'][:50]}")
+            try:
+                result = upload_to_telegram(token, chat_id, video_path, post["title"], post["caption"])
+                if result.get("error"):
+                    print(f"  ❌ TG: {result['error']}")
+                    update_telegram_status(post["id"], "failed", error=result["error"])
+                else:
+                    print(f"  ✅ TG: msg_id={result['msg_id']}")
+                    update_telegram_status(post["id"], "posted",
+                                            msg_id=result["msg_id"], url=result["url"])
+            except Exception as e:
+                print(f"  ❌ TG exception: {e}")
+                update_telegram_status(post["id"], "failed", error=str(e)[:300])
+        else:
+            print(f"  ⏭ Telegram: TG_CHANNEL_CHAT_ID не в .env")
+
     if post["target_vk"] == "t" and post["vk_status"] == "pending":
         print(f"  ⏭ VK: сообщество не настроено")
 
