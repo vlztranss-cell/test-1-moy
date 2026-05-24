@@ -2435,6 +2435,46 @@
             return id;
         }
 
+        // ===== A/B сплит цен (H5) =====
+        // Случайное распределение по session_id:
+        //   A — Микро 99₽ помечен как «Популярный»
+        //   B — Контроль: Старт 290₽ как «Выгодный» (текущее состояние)
+        // Передаём dimension в Метрику для разбивки конверсии.
+        function getABVariant() {
+            const sid = getSessionId();
+            let hash = 0;
+            for (let i = 0; i < sid.length; i++) hash = ((hash << 5) - hash) + sid.charCodeAt(i);
+            return (Math.abs(hash) % 2) === 0 ? 'A' : 'B';
+        }
+        function applyABPricing() {
+            const variant = getABVariant();
+            // Передаём как параметр визита в Метрику для сегментации
+            if (typeof ym !== 'undefined') {
+                ym(109293181, 'params', { ab_pricing: variant });
+            }
+            if (variant === 'A') {
+                // Перемещаем popular-класс с «Про» на «Микро» + меняем badge
+                const cards = document.querySelectorAll('.pricing-card');
+                cards.forEach(c => c.classList.remove('popular'));
+                const oldBadge = document.querySelector('.pricing-popular-badge');
+                if (oldBadge) oldBadge.remove();
+                const microCard = cards[0]; // Микро — первая карточка
+                if (microCard) {
+                    microCard.classList.add('popular');
+                    const badge = document.createElement('div');
+                    badge.className = 'pricing-popular-badge';
+                    badge.textContent = 'Лучший вход';
+                    microCard.insertBefore(badge, microCard.firstChild);
+                }
+            }
+        }
+        // Применяем после загрузки страницы
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', applyABPricing);
+        } else {
+            applyABPricing();
+        }
+
         // ===== HERO LIVE COUNTER =====
         // Псевдо-live счётчик: детерминированный рост со временем + ±шум за сессию
         // + +1 за визит этого браузера (localStorage). Без бэкенда.
