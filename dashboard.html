@@ -553,6 +553,39 @@
         .yt-video-row .yvr-views { color: #ff6b6b; font-weight: 700; font-size: 14px; min-width: 60px; text-align: right; }
         .yt-video-row .yvr-likes { color: #8b949e; min-width: 40px; text-align: right; }
 
+        /* ===== DIGEST + SEEDING SECTIONS ===== */
+        .digest-section, .seeding-section { margin-bottom: 32px; }
+        .digest-section > h2, .seeding-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
+        .seeding-meta { font-size: 12px; color: #8b949e; margin-bottom: 12px; }
+        .digest-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .dg-card {
+            background: linear-gradient(135deg, #0d1117 0%, #1a1f29 100%);
+            border: 1px solid #21262d; border-radius: 10px;
+            padding: 14px; display: flex; flex-direction: column; gap: 4px;
+        }
+        .dg-card span { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dg-card b { font-size: 24px; font-weight: 700; }
+        .dg-card.rev b { color: #3fb950; }
+        .dg-card.fail b { color: #f85149; }
+        .dg-anomalies, .dg-recs {
+            background: rgba(248, 81, 73, 0.05); border-left: 3px solid #f85149;
+            padding: 10px 14px; margin-bottom: 8px; border-radius: 4px;
+            font-size: 13px; color: #c9d1d9;
+        }
+        .dg-recs { background: rgba(63, 185, 80, 0.05); border-left-color: #3fb950; }
+        .dg-anomalies-title, .dg-recs-title { font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 6px; }
+        .seeding-table { width: 100%; border-collapse: collapse; font-size: 12px;
+            background: #0d1117; border: 1px solid #21262d; border-radius: 12px; overflow: hidden; }
+        .seeding-table th { background: rgba(255,255,255,0.03); color: #8b949e; padding: 10px;
+            text-align: left; font-size: 11px; text-transform: uppercase; }
+        .seeding-table td { padding: 10px; border-top: 1px solid rgba(33,38,45,0.5); color: #c9d1d9; }
+        .seeding-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .seeding-table a { color: #58a6ff; text-decoration: none; }
+        .seeding-table .score { color: #ff9933; font-weight: 700; }
+
         /* ===== MARKETING SECTION ===== */
         .marketing-section { margin-bottom: 32px; }
         .marketing-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 8px; }
@@ -1516,6 +1549,22 @@
         <div class="campaigns-foot" id="direct-stats-foot">
             Данные обновляются автоматически каждые 60 секунд из Yandex Direct API.
         </div>
+    </div>
+
+    <!-- DAILY DIGEST (автоматически каждое утро) -->
+    <div class="digest-section" data-project-view="videoai">
+        <h2>🌅 Дайджест админа <span id="digest-date" style="font-size:12px;color:#8b949e;">—</span></h2>
+        <div class="digest-grid" id="digest-grid">
+            <div class="loading">Загрузка…</div>
+        </div>
+        <div id="digest-recommendations" style="margin-top:14px;"></div>
+    </div>
+
+    <!-- SEEDING CANDIDATES -->
+    <div class="seeding-section" data-project-view="videoai">
+        <h2>📨 TG-каналы для посевов <span id="seeding-count" style="font-size:12px;color:#8b949e;">—</span></h2>
+        <div class="seeding-meta">Поиск через tgstat.ru, scoring по ER × audience-match. Запустить ещё раз — открыть n8n workflow Mark_TGStat_Seeding_Finder → Execute.</div>
+        <div id="seeding-table"><div class="loading">Загрузка…</div></div>
     </div>
 
     <!-- MARKETING HYPOTHESES -->
@@ -2531,6 +2580,77 @@
             `).join('');
         }
         renderHypotheses();
+
+        // Daily digest — последняя автогенерация
+        async function loadDigest() {
+            try {
+                const r = await fetch('https://n8n.24isk.ru/webhook/admin-digest');
+                const { items } = await r.json();
+                if (!items || !items.length) {
+                    document.getElementById('digest-grid').innerHTML =
+                        '<div style="color:#6e7681;font-size:13px;padding:10px;">Дайджест появится завтра в 9:00 МСК (auto-cron).</div>';
+                    return;
+                }
+                const d = items[0];
+                document.getElementById('digest-date').textContent = 'за ' + d.digest_date;
+                document.getElementById('digest-grid').innerHTML = `
+                    <div class="dg-card rev"><span>Выручка</span><b>${(d.revenue_rub||0).toLocaleString('ru-RU')} ₽</b></div>
+                    <div class="dg-card"><span>Новые юзеры</span><b>${d.new_users||0}</b></div>
+                    <div class="dg-card"><span>Free попыток</span><b>${d.free_attempts||0}</b></div>
+                    <div class="dg-card"><span>Платежи</span><b>${d.paid_orders||0}</b></div>
+                    <div class="dg-card fail"><span>Failed</span><b>${d.failed_orders||0}</b></div>
+                `;
+                let html = '';
+                if (d.anomalies && d.anomalies.length) {
+                    html += `<div class="dg-anomalies"><div class="dg-anomalies-title">⚠️ Аномалии</div>${d.anomalies.map(a=>'<div>• '+a+'</div>').join('')}</div>`;
+                }
+                if (d.recommendations && d.recommendations.length) {
+                    html += `<div class="dg-recs"><div class="dg-recs-title">💡 Что делать</div>${d.recommendations.map(a=>'<div>• '+a+'</div>').join('')}</div>`;
+                }
+                document.getElementById('digest-recommendations').innerHTML = html;
+            } catch (e) {
+                console.error('digest:', e);
+            }
+        }
+        loadDigest();
+
+        // Seeding channels
+        async function loadSeeding() {
+            try {
+                const r = await fetch('https://n8n.24isk.ru/webhook/seeding-list');
+                const { items } = await r.json();
+                if (!items || !items.length) {
+                    document.getElementById('seeding-table').innerHTML =
+                        '<div style="color:#6e7681;font-size:13px;padding:10px;">Список появится после запуска n8n workflow Mark_TGStat_Seeding_Finder (manual Execute).</div>';
+                    document.getElementById('seeding-count').textContent = '(пусто)';
+                    return;
+                }
+                document.getElementById('seeding-count').textContent = `(${items.length} каналов)`;
+                document.getElementById('seeding-table').innerHTML = `
+                    <table class="seeding-table">
+                        <thead><tr>
+                            <th>#</th><th>Канал</th><th>Подписчиков</th><th>ER %</th>
+                            <th>Avg views</th><th>Цена ₽</th><th>Score</th><th>Контакт</th>
+                        </tr></thead>
+                        <tbody>${items.map((c,i)=>`
+                            <tr>
+                                <td>${i+1}</td>
+                                <td><a href="https://t.me/${c.channel_username}" target="_blank">@${c.channel_username}</a><br><small style="color:#8b949e">${c.title||''}</small></td>
+                                <td>${(c.subscribers||0).toLocaleString('ru-RU')}</td>
+                                <td>${c.er_percent||'—'}</td>
+                                <td>${(c.avg_views||0).toLocaleString('ru-RU')}</td>
+                                <td>${c.ad_price_rub||'—'}</td>
+                                <td class="score">${c.score||'—'}</td>
+                                <td>${c.contact||'—'}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                `;
+            } catch (e) {
+                console.error('seeding:', e);
+            }
+        }
+        loadSeeding();
 
         // YouTube stats — обновляется каждые 5 минут (collector на VPS пишет раз в час)
         setInterval(loadYouTubeStats, 300000);
