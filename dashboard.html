@@ -553,6 +553,38 @@
         .yt-video-row .yvr-views { color: #ff6b6b; font-weight: 700; font-size: 14px; min-width: 60px; text-align: right; }
         .yt-video-row .yvr-likes { color: #8b949e; min-width: 40px; text-align: right; }
 
+        /* ===== MARKETING SECTION ===== */
+        .marketing-section { margin-bottom: 32px; }
+        .marketing-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 8px; }
+        .marketing-meta { font-size: 12px; color: #8b949e; margin-bottom: 14px; }
+        .marketing-meta b { color: #ff9933; }
+        .hypothesis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+        .h-card {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            border: 1px solid #21262d; border-radius: 12px;
+            padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+            position: relative;
+        }
+        .h-card.in_progress { border-color: rgba(63, 185, 80, 0.5); }
+        .h-card.completed { border-color: rgba(124, 92, 252, 0.5); opacity: 0.7; }
+        .h-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .h-title { font-size: 13px; font-weight: 700; color: #e6edf3; flex: 1; line-height: 1.3; }
+        .h-pri { font-size: 10px; padding: 3px 8px; border-radius: 8px;
+            background: rgba(255, 153, 51, 0.15); color: #ff9933; white-space: nowrap; }
+        .h-status { font-size: 10px; padding: 2px 8px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .h-status.pending { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
+        .h-status.in_progress { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
+        .h-status.completed { background: rgba(124, 92, 252, 0.15); color: #a78bfa; }
+        .h-body { font-size: 12px; color: #c9d1d9; line-height: 1.5; }
+        .h-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: 10px; }
+        .h-meta span { background: rgba(255,255,255,0.04); padding: 3px 7px; border-radius: 6px; color: #8b949e; }
+        .h-meta b { color: #c9d1d9; }
+        .h-meta .impact-high { color: #3fb950; }
+        .h-meta .impact-medium { color: #d29922; }
+        .h-meta .impact-low { color: #f85149; }
+        .h-actions { font-size: 11px; color: #8b949e; line-height: 1.5; padding: 8px 10px;
+            background: rgba(255,255,255,0.02); border-radius: 6px; }
+
         /* ===== METRIKA SECTION ===== */
         .metrika-section { margin-bottom: 32px; }
         .metrika-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
@@ -1486,6 +1518,15 @@
         </div>
     </div>
 
+    <!-- MARKETING HYPOTHESES -->
+    <div class="marketing-section" data-project-view="videoai">
+        <h2>🎯 Маркетинг — гипотезы и план роста</h2>
+        <div class="marketing-meta">
+            Текущая выручка: <b>~5905 ₽</b> за всё время (TG-бот + лендинг). Цель — выйти на постоянный поток. Ранжировано по impact × ease.
+        </div>
+        <div class="hypothesis-grid" id="hypothesis-grid"></div>
+    </div>
+
     <!-- METRIKA GOALS -->
     <div class="metrika-section" data-project-view="videoai">
         <h2>📊 Цели Метрики — конверсии за 24 часа <span id="metrika-fetched" style="font-size:12px;color:#8b949e;">—</span></h2>
@@ -1878,6 +1919,66 @@
         }
 
         // ===== TASK BOARD DATA =====
+        // Маркетинг-гипотезы (отдельный раздел) — отображается выше TASK_DATA
+        const MARKETING_HYPOTHESES = [
+            {
+                id: 'H1', priority: 1, status: 'in_progress',
+                title: '📧 Email recovery после free-генерации',
+                hypothesis: 'Юзер сделал free-генерацию и не купил за 1ч → email-напоминание с промокодом 99₽. Цель — вернуть юзера который забыл про сервис.',
+                metric: '% возвратов за 7 дней',
+                impact: 'high', ease: 'high',
+                actions: 'n8n workflow Web_Email_Recovery (cron каждый час) + Gmail OAuth credential + таблица recovery_email_log. Шаблон письма с промокодом RECOVER99.'
+            },
+            {
+                id: 'H2', priority: 5, status: 'pending',
+                title: '🎁 Сезонные триггеры (8 марта / День матери / 9 мая)',
+                hypothesis: 'Праздники с эмоциональным контекстом дают спайк продаж. Готовим календарь и шлём заранее.',
+                metric: 'прирост платежей в дни праздников vs обычные',
+                impact: 'high', ease: 'medium',
+                actions: 'scripts/seasonal_promo_calendar.json + n8n Mark_Seasonal_Trigger (cron 0 9 * * *). Нужно: 5-7 эмоциональных текстов от пользователя.'
+            },
+            {
+                id: 'H3', priority: 2, status: 'in_progress',
+                title: '👥 Промо реф-программы в TG-боте и канале',
+                hypothesis: 'Техника реф-программы есть, но юзеры не знают. После оплаты в боте показываем «получи +5 видео за приведённого друга».',
+                metric: '% платежей с ref_by != NULL',
+                impact: 'medium', ease: 'high',
+                actions: 'Пост в @botisk_canal с примером + изменение текста в боте после payment_success.'
+            },
+            {
+                id: 'H4', priority: 4, status: 'pending',
+                title: '🎀 Подарочный сертификат (новый продукт)',
+                hypothesis: 'Никто из конкурентов не продаёт «купи КОДЫ для подарка маме». UTP — красивая ссылка с именем получателя.',
+                metric: 'доля выручки от gift-тарифа',
+                impact: 'high', ease: 'low',
+                actions: 'Новый план 1499₽ на index.html + workflow Web_Gift_Cert + страница botisk.ru/gift/<code>.'
+            },
+            {
+                id: 'H5', priority: 3, status: 'in_progress',
+                title: '🧪 A/B сплит: 99₽ Микро vs 290₽ Старт первым',
+                hypothesis: 'Минимальный 290₽ воспринимается как переплата. 99₽ на первом месте может конвертить лучше для первой покупки.',
+                metric: 'статзначимая разница в PAYMENT_SUCCESS',
+                impact: 'medium', ease: 'high',
+                actions: 'JS-сплит через session_id % 2, dimension в Метрике. Через 5-7 дней — анализ.'
+            },
+            {
+                id: 'H6', priority: 6, status: 'pending',
+                title: '📨 TG-каналы посевы (родительские/ностальгические)',
+                hypothesis: 'За 5к₽ в правильном TG-канале — 200-1000 переходов, 5-20 платежей. ROI >1.5x за 30 дней.',
+                metric: 'ROI посева за 30 дней (revenue / расход)',
+                impact: 'high', ease: 'medium',
+                actions: 'scripts/tg_seeding_finder.py через tgstat-credential — топ-10 каналов по тематикам. UTM utm_source=tg_seed&utm_content=<channel>. Нужно от пользователя: оплата + переговоры.'
+            },
+            {
+                id: 'H7', priority: 7, status: 'pending',
+                title: '💌 Email-серия после первой покупки (LTV)',
+                hypothesis: 'После 1-й платной генерации шлём цепочку из 3 писем: «продайте подругам» / «попробуйте другие категории» / «годовщина уже скоро».',
+                metric: 'повторные покупки в первые 30 дней',
+                impact: 'medium', ease: 'medium',
+                actions: 'n8n cron + Gmail + таблица email_drip_log. Шаблоны 3 писем от пользователя.'
+            },
+        ];
+
         const TASK_DATA = [
             {
                 project: 'VideoAI Лендинг',
@@ -2406,6 +2507,30 @@
             }
         }
         loadMetrikaStats();
+
+        // Маркетинг-гипотезы — рендер один раз при загрузке (статичные данные)
+        function renderHypotheses() {
+            const el = document.getElementById('hypothesis-grid');
+            if (!el) return;
+            const sorted = [...MARKETING_HYPOTHESES].sort((a,b) => a.priority - b.priority);
+            el.innerHTML = sorted.map(h => `
+                <div class="h-card ${h.status}">
+                    <div class="h-head">
+                        <div class="h-title">${h.id}. ${h.title}</div>
+                        <div class="h-pri">priority ${h.priority}</div>
+                    </div>
+                    <div class="h-body">${h.hypothesis}</div>
+                    <div class="h-meta">
+                        <span class="h-status ${h.status}">${({pending:'⏳ ждёт', in_progress:'🟢 в работе', completed:'✓ готово'})[h.status]}</span>
+                        <span>impact: <b class="impact-${h.impact}">${h.impact}</b></span>
+                        <span>ease: <b>${h.ease}</b></span>
+                        <span>📐 ${h.metric}</span>
+                    </div>
+                    <div class="h-actions">${h.actions}</div>
+                </div>
+            `).join('');
+        }
+        renderHypotheses();
 
         // YouTube stats — обновляется каждые 5 минут (collector на VPS пишет раз в час)
         setInterval(loadYouTubeStats, 300000);
