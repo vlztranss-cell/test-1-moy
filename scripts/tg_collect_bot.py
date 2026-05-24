@@ -77,7 +77,12 @@ AGREE_TEXT = (
     "📸 Детские фото\n"
     "📸 Семейные архивные снимки\n"
     "📸 Фото питомцев\n\n"
-    "Просто отправьте любое фото — оно автоматически сохранится."
+    "Просто отправьте любое фото — оно автоматически сохранится.\n\n"
+    "Команды управления:\n"
+    "• Под каждым принятым фото — кнопка «🗑 Удалить»\n"
+    "• /my_photos — список всех ваших фото\n"
+    "• /delete_last — удалить последнее\n"
+    "• /cancel — отозвать согласие и удалить ВСЁ"
 )
 
 
@@ -157,7 +162,78 @@ def ensure_table():
     )
 
 
+def get_user_uploads(uid: int, limit: int = 10):
+    """Возвращает список (id, file_path) последних загрузок юзера."""
+    import subprocess
+    r = subprocess.run(
+        ["sudo", "-u", "postgres", "psql", "-d", "photo_bot", "-tA", "-c",
+         f"SELECT id, file_path FROM user_uploads WHERE user_id={uid} ORDER BY id DESC LIMIT {limit}"],
+        capture_output=True, text=True, timeout=10
+    )
+    rows = []
+    for line in r.stdout.strip().split("\n"):
+        if not line: continue
+        parts = line.split("|", 1)
+        if len(parts) == 2:
+            rows.append((int(parts[0]), parts[1]))
+    return rows
+
+
+def delete_upload(upload_id: int) -> tuple[bool, str]:
+    """Удаляет файл и БД-запись. Возвращает (ok, удалённый_путь)."""
+    import subprocess
+    # Сначала получим путь чтобы удалить файл
+    r = subprocess.run(
+        ["sudo", "-u", "postgres", "psql", "-d", "photo_bot", "-tA", "-c",
+         f"SELECT file_path FROM user_uploads WHERE id={upload_id}"],
+        capture_output=True, text=True, timeout=10
+    )
+    fpath = r.stdout.strip()
+    if not fpath:
+        return False, ""
+    # Удалить файл
+    from pathlib import Path as _P
+    try: _P(fpath).unlink()
+    except FileNotFoundError: pass
+    # Удалить запись
+    subprocess.run(
+        ["sudo", "-u", "postgres", "psql", "-d", "photo_bot", "-c",
+         f"DELETE FROM user_uploads WHERE id={upload_id}"],
+        capture_output=True, text=True, timeout=10
+    )
+    return True, fpath
+
+
 def handle_update(upd: dict, state: dict):
+    # Callback от inline-кнопки (удаление)
+    cb = upd.get("callback_query")
+    if cb:
+        data = cb.get("data", "")
+        uid = cb["from"]["id"]
+        chat_id = cb["message"]["chat"]["id"]
+        msg_id = cb["message"]["message_id"]
+        if data.startswith("del:"):
+            upload_id = int(data[4:])
+            # Проверяем, что фото принадлежит этому юзеру
+            r = __import__("subprocess").run(
+                ["sudo", "-u", "postgres", "psql", "-d", "photo_bot", "-tA", "-c",
+                 f"SELECT user_id FROM user_uploads WHERE id={upload_id}"],
+                capture_output=True, text=True, timeout=10
+            )
+            owner = r.stdout.strip()
+            if owner == str(uid):
+                ok, fpath = delete_upload(upload_id)
+                tg("answerCallbackQuery", {"callback_query_id": cb["id"],
+                    "text": "Фото удалено" if ok else "Не найдено"})
+                if ok:
+                    tg("editMessageText", {"chat_id": chat_id, "message_id": msg_id,
+                        "text": f"🗑 Удалено (#{upload_id}). Можете загрузить другое фото."})
+                    print(f"[-] deleted upload #{upload_id} by user {uid}")
+            else:
+                tg("answerCallbackQuery", {"callback_query_id": cb["id"],
+                    "text": "Это не ваше фото", "show_alert": True})
+        return
+
     msg = upd.get("message")
     if not msg: return
     from_user = msg.get("from", {})
@@ -179,14 +255,37 @@ def handle_update(upd: dict, state: dict):
         save_state(state)
         tg("sendMessage", {"chat_id": chat_id, "text": AGREE_TEXT})
         return
+    if text == "/delete_last":
+        # Удалить последнее загруженное юзером фото
+        ups = get_user_uploads(uid, limit=1)
+        if ups:
+            upload_id, fpath = ups[0]
+            delete_upload(upload_id)
+            tg("sendMessage", {"chat_id": chat_id,
+                "text": f"🗑 Последнее фото удалено (#{upload_id})."})
+        else:
+            tg("sendMessage", {"chat_id": chat_id,
+                "text": "У вас нет загруженных фото."})
+        return
+    if text == "/my_photos":
+        ups = get_user_uploads(uid, limit=20)
+        if not ups:
+            tg("sendMessage", {"chat_id": chat_id, "text": "У вас пока нет загруженных фото."})
+        else:
+            lines = "\n".join(f"  • #{i} — {p.split('/')[-1]}" for i, p in ups)
+            tg("sendMessage", {"chat_id": chat_id,
+                "text": f"Ваши фото ({len(ups)} шт):\n{lines}\n\nЧтобы удалить конкретное: /delete_last (последнее) или /cancel (всё + согласие)."})
+        return
     if text == "/cancel":
+        # Полная отмена: и согласие, и все фото
+        ups = get_user_uploads(uid, limit=100)
+        for upload_id, _ in ups:
+            delete_upload(upload_id)
         if str(uid) in consents:
             del consents[str(uid)]
             save_state(state)
-            tg("sendMessage", {"chat_id": chat_id,
-                "text": "Согласие отозвано. Все ваши фото будут удалены в течение 24ч."})
-        else:
-            tg("sendMessage", {"chat_id": chat_id, "text": "Активного согласия нет."})
+        tg("sendMessage", {"chat_id": chat_id,
+            "text": f"Согласие отозвано, удалено {len(ups)} фото."})
         return
 
     # Фото
@@ -202,9 +301,19 @@ def handle_update(upd: dict, state: dict):
         dest = STORAGE / f"{uid}_{ts}_{file_id[-10:]}.jpg"
         if download_file(file_id, dest):
             insert_upload(uid, uname, file_id, str(dest), consents[str(uid)])
-            tg("sendMessage", {"chat_id": chat_id,
-                "text": f"✅ Фото получено! Спасибо.\nНомер: #{ts % 100000}\n\nЕщё загрузите?"})
-            print(f"[+] photo from {uid} ({uname}): {dest.name}")
+            # Узнаём id вставленной записи, чтобы прикрепить кнопку удаления
+            ups = get_user_uploads(uid, limit=1)
+            upload_id = ups[0][0] if ups else None
+            params = {"chat_id": chat_id,
+                "text": f"✅ Фото получено! Спасибо.\nНомер: #{upload_id or ts % 100000}"}
+            if upload_id:
+                params["reply_markup"] = json.dumps({
+                    "inline_keyboard": [[
+                        {"text": "🗑 Удалить это фото", "callback_data": f"del:{upload_id}"}
+                    ]]
+                })
+            tg("sendMessage", params)
+            print(f"[+] photo from {uid} ({uname}): {dest.name} (id={upload_id})")
         else:
             tg("sendMessage", {"chat_id": chat_id, "text": "⚠ Не удалось скачать, попробуйте ещё раз"})
 
