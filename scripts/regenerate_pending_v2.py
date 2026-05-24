@@ -112,6 +112,7 @@ def main():
         by_task[k].sort(key=lambda p: p["idx"])
 
     total_done = 0
+    processed_dir = Path("/srv/creatives/processed_v2")
     for (task_id, category), group in by_task.items():
         source = Path(f"/srv/creatives/raw/kling/kling_{task_id}.mp4")
         if not source.exists():
@@ -119,6 +120,28 @@ def main():
             continue
         hooks = [p["title"] for p in group]
         print(f"\n📁 task {task_id[:8]} ({category}, {len(hooks)} вариаций)")
+
+        # Защита от "двух правд" на диске: удаляем все старые v2-файлы
+        # для этой пары (task_id, category) ПЕРЕД генерацией новых.
+        # Иначе autoposter может взять старый файл из processed_v2 если
+        # БД на него ссылается (см. инцидент 23-24.05 с j8Vol1o5ST8).
+        old_pattern = f"kling_{task_id}_v2_{category}_*.mp4"
+        removed = 0
+        for old_file in processed_dir.glob(old_pattern):
+            try:
+                old_file.unlink()
+                removed += 1
+            except Exception as e:
+                print(f"  ⚠️ не смог удалить {old_file.name}: {e}")
+        if removed:
+            print(f"  🗑  очищено старых v2-файлов: {removed}")
+        # Также удаляем симлинки из /srv/videos чтобы дашборд не показывал их
+        videos_dir = Path("/srv/videos")
+        if videos_dir.exists():
+            for old_link in videos_dir.glob(old_pattern):
+                try: old_link.unlink()
+                except Exception: pass
+
         try:
             new_files = variate_v2(str(source), category, hooks)
         except Exception as e:
