@@ -2299,7 +2299,14 @@
                     if (data.status === 'failed') {
                         clearInterval(pollTimer);
                         trackGoal('GEN_FAILED', { error: data.error || 'unknown' });
-                        throw new Error(data.error || 'Генерация не удалась');
+                        const rawErr = data.error || '';
+                        // Детект «фото отклонено» от Kling (китайский текст + слово rejected/upstream)
+                        const isPhotoRejected = /图片|rejected|upstream|inappropriate|moderation|content[-_ ]policy/i.test(rawErr)
+                            || (data.error_code === 10000);
+                        const friendlyMsg = isPhotoRejected
+                            ? 'AI не принял ваше фото. Возможные причины: лицо публичного человека, логотипы/бренды, низкое качество или 18+ контент. Попробуйте другое фото — обычное семейное фото работает лучше всего. Кредит возвращён.'
+                            : ('Не удалось обработать фото: ' + (rawErr || 'неизвестная ошибка') + '. Попробуйте другое фото или повторите попытку через минуту. Кредит возвращён.');
+                        throw new Error(friendlyMsg);
                     }
                 } catch (e) {
                     clearInterval(pollTimer);
