@@ -1180,6 +1180,49 @@
             font-size: 12px;
             color: var(--text-dim);
         }
+        /* TG Auth section в модалке */
+        .tg-auth-section {
+            background: rgba(34, 158, 217, 0.08);
+            border: 1px solid rgba(34, 158, 217, 0.3);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+        .tg-auth-section.verified {
+            background: rgba(63, 185, 80, 0.08);
+            border-color: rgba(63, 185, 80, 0.4);
+        }
+        .tg-auth-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #229ed9;
+            margin-bottom: 4px;
+        }
+        .tg-auth-section.verified .tg-auth-label { color: #3fb950; }
+        .tg-auth-note {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .tg-auth-verified-info {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 13px; color: var(--text);
+        }
+        .tg-auth-verified-info img { border-radius: 50%; width: 32px; height: 32px; }
+        .tg-auth-divider {
+            text-align: center; position: relative;
+            margin: 14px 0; font-size: 11px; color: var(--text-dim);
+        }
+        .tg-auth-divider::before, .tg-auth-divider::after {
+            content: ''; position: absolute; top: 50%;
+            width: calc(50% - 30px); height: 1px;
+            background: rgba(255,255,255,0.1);
+        }
+        .tg-auth-divider::before { left: 0; }
+        .tg-auth-divider::after { right: 0; }
+        .tg-auth-divider span {
+            background: var(--bg-card); padding: 0 10px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
@@ -1688,6 +1731,20 @@
             <h3>Оплата</h3>
             <div class="modal-plan-info" id="modal-plan-info"></div>
             <div class="modal-form">
+                <!-- TG Login Widget — 1-клик, без email -->
+                <div class="tg-auth-section" id="tg-auth-section">
+                    <div class="tg-auth-label">⚡ В 1 клик через Telegram (рекомендуем)</div>
+                    <div id="tg-login-widget" style="margin: 8px 0 12px 0; min-height: 48px;">
+                        <script async src="https://telegram.org/js/telegram-widget.js?22"
+                                data-telegram-login="VideoAI_24isk_bot"
+                                data-size="large"
+                                data-radius="10"
+                                data-onauth="onTelegramAuth(user)"
+                                data-request-access="write"></script>
+                    </div>
+                    <div class="tg-auth-note">Уведомим о готовности видео прямо в Telegram</div>
+                </div>
+                <div class="tg-auth-divider"><span>или</span></div>
                 <label>Email (для получения кредитов)</label>
                 <input type="email" id="payment-email" placeholder="your@email.com">
                 <button class="modal-pay-btn" id="modal-pay-btn">Перейти к оплате</button>
@@ -1695,6 +1752,7 @@
             <div class="modal-secure">&#128274; Безопасная оплата через ЮKassa</div>
         </div>
     </div>
+
 
     <!-- FLOATING SUPPORT BUTTON -->
     <button class="support-float" id="support-float" onclick="openSupportModal()" aria-label="Поддержка">
@@ -2434,6 +2492,52 @@
             if (!id) { id = genUUID(); localStorage.setItem('video_session_id', id); }
             return id;
         }
+
+        // ===== Telegram Login Widget callback =====
+        // Глобальная функция, вызывается виджетом после успешной аутентификации.
+        // user = {id, first_name, last_name, username, photo_url, auth_date, hash}
+        window.onTelegramAuth = async function(user) {
+            try {
+                const resp = await fetch('https://n8n.24isk.ru/webhook/tg-auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(user)
+                });
+                const data = await resp.json();
+                if (!data.ok) {
+                    console.warn('TG auth failed:', data.error);
+                    alert('Ошибка авторизации через Telegram. Попробуйте ввести email.');
+                    return;
+                }
+                // Сохраняем: синтетический email из telegram_id, real telegram_id отдельно
+                const syntheticEmail = `tg${user.id}@telegram.user`;
+                setEmail(syntheticEmail);
+                localStorage.setItem('videoai_telegram_id', user.id);
+                localStorage.setItem('videoai_telegram_username', user.username || '');
+                localStorage.setItem('videoai_telegram_first_name', user.first_name || '');
+                trackGoal('TG_AUTH', {tg_id: user.id});
+
+                // UI: показать «подтверждено» в секции виджета
+                const section = document.getElementById('tg-auth-section');
+                if (section) {
+                    section.classList.add('verified');
+                    section.innerHTML = `
+                        <div class="tg-auth-label">✓ Подтверждено</div>
+                        <div class="tg-auth-verified-info">
+                            ${user.photo_url ? `<img src="${user.photo_url}" alt="">` : ''}
+                            <div><b>${user.first_name || ''} ${user.last_name || ''}</b>${user.username ? ' · @' + user.username : ''}</div>
+                        </div>
+                        <div class="tg-auth-note">Кредиты на ваш telegram аккаунт. Можете сразу нажать «Перейти к оплате».</div>
+                    `;
+                }
+                // Авто-заполнение email-input
+                const emailInput = document.getElementById('payment-email');
+                if (emailInput) emailInput.value = syntheticEmail;
+            } catch (e) {
+                console.error('onTelegramAuth error:', e);
+                alert('Ошибка: ' + e.message);
+            }
+        };
 
         // ===== A/B сплит цен (H5) =====
         // Случайное распределение по session_id:
