@@ -50,6 +50,7 @@
           "image": "https://botisk.ru/og-image.png",
           "brand": {"@type": "Brand", "name": "VideoAI"},
           "offers": [
+            {"@type": "Offer", "name": "Микро", "price": "99", "priceCurrency": "RUB", "description": "1 видео без водяного знака", "url": "https://botisk.ru/#pricing"},
             {"@type": "Offer", "name": "Старт", "price": "290", "priceCurrency": "RUB", "description": "10 видео", "url": "https://botisk.ru/#pricing"},
             {"@type": "Offer", "name": "Про",   "price": "790", "priceCurrency": "RUB", "description": "50 видео", "url": "https://botisk.ru/#pricing"},
             {"@type": "Offer", "name": "Бизнес","price": "2490","priceCurrency": "RUB", "description": "200 видео", "url": "https://botisk.ru/#pricing"}
@@ -60,7 +61,7 @@
           "@type": "FAQPage",
           "mainEntity": [
             {"@type": "Question", "name": "Сколько стоит оживить фото?",
-             "acceptedAnswer": {"@type": "Answer", "text": "Первое видео — бесплатно. Дальше: тариф Старт — 290₽ за 10 видео, Про — 790₽ за 50 видео, Бизнес — 2490₽ за 200 видео."}},
+             "acceptedAnswer": {"@type": "Answer", "text": "Первое видео — бесплатно. Дальше: Микро — 99₽ за 1 видео без водяного знака, Старт — 290₽ за 10 видео, Про — 790₽ за 50 видео, Бизнес — 2490₽ за 200 видео."}},
             {"@type": "Question", "name": "Какие фотографии можно оживить?",
              "acceptedAnswer": {"@type": "Answer", "text": "Любые: старые семейные снимки, детские фото, портреты, фото с близкими, питомцами. Поддерживаются JPG, PNG, WEBP до 10 МБ."}},
             {"@type": "Question", "name": "Сколько времени занимает генерация?",
@@ -607,10 +608,11 @@
         }
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
             align-items: start;
         }
+        @media (max-width: 1100px) { .pricing-grid { grid-template-columns: repeat(2, 1fr); } }
         .pricing-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -1415,6 +1417,25 @@
                 <p class="section-desc">Первое видео — бесплатно. Без привязки карты.</p>
             </div>
             <div class="pricing-grid">
+
+                <!-- Micro — самый низкий порог -->
+                <div class="pricing-card">
+                    <div class="pricing-name">Микро</div>
+                    <div class="pricing-desc">Одно видео — без водяного знака</div>
+                    <div class="pricing-price">
+                        <span class="pricing-amount">99</span>
+                        <span class="pricing-currency"> &#8381;</span>
+                        <div class="pricing-period">разовый платёж</div>
+                        <div class="pricing-per-video">за 1 видео в HD</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><span class="check">&#10003;</span> 1 видео</li>
+                        <li><span class="check">&#10003;</span> Качество 720p</li>
+                        <li><span class="check">&#10003;</span> Без водяного знака</li>
+                        <li><span class="check">&#10003;</span> Без регистрации</li>
+                    </ul>
+                    <button class="pricing-btn pricing-btn-secondary" onclick="openPayment('micro', 99, '1 видео')">Купить за 99 &#8381;</button>
+                </div>
 
                 <!-- Starter -->
                 <div class="pricing-card">
