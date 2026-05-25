@@ -1226,12 +1226,16 @@
         /* ===== 3 ЗОНЫ + STICKY-МЕНЮ (финальный рефакторинг) ===== */
         .layout-wrap {
             display: grid;
-            grid-template-columns: 200px 1fr;
+            grid-template-columns: 200px minmax(0, 1fr);
             gap: 24px;
             max-width: 1700px;
             margin: 0 auto;
             padding: 0 24px;
+            align-items: start;
         }
+        .layout-main { min-width: 0; overflow-x: hidden; }
+        /* details внутри grid могут схлопывать ширину при animate — пиняем */
+        .layout-main details[open] { width: 100%; }
         @media (max-width: 1100px) {
             .layout-wrap { grid-template-columns: 1fr; padding: 0 16px; }
             .sticky-nav { display: none !important; }
@@ -2348,6 +2352,14 @@
                 impact: 'medium', ease: 'medium',
                 actions: 'n8n cron + Gmail + таблица email_drip_log. Шаблоны 3 писем от пользователя.'
             },
+            {
+                id: 'H8', priority: 4, status: 'pending',
+                title: '📰 Crowd-marketing: 30 площадок для индексации',
+                hypothesis: 'Размещение упоминаний/статей на 30 русских площадках (DTF, Pikabu, VC, Habr, Spark, Дзен, IRecommend, otzovik и др.) даёт пассивный SEO-трафик и social proof. Часть площадок индексируется Яндексом за дни.',
+                metric: 'органический трафик из не-search-engine (referral)',
+                impact: 'medium', ease: 'low',
+                actions: 'Список 30 площадок подготовлен в docs/SEO_PLATFORMS.md. Подход: 5-7 легальных гостевых постов своими руками + биржи (Miralinks, GoGetLinks). Покупка аккаунтов = TOS violation + риск спам-бана + штрафы Яндекс «крауд-маркетинг».'
+            },
         ];
 
         const TASK_DATA = [
@@ -2763,7 +2775,9 @@
             }
         }
         loadKPICommandCenter();
-        setInterval(loadKPICommandCenter, 60000);
+        // 5 мин вместо 60с — иначе Yandex Metrika блокирует 429.
+        // Direct/social локально на VPS — могут чаще, но KPI агрегатор всё равно держит rhythm 5 мин.
+        setInterval(loadKPICommandCenter, 5 * 60 * 1000);
 
         let socialAllItems = [];
         let socialActiveFilter = 'all';

@@ -48,44 +48,48 @@ function qs(params) {{
 const baseUrl = 'https://api-metrika.yandex.net/stat/v1/data';
 const auth = {{'Authorization': 'OAuth ' + TOKEN}};
 
-// Сводка — за СЕГОДНЯ (date1=date2=today), точно как dashboard Метрики
-const summary = await this.helpers.httpRequest({{
+// ОПТИМИЗАЦИЯ: объединяем 9 целей + summary в ОДИН запрос (вместо 11).
+// Yandex Metrika позволяет до 20 metrics за запрос.
+// Раньше был HTTP 429 rate-limit из-за слишком частых обращений.
+const goalEntries = Object.entries(GOALS).filter(([,id]) => id);
+const goalMetrics = [];
+for (const [, gid] of goalEntries) {{
+    goalMetrics.push('ym:s:goal' + gid + 'reaches');
+    goalMetrics.push('ym:s:goal' + gid + 'users');
+}}
+const allMetrics = 'ym:s:visits,ym:s:users,ym:s:bounceRate,ym:s:pageDepth,ym:s:avgVisitDurationSeconds,' + goalMetrics.join(',');
+
+const combined = await this.helpers.httpRequest({{
     method: 'GET',
     url: baseUrl + '?' + qs({{
         ids: COUNTER,
-        metrics: 'ym:s:visits,ym:s:users,ym:s:bounceRate,ym:s:pageDepth,ym:s:avgVisitDurationSeconds',
+        metrics: allMetrics,
         date1: 'today',
         date2: 'today',
         accuracy: 'full',
     }}),
     headers: auth,
     json: true,
-    timeout: 15000,
+    timeout: 20000,
 }});
 
-// Цели
+const totalsFlat = combined.totals || [];
+// Первые 5 — summary
+const t = totalsFlat.slice(0, 5).length ? totalsFlat.slice(0, 5) : [0,0,0,0,0];
+
+// Далее — пары [reaches, users] для каждой цели
 const goalsStats = {{}};
-for (const [name, goalId] of Object.entries(GOALS)) {{
-    if (!goalId) continue;
-    try {{
-        const data = await this.helpers.httpRequest({{
-            method: 'GET',
-            url: baseUrl + '?' + qs({{
-                ids: COUNTER,
-                metrics: 'ym:s:goal' + goalId + 'reaches,ym:s:goal' + goalId + 'users',
-                date1: '7daysAgo', date2: 'today', accuracy: 'full',
-            }}),
-            headers: auth, json: true, timeout: 10000,
-        }});
-        // totals — это плоский массив metrics, НЕ array-of-arrays
-        const totals = data.totals || [0, 0];
-        goalsStats[name] = {{ id: goalId, reaches: Math.round(totals[0] || 0), users: Math.round(totals[1] || 0) }};
-    }} catch (e) {{
-        goalsStats[name] = {{ id: goalId, error: String(e).substring(0, 120) }};
-    }}
+let idx = 5;
+for (const [name, goalId] of goalEntries) {{
+    goalsStats[name] = {{
+        id: goalId,
+        reaches: Math.round(totalsFlat[idx] || 0),
+        users: Math.round(totalsFlat[idx + 1] || 0),
+    }};
+    idx += 2;
 }}
 
-// UTM-источники
+// UTM-источники — отдельным запросом (нужны dimensions)
 let traffic = [];
 try {{
     const tr = await this.helpers.httpRequest({{
@@ -105,9 +109,6 @@ try {{
         visits: Math.round(d.metrics[0] || 0),
     }}));
 }} catch (e) {{}}
-
-// summary.totals — плоский массив metrics
-const t = summary.totals || [0,0,0,0,0];
 return [{{json: {{
     summary: {{
         visits: Math.round(t[0] || 0),
