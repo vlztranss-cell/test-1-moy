@@ -149,23 +149,61 @@ WITH inserted AS (
          tz_markdown)
     VALUES (
         '{{ $('Choose Topic').first().json.platform }}',
-        '{{ ($json.title || '').replace(/'/g, "''") }}',
-        '{{ ($json.article_text || '').replace(/'/g, "''") }}',
+        '{{ ($('Generate Content').first().json.title || '').replace(/'/g, "''") }}',
+        '{{ ($('Generate Content').first().json.article_text || '').replace(/'/g, "''") }}',
         {{ ({dzen:350,pikabu:450,irecommend:250,otzovik:250,vc:600,habr:1000})[$('Choose Topic').first().json.platform] || 300 }},
         'tz_' || EXTRACT(EPOCH FROM NOW())::int || '_' || $('Choose Topic').first().json.platform,
         'ready_to_post',
         E'# ТЗ для исполнителя на Workzilla\\n\\n' ||
         E'**Площадка:** ' || $('Choose Topic').first().json.platform || E'\\n' ||
         E'**Тема:** ' || $('Choose Topic').first().json.topic || E'\\n' ||
-        E'**Заголовок:** ' || COALESCE('{{ ($json.title || '').replace(/'/g, "''") }}', '') || E'\\n\\n' ||
+        E'**Заголовок:** ' || COALESCE('{{ ($('Generate Content').first().json.title || '').replace(/'/g, "''") }}', '') || E'\\n\\n' ||
         E'## ТЕКСТ ДЛЯ ПУБЛИКАЦИИ\\n\\n' ||
-        COALESCE('{{ ($json.article_text || '').replace(/'/g, "''") }}', '') || E'\\n\\n' ||
+        COALESCE('{{ ($('Generate Content').first().json.article_text || '').replace(/'/g, "''") }}', '') || E'\\n\\n' ||
         E'## UTM-метка\\n\\nВ тексте использовать ссылку:\\n' ||
         E'botisk.ru/?utm_source=' || $('Choose Topic').first().json.platform ||
         '&utm_medium=article&utm_content=tz_' || EXTRACT(EPOCH FROM NOW())::int
     )
     RETURNING id
 )
+SELECT id FROM inserted;
+""".strip()
+
+# JS — генерация промпта для обложки на основе заголовка + платформы
+COVER_PROMPT_JS = """
+const platform = $('Choose Topic').first().json.platform;
+const title = $('Generate Content').first().json.title || '';
+const topic = $('Choose Topic').first().json.topic || '';
+
+// Разный стиль обложки под каждую платформу
+const stylePresets = {
+    dzen: 'warm vintage photo aesthetic, sepia tones, family album feel, soft lighting, 1024x1024 square format',
+    pikabu: 'emotional documentary photography, intimate moment, candid black and white old photograph being held in hands, 1024x1024',
+    irecommend: 'product review hero image, clean composition, family photo on display, before-after concept, square 1024x1024',
+    otzovik: 'reviewer testimonial style, soft warm lighting, holding old photograph, square 1024x1024',
+    vc: 'modern startup pitch hero image, dashboard analytics + family photo overlay, professional, 16:9 widescreen',
+    habr: 'technical illustration, AI neural network meets vintage photography, abstract data visualization, 16:9 widescreen'
+};
+
+const size = (platform === 'vc' || platform === 'habr') ? '1792x1024' : '1024x1024';
+
+const prompt =
+    `Create a high-quality cover image for an article titled "${title}". ` +
+    `Theme: ${topic}. Service context: AI photo animation (oziline old family photos via Kling neural network). ` +
+    `Visual style: ${stylePresets[platform] || stylePresets.dzen}. ` +
+    `IMPORTANT: NO text or words in the image. Focus on visual storytelling. ` +
+    `Photorealistic. High emotional impact. Warm color palette suggesting family memories.`;
+
+return [{ json: { prompt, size, platform, tz_id: $('Save TZ').first().json.id } }];
+""".strip()
+
+# SQL — обновление БД с URL картинки
+UPDATE_COVER_SQL = """
+UPDATE workzilla_tz_drafts SET
+    cover_url = '{{ ($json.url || ($json.data && $json.data[0] && $json.data[0].url) || '').replace(/'/g, "''") }}',
+    cover_prompt = '{{ ($('Build Cover Prompt').first().json.prompt || '').replace(/'/g, "''").substring(0, 1500) }}'
+WHERE id = {{ $('Build Cover Prompt').first().json.tz_id }};
+-- Обновляем last_run только после полной цепочки
 UPDATE crowd_schedule SET last_run_at = NOW()
 WHERE platform = '{{ $('Choose Topic').first().json.platform }}';
 """.strip()
@@ -203,13 +241,38 @@ def build_workflow():
              "type": "n8n-nodes-base.postgres", "typeVersion": 2.5,
              "position": [1000, 0], "id": "sv", "name": "Save TZ",
              "credentials": {"postgres": PG_CRED}},
+            # NEW: визуальная цепочка
+            {"parameters": {"jsCode": COVER_PROMPT_JS},
+             "type": "n8n-nodes-base.code", "typeVersion": 2,
+             "position": [1200, 0], "id": "cvp", "name": "Build Cover Prompt"},
+            {"parameters": {
+                "resource": "image", "operation": "generate",
+                "model": "dall-e-3",
+                "prompt": "={{ $json.prompt }}",
+                "options": {
+                    "size": "={{ $json.size }}",
+                    "quality": "standard",
+                    "style": "natural"
+                },
+              },
+             "type": "@n8n/n8n-nodes-langchain.openAi", "typeVersion": 1.8,
+             "position": [1400, 0], "id": "img", "name": "Generate Cover",
+             "credentials": {"openAiApi": OPENAI_CRED},
+             "continueOnFail": True},
+            {"parameters": {"operation": "executeQuery", "query": UPDATE_COVER_SQL, "options": {}},
+             "type": "n8n-nodes-base.postgres", "typeVersion": 2.5,
+             "position": [1600, 0], "id": "uc", "name": "Save Cover",
+             "credentials": {"postgres": PG_CRED}},
         ],
         "connections": {
-            "Daily":            {"main": [[{"node": "Pick Platform", "type": "main", "index": 0}]]},
-            "Pick Platform":    {"main": [[{"node": "Choose Topic", "type": "main", "index": 0}]]},
-            "Choose Topic":     {"main": [[{"node": "Choose Prompt", "type": "main", "index": 0}]]},
-            "Choose Prompt":    {"main": [[{"node": "Generate Content", "type": "main", "index": 0}]]},
-            "Generate Content": {"main": [[{"node": "Save TZ", "type": "main", "index": 0}]]},
+            "Daily":              {"main": [[{"node": "Pick Platform", "type": "main", "index": 0}]]},
+            "Pick Platform":      {"main": [[{"node": "Choose Topic", "type": "main", "index": 0}]]},
+            "Choose Topic":       {"main": [[{"node": "Choose Prompt", "type": "main", "index": 0}]]},
+            "Choose Prompt":      {"main": [[{"node": "Generate Content", "type": "main", "index": 0}]]},
+            "Generate Content":   {"main": [[{"node": "Save TZ", "type": "main", "index": 0}]]},
+            "Save TZ":            {"main": [[{"node": "Build Cover Prompt", "type": "main", "index": 0}]]},
+            "Build Cover Prompt": {"main": [[{"node": "Generate Cover", "type": "main", "index": 0}]]},
+            "Generate Cover":     {"main": [[{"node": "Save Cover", "type": "main", "index": 0}]]},
         },
         "settings": {"executionOrder": "v1"},
     }
