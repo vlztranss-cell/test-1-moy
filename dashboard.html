@@ -1108,6 +1108,16 @@
         @media (max-width: 1100px) { .social-grid { grid-template-columns: repeat(3, 1fr); } }
         @media (max-width: 800px)  { .social-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 480px)  { .social-grid { grid-template-columns: 1fr; } }
+        /* По умолчанию показываем только 1 ряд (4 карточки) */
+        .social-grid.collapsed > .social-card:nth-child(n+5) { display: none; }
+        .social-toggle {
+            background: rgba(255,255,255,0.04); color: #58a6ff;
+            border: 1px solid rgba(88,166,255,0.3); border-radius: 8px;
+            padding: 8px 16px; font-size: 12px; cursor: pointer;
+            margin-top: 12px; user-select: none; display: inline-block;
+            transition: all 0.15s;
+        }
+        .social-toggle:hover { background: rgba(88,166,255,0.1); }
         .social-tabs {
             display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;
         }
@@ -1212,6 +1222,79 @@
             word-break: break-all;
             font-size: 11px;
         }
+
+        /* ===== 3 ЗОНЫ + STICKY-МЕНЮ (финальный рефакторинг) ===== */
+        .layout-wrap {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 24px;
+            max-width: 1700px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        @media (max-width: 1100px) {
+            .layout-wrap { grid-template-columns: 1fr; padding: 0 16px; }
+            .sticky-nav { display: none !important; }
+        }
+        .sticky-nav {
+            position: sticky; top: 20px;
+            align-self: start;
+            background: #0d1117; border: 1px solid #21262d;
+            border-radius: 12px; padding: 14px 8px;
+            font-size: 12px;
+        }
+        .sticky-nav h4 {
+            font-size: 10px; color: #6e7681;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            margin: 8px 12px 6px;
+        }
+        .sticky-nav a {
+            display: block; padding: 7px 12px;
+            color: #c9d1d9; text-decoration: none;
+            border-radius: 6px; transition: all 0.1s;
+            font-size: 12px;
+        }
+        .sticky-nav a:hover { background: rgba(88,166,255,0.08); color: #58a6ff; }
+        .sticky-nav a.active { background: rgba(88,166,255,0.12); color: #58a6ff; }
+        .sticky-nav .nav-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 8px 0; }
+
+        /* Заголовки зон */
+        .zone-header {
+            margin: 32px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(255,255,255,0.06);
+            display: flex; align-items: baseline; gap: 12px;
+        }
+        .zone-header:first-child { margin-top: 0; }
+        .zone-header h1 {
+            font-size: 22px; font-weight: 800; color: #e6edf3;
+            margin: 0;
+        }
+        .zone-header .zone-desc {
+            font-size: 12px; color: #6e7681;
+        }
+
+        /* Priority-полоска для маркетинг-карточек */
+        .h-card { border-left: 3px solid #6e7681; }
+        .h-card[data-priority="1"] { border-left-color: #f85149; }
+        .h-card[data-priority="2"] { border-left-color: #f0883e; }
+        .h-card[data-priority="3"] { border-left-color: #d29922; }
+        .h-card[data-priority="4"] { border-left-color: #58a6ff; }
+        .h-card[data-priority="5"] { border-left-color: #3fb950; }
+        .h-card[data-priority="6"] { border-left-color: #a78bfa; }
+        .h-card[data-priority="7"] { border-left-color: #6e7681; }
+        .hypothesis-group {
+            margin-bottom: 18px;
+        }
+        .hypothesis-group-title {
+            font-size: 11px; color: #8b949e;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .hypothesis-grid-inner {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 12px;
+        }
     </style>
 </head>
 <body>
@@ -1219,6 +1302,30 @@
         <h1>Project Dashboard</h1>
         <button class="refresh-btn" onclick="loadData()">Обновить</button>
     </div>
+
+    <div class="layout-wrap">
+    <!-- STICKY NAV (только VideoAI) -->
+    <aside class="sticky-nav" data-project-view="videoai">
+        <h4>🎯 Обзор</h4>
+        <a href="#z-kpi">KPI центр</a>
+        <a href="#z-summary">Сводка</a>
+        <div class="nav-divider"></div>
+        <h4>⚙️ Операционка</h4>
+        <a href="#z-social">Видео очередь</a>
+        <a href="#z-creatives">Креативы</a>
+        <a href="#z-direct">Реклама Direct</a>
+        <a href="#z-automation">Автоматизация</a>
+        <a href="#z-digest">Daily digest</a>
+        <a href="#z-seeding">TG посевы</a>
+        <div class="nav-divider"></div>
+        <h4>📊 Аналитика</h4>
+        <a href="#z-marketing">Гипотезы</a>
+        <a href="#z-metrika">Метрика</a>
+        <a href="#z-youtube">YouTube</a>
+        <a href="#z-tasks">Задачи</a>
+        <a href="#z-history">История</a>
+    </aside>
+    <div class="layout-main">
 
     <!-- PROJECT TABS -->
     <nav class="project-tabs" id="project-tabs">
@@ -1261,6 +1368,12 @@
             <div class="ph-desc" id="ph-desc">Продающий сайт для генерации видео из фото</div>
         </div>
         <div class="ph-stats" id="ph-stats"></div>
+    </div>
+
+    <!-- ===================== ЗОНА 1: ОБЗОР ===================== -->
+    <div class="zone-header" id="z-kpi" data-project-view="videoai">
+        <h1>🎯 Обзор</h1>
+        <span class="zone-desc">бизнес-метрики и здоровье проекта</span>
     </div>
 
     <!-- KPI КОМАНДНЫЙ ЦЕНТР (всегда сверху для VideoAI) -->
@@ -1486,7 +1599,7 @@
     </div>
 
     <!-- HISTORY / PATH TIMELINE — относится к VideoAI Лендингу (основной проект эволюции) -->
-    <details class="history-section" id="history-section" data-project-view="videoai">
+    <details class="history-section" id="z-history" data-project-view="videoai">
         <summary>📜 История пути проекта — раскрыть</summary>
         <div class="history-timeline">
 
@@ -1586,6 +1699,12 @@
     </details>
 
     <!-- SOCIAL POSTING QUEUE -->
+    <!-- ===================== ЗОНА 2: ОПЕРАЦИОНКА ===================== -->
+    <div class="zone-header" id="z-social" data-project-view="videoai">
+        <h1>⚙️ Операционка</h1>
+        <span class="zone-desc">ежедневная работа: контент, реклама, автоматизация</span>
+    </div>
+
     <div class="social-section" id="social-section" data-project-view="videoai">
         <h2>📱 Соцсети — очередь публикаций <span id="social-meta" style="font-size:13px;color:#8b949e;">—</span></h2>
         <!-- Табы по статусу -->
@@ -1597,13 +1716,14 @@
             <span class="social-tab" data-filter="yt">📺 только YT <span class="cnt" id="cnt-yt">—</span></span>
             <span class="social-tab" data-filter="tg">💬 только TG <span class="cnt" id="cnt-tg">—</span></span>
         </div>
-        <div class="social-grid" id="social-queue">
+        <div class="social-grid collapsed" id="social-queue">
             <div class="creatives-empty">постов в очереди пока нет</div>
         </div>
+        <span class="social-toggle" id="social-toggle" style="display:none;">▾ Показать все</span>
     </div>
 
     <!-- YOUTUBE STATS -->
-    <div class="ytstats-section" data-project-view="videoai">
+    <div class="ytstats-section" id="z-youtube" data-project-view="videoai">
         <h2>📺 YouTube — статистика просмотров <span id="yt-fetched" style="font-size:12px;color:#8b949e;">—</span></h2>
         <div class="yt-summary" id="yt-summary">
             <div class="yt-card"><span>Видео</span><b id="yts-count">—</b></div>
@@ -1622,7 +1742,7 @@
     </div>
 
     <!-- CREATIVES UPLOAD -->
-    <div class="creatives-section" id="creatives-section" data-project-view="videoai">
+    <div class="creatives-section" id="z-creatives" data-project-view="videoai">
         <h2>📤 Креативы для соцсетей <span id="creatives-meta" style="font-size:13px;color:#8b949e;">—</span></h2>
         <div class="creatives-drop" id="creatives-drop">
             <div class="creatives-drop-icon">📁</div>
@@ -1642,7 +1762,7 @@
     </div>
 
     <!-- AD CAMPAIGNS (Яндекс.Директ) -->
-    <div class="campaigns-section" data-project-view="videoai">
+    <div class="campaigns-section" id="z-direct" data-project-view="videoai">
         <h2>🎯 Рекламные кампании — Яндекс.Директ</h2>
         <div class="campaigns-meta">
             Лендинг: <a href="https://botisk.ru/" target="_blank">botisk.ru</a> · Метрика-счётчик: 109293181 ·
@@ -1731,13 +1851,13 @@
     </div>
 
     <!-- AUTOMATION CALENDAR -->
-    <div class="automation-section" data-project-view="videoai">
+    <div class="automation-section" id="z-automation" data-project-view="videoai">
         <h2>📅 Календарь автоматизаций <span style="font-size:12px;color:#8b949e;">— что и когда работает само</span></h2>
         <div class="automation-grid" id="automation-grid"></div>
     </div>
 
     <!-- DAILY DIGEST (автоматически каждое утро) -->
-    <div class="digest-section" data-project-view="videoai">
+    <div class="digest-section" id="z-digest" data-project-view="videoai">
         <h2>🌅 Дайджест админа <span id="digest-date" style="font-size:12px;color:#8b949e;">—</span></h2>
         <div class="digest-grid" id="digest-grid">
             <div class="loading">Загрузка…</div>
@@ -1746,19 +1866,25 @@
     </div>
 
     <!-- SEEDING CANDIDATES -->
-    <div class="seeding-section" data-project-view="videoai">
+    <div class="seeding-section" id="z-seeding" data-project-view="videoai">
         <h2>📨 TG-каналы для посевов <span id="seeding-count" style="font-size:12px;color:#8b949e;">—</span></h2>
         <div class="seeding-meta">Поиск через tgstat.ru, scoring по ER × audience-match. Запустить ещё раз — открыть n8n workflow Mark_TGStat_Seeding_Finder → Execute.</div>
         <div id="seeding-table"><div class="loading">Загрузка…</div></div>
     </div>
 
     <!-- MARKETING HYPOTHESES -->
-    <div class="marketing-section" data-project-view="videoai">
+    <div class="marketing-section" id="z-marketing" data-project-view="videoai">
         <h2>🎯 Маркетинг — гипотезы и план роста</h2>
         <div class="marketing-meta">
             Текущая выручка: <b>~5905 ₽</b> за всё время (TG-бот + лендинг). Цель — выйти на постоянный поток. Ранжировано по impact × ease.
         </div>
         <div class="hypothesis-grid" id="hypothesis-grid"></div>
+    </div>
+
+    <!-- ===================== ЗОНА 3: АНАЛИТИКА ===================== -->
+    <div class="zone-header" id="z-metrika" data-project-view="videoai">
+        <h1>📊 Аналитика</h1>
+        <span class="zone-desc">метрики, конверсии, гипотезы и задачи</span>
     </div>
 
     <!-- METRIKA GOALS -->
@@ -1782,7 +1908,7 @@
     </div>
 
     <!-- COMPACT SUMMARY — пустые/малоинформативные блоки в одну строку -->
-    <details class="compact-summary" data-project-view="videoai">
+    <details class="compact-summary" id="z-summary" data-project-view="videoai">
         <summary>
             <span class="cs-row">
                 <span class="cs-item">🤝 Партнёры: <b id="partners-count">—</b></span>
@@ -1834,7 +1960,7 @@
     </details>
 
     <!-- TASK BOARD — рендерится только под текущий выбранный проект -->
-    <div class="tasks-section">
+    <div class="tasks-section" id="z-tasks">
         <h2 id="tasks-section-title">Задачи проекта</h2>
         <div class="task-projects" id="task-board"></div>
     </div>
@@ -1852,6 +1978,8 @@
     </div>
 
     <div class="timestamp" id="timestamp"></div>
+    </div><!-- /.layout-main -->
+    </div><!-- /.layout-wrap -->
 
     <script>
         const API_URL = 'https://n8n.24isk.ru/webhook/dashboard';
@@ -2719,12 +2847,41 @@
         // Listener на табы
         document.addEventListener('click', e => {
             const tab = e.target.closest('.social-tab');
-            if (!tab) return;
-            document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            socialActiveFilter = tab.dataset.filter;
-            renderSocialQueue();
+            if (tab) {
+                document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                socialActiveFilter = tab.dataset.filter;
+                renderSocialQueue();
+            }
         });
+
+        // Кнопка раскрытия видео-очереди
+        document.getElementById('social-toggle').addEventListener('click', () => {
+            const grid = document.getElementById('social-queue');
+            const btn = document.getElementById('social-toggle');
+            if (grid.classList.contains('collapsed')) {
+                grid.classList.remove('collapsed');
+                btn.textContent = '▴ Свернуть';
+            } else {
+                grid.classList.add('collapsed');
+                btn.textContent = '▾ Показать все';
+            }
+        });
+        // После рендера показывать кнопку только если есть >4 элементов
+        const _origRender = renderSocialQueue;
+        renderSocialQueue = function() {
+            _origRender();
+            const grid = document.getElementById('social-queue');
+            const btn = document.getElementById('social-toggle');
+            const cardsCount = grid.querySelectorAll('.social-card').length;
+            if (cardsCount > 4) {
+                btn.style.display = 'inline-block';
+                btn.textContent = grid.classList.contains('collapsed')
+                    ? `▾ Показать ещё ${cardsCount - 4}` : '▴ Свернуть';
+            } else {
+                btn.style.display = 'none';
+            }
+        };
 
         async function loadCreatives() {
             try {
@@ -2907,29 +3064,73 @@
         }
         loadMetrikaStats();
 
-        // Маркетинг-гипотезы — рендер один раз при загрузке (статичные данные)
+        // Маркетинг-гипотезы — рендер с группировкой по статусу + priority-полоской
         function renderHypotheses() {
             const el = document.getElementById('hypothesis-grid');
             if (!el) return;
-            const sorted = [...MARKETING_HYPOTHESES].sort((a,b) => a.priority - b.priority);
-            el.innerHTML = sorted.map(h => `
-                <div class="h-card ${h.status}">
+            // Группируем
+            const groups = {
+                in_progress: {title: '🟢 В работе', items: []},
+                pending:     {title: '⏳ Ждёт запуска', items: []},
+                completed:   {title: '✓ Сделано', items: []},
+            };
+            for (const h of MARKETING_HYPOTHESES) {
+                (groups[h.status] || groups.pending).items.push(h);
+            }
+            for (const k in groups) groups[k].items.sort((a,b) => a.priority - b.priority);
+
+            const cardHtml = h => `
+                <div class="h-card ${h.status}" data-priority="${h.priority}">
                     <div class="h-head">
                         <div class="h-title">${h.id}. ${h.title}</div>
                         <div class="h-pri">priority ${h.priority}</div>
                     </div>
                     <div class="h-body">${h.hypothesis}</div>
                     <div class="h-meta">
-                        <span class="h-status ${h.status}">${({pending:'⏳ ждёт', in_progress:'🟢 в работе', completed:'✓ готово'})[h.status]}</span>
                         <span>impact: <b class="impact-${h.impact}">${h.impact}</b></span>
                         <span>ease: <b>${h.ease}</b></span>
                         <span>📐 ${h.metric}</span>
                     </div>
                     <div class="h-actions">${h.actions}</div>
-                </div>
-            `).join('');
+                </div>`;
+
+            el.innerHTML = ['in_progress','pending','completed']
+                .filter(k => groups[k].items.length > 0)
+                .map(k => `
+                    <div class="hypothesis-group" style="grid-column:1/-1;">
+                        <div class="hypothesis-group-title">${groups[k].title} (${groups[k].items.length})</div>
+                        <div class="hypothesis-grid-inner">${groups[k].items.map(cardHtml).join('')}</div>
+                    </div>
+                `).join('');
         }
         renderHypotheses();
+
+        // Sticky-nav: плавный скролл + active-индикация при scroll
+        document.querySelectorAll('.sticky-nav a').forEach(link => {
+            link.addEventListener('click', e => {
+                const href = link.getAttribute('href');
+                if (!href || !href.startsWith('#')) return;
+                const target = document.getElementById(href.slice(1));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
+            });
+        });
+        // Active section on scroll
+        const navAnchors = Array.from(document.querySelectorAll('.sticky-nav a'))
+            .map(a => ({el: a, target: document.getElementById(a.getAttribute('href').slice(1))}))
+            .filter(x => x.target);
+        function updateActiveNav() {
+            let activeIdx = 0;
+            const scrollY = window.scrollY + 100;
+            for (let i = 0; i < navAnchors.length; i++) {
+                if (navAnchors[i].target.offsetTop <= scrollY) activeIdx = i;
+            }
+            navAnchors.forEach((x, i) => x.el.classList.toggle('active', i === activeIdx));
+        }
+        window.addEventListener('scroll', updateActiveNav, {passive: true});
+        updateActiveNav();
 
         // ===== Календарь автоматизаций =====
         const AUTOMATIONS = [
