@@ -16,7 +16,7 @@ from env_loader import load_env
 
 env = load_env()
 PG_CRED = {"id": "6JRfp0UMBDBhhghL", "name": "Postgres account"}
-TOKEN = env["TELEGRAM_BOT_PHOTO2VIDEO"]
+TOKEN = env["TELEGRAM_BOT_COLLECT"]   # @botisk_collect_bot — он на нашем аккаунте
 
 SELECT_SQL = """
 SELECT
