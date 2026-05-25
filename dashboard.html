@@ -553,6 +553,82 @@
         .yt-video-row .yvr-views { color: #ff6b6b; font-weight: 700; font-size: 14px; min-width: 60px; text-align: right; }
         .yt-video-row .yvr-likes { color: #8b949e; min-width: 40px; text-align: right; }
 
+        /* ===== KPI COMMAND CENTER ===== */
+        .kpi-command-center {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 1100px) { .kpi-command-center { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px)  { .kpi-command-center { grid-template-columns: 1fr; } }
+        .kpi-card {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            border: 1px solid #21262d; border-radius: 12px;
+            padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 6px;
+            position: relative;
+        }
+        .kpi-revenue { border-left: 3px solid #3fb950; }
+        .kpi-orders { border-left: 3px solid #58a6ff; }
+        .kpi-direct { border-left: 3px solid #f0883e; }
+        .kpi-funnel { border-left: 3px solid #d2a8ff; }
+        .kpi-channels { border-left: 3px solid #d29922; }
+        .kpi-label {
+            font-size: 11px; color: #8b949e;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .kpi-value {
+            font-size: 22px; font-weight: 700; color: #e6edf3;
+            line-height: 1.1; white-space: nowrap;
+        }
+        .kpi-revenue .kpi-value { color: #3fb950; }
+        .kpi-direct .kpi-value  { color: #f0883e; }
+        .kpi-sep { color: #484f58; margin: 0 4px; font-weight: 400; }
+        .kpi-sub { font-size: 11px; color: #6e7681; }
+        .kpi-channels-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+        .kpi-ch {
+            font-size: 11px; padding: 3px 8px; border-radius: 12px;
+            background: rgba(63, 185, 80, 0.12); color: #3fb950;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            cursor: help;
+        }
+        .kpi-ch.warn {
+            background: rgba(210, 153, 34, 0.12); color: #d29922;
+            border-color: rgba(210, 153, 34, 0.3);
+        }
+        .kpi-ch.err {
+            background: rgba(248, 81, 73, 0.12); color: #f85149;
+            border-color: rgba(248, 81, 73, 0.3);
+        }
+
+        /* ===== COMPACT SUMMARY (4 малоинф блока в одну строку) ===== */
+        .compact-summary {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .compact-summary > summary {
+            cursor: pointer; list-style: none; padding: 14px 18px;
+            user-select: none;
+        }
+        .compact-summary > summary::-webkit-details-marker { display: none; }
+        .cs-row {
+            display: flex; flex-wrap: wrap; gap: 18px 28px;
+            align-items: center; font-size: 13px; color: #c9d1d9;
+        }
+        .cs-item { white-space: nowrap; }
+        .cs-item b { color: #e6edf3; font-weight: 700; }
+        .cs-item small { color: #8b949e; font-size: 11px; }
+        .cs-hint { margin-left: auto; color: #6e7681; font-size: 11px; }
+        .compact-summary[open] > summary { border-bottom: 1px solid #21262d; }
+        .compact-summary[open] .cs-hint::before { content: '▴ '; }
+        .compact-details {
+            padding: 18px; display: flex; flex-direction: column; gap: 24px;
+        }
+        .cs-block h3 {
+            font-size: 14px; color: #c9d1d9; margin-bottom: 10px;
+        }
+
         /* ===== AUTOMATION CALENDAR ===== */
         .automation-section { margin-bottom: 32px; }
         .automation-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
@@ -1027,6 +1103,45 @@
             border-radius: 8px;
             padding: 8px;
         }
+        /* ===== СЕТКА ВИДЕО-КАРТОЧЕК ===== */
+        .social-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        @media (max-width: 1100px) { .social-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 800px)  { .social-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px)  { .social-grid { grid-template-columns: 1fr; } }
+        .social-tabs {
+            display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .social-tab {
+            padding: 6px 12px; border-radius: 8px;
+            background: rgba(255,255,255,0.04); color: #8b949e;
+            font-size: 12px; cursor: pointer; border: 1px solid transparent;
+            user-select: none;
+        }
+        .social-tab.active { background: rgba(88,166,255,0.12); color: #58a6ff; border-color: rgba(88,166,255,0.3); }
+        .social-tab .cnt { color: #6e7681; margin-left: 4px; }
+        .social-tab.active .cnt { color: #58a6ff; }
+        .social-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 10px;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            transition: border-color 0.15s, transform 0.1s;
+        }
+        .social-card:hover { border-color: #58a6ff; transform: translateY(-1px); }
+        .social-card .thumb {
+            width: 100%; aspect-ratio: 9/16;
+            background: #06080d url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23484f58"><path d="M8 5v14l11-7z"/></svg>') center/30% no-repeat;
+            object-fit: cover;
+            display: block;
+        }
+        .social-card .body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .social-card .title {
+            color: #e6edf3; font-weight: 600; font-size: 12px; line-height: 1.3;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .social-card .meta { font-size: 10px; color: #6e7681; }
+        .social-card .platforms { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; }
+
         .social-post-row {
             display: grid;
             grid-template-columns: 80px 1fr auto auto;
@@ -1146,6 +1261,50 @@
             <div class="ph-desc" id="ph-desc">Продающий сайт для генерации видео из фото</div>
         </div>
         <div class="ph-stats" id="ph-stats"></div>
+    </div>
+
+    <!-- KPI КОМАНДНЫЙ ЦЕНТР (всегда сверху для VideoAI) -->
+    <div class="kpi-command-center" data-project-view="videoai">
+        <div class="kpi-card kpi-revenue">
+            <div class="kpi-label">💰 Выручка сегодня / 7д</div>
+            <div class="kpi-value">
+                <span id="kpi-rev-today">—</span> <span class="kpi-sep">/</span>
+                <span id="kpi-rev-week">—</span> ₽
+            </div>
+            <div class="kpi-sub" id="kpi-rev-trend">—</div>
+        </div>
+        <div class="kpi-card kpi-orders">
+            <div class="kpi-label">🎬 Видео опубл. / в очереди</div>
+            <div class="kpi-value">
+                <span id="kpi-vid-today">—</span> <span class="kpi-sep">/</span>
+                <span id="kpi-vid-queue">—</span>
+            </div>
+            <div class="kpi-sub">за сегодня · pending</div>
+        </div>
+        <div class="kpi-card kpi-direct">
+            <div class="kpi-label">🎯 Direct CTR · расход</div>
+            <div class="kpi-value">
+                <span id="kpi-direct-ctr">—</span><span style="font-size:18px;">%</span>
+                <span class="kpi-sep">·</span>
+                <span id="kpi-direct-spend">—</span> ₽
+            </div>
+            <div class="kpi-sub" id="kpi-direct-best">—</div>
+        </div>
+        <div class="kpi-card kpi-funnel">
+            <div class="kpi-label">📈 Воронка сегодня</div>
+            <div class="kpi-value" id="kpi-funnel-line">— → —</div>
+            <div class="kpi-sub" id="kpi-funnel-conv">— %</div>
+        </div>
+        <div class="kpi-card kpi-channels">
+            <div class="kpi-label">📡 Каналы</div>
+            <div class="kpi-channels-list">
+                <span class="kpi-ch ok" title="YouTube подключен">📺 YT</span>
+                <span class="kpi-ch ok" title="Telegram @botisk_canal">💬 TG</span>
+                <span class="kpi-ch warn" title="VK Клипы — не настроено">🔵 VK</span>
+                <span class="kpi-ch ok" title="@VideoAI_24isk_bot">🤖 Bot</span>
+                <span class="kpi-ch ok" title="@botisk_collect_bot UGC">📥 UGC</span>
+            </div>
+        </div>
     </div>
 
     <!-- VIDEOAI: QUICK LINKS -->
@@ -1429,27 +1588,16 @@
     <!-- SOCIAL POSTING QUEUE -->
     <div class="social-section" id="social-section" data-project-view="videoai">
         <h2>📱 Соцсети — очередь публикаций <span id="social-meta" style="font-size:13px;color:#8b949e;">—</span></h2>
-        <div class="social-platforms">
-            <div class="social-platform">
-                <div class="sp-icon">📺</div>
-                <div class="sp-name">YouTube Shorts</div>
-                <div class="sp-handle"><a href="https://www.youtube.com/channel/UC6wfhx42PKNBW4ISk5Ai8ZA" target="_blank">@botisk-5577</a></div>
-                <div class="sp-status active">подключено</div>
-            </div>
-            <div class="social-platform">
-                <div class="sp-icon">💬</div>
-                <div class="sp-name">Telegram канал</div>
-                <div class="sp-handle"><a href="https://t.me/botisk_canal" target="_blank">@botisk_canal</a></div>
-                <div class="sp-status active">подключено</div>
-            </div>
-            <div class="social-platform inactive">
-                <div class="sp-icon">🔵</div>
-                <div class="sp-name">VK Клипы</div>
-                <div class="sp-handle">не создано</div>
-                <div class="sp-status">⏳ ожидание</div>
-            </div>
+        <!-- Табы по статусу -->
+        <div class="social-tabs" id="social-tabs">
+            <span class="social-tab active" data-filter="all">Все <span class="cnt" id="cnt-all">—</span></span>
+            <span class="social-tab" data-filter="pending">⏳ В очереди <span class="cnt" id="cnt-pending">—</span></span>
+            <span class="social-tab" data-filter="posted">✅ Опубликовано <span class="cnt" id="cnt-posted">—</span></span>
+            <span class="social-tab" data-filter="failed">❌ Ошибки <span class="cnt" id="cnt-failed">—</span></span>
+            <span class="social-tab" data-filter="yt">📺 только YT <span class="cnt" id="cnt-yt">—</span></span>
+            <span class="social-tab" data-filter="tg">💬 только TG <span class="cnt" id="cnt-tg">—</span></span>
         </div>
-        <div class="social-queue" id="social-queue">
+        <div class="social-grid" id="social-queue">
             <div class="creatives-empty">постов в очереди пока нет</div>
         </div>
     </div>
@@ -1633,48 +1781,57 @@
         </div>
     </div>
 
-    <!-- PARTNER APPLICATIONS -->
-    <div class="partners-section" id="partners-section" data-project-view="videoai">
-        <h2>🤝 Заявки в партнёрскую программу <span id="partners-count" style="font-size:14px;color:#8b949e;">—</span></h2>
-        <div class="partners-list" id="partners-list">
-            <div class="loading">Загрузка заявок...</div>
-        </div>
-    </div>
-
-    <!-- SUPPORT TICKETS -->
-    <div class="support-section" id="support-section" data-project-view="videoai">
-        <h2>💬 Тикеты поддержки <span id="support-count" style="font-size:14px;color:#8b949e;">—</span></h2>
-        <div class="support-list" id="support-list">
-            <div class="loading">Загрузка тикетов...</div>
-        </div>
-    </div>
-
-    <!-- REFERRAL STATS -->
-    <div class="referral-section" id="referral-section" data-project-view="videoai">
-        <h2>🎁 Реферальная программа</h2>
-        <div class="referral-kpis" id="referral-kpis">
-            <div class="ref-kpi"><span>Рефереров</span><b id="rk-referrers">—</b></div>
-            <div class="ref-kpi"><span>Приглашено</span><b id="rk-invited">—</b></div>
-            <div class="ref-kpi"><span>Оплачено друзей</span><b id="rk-paid">—</b></div>
-            <div class="ref-kpi"><span>Выдано кредитов</span><b id="rk-credits">—</b></div>
-        </div>
-        <div class="referral-grid">
-            <div class="referral-block">
-                <h3>Топ-10 рефереров</h3>
-                <table class="ref-table" id="top-referrers-table">
-                    <thead><tr><th>Email</th><th>Код</th><th>Друзей</th><th>Кредитов</th></tr></thead>
-                    <tbody><tr><td colspan="4" class="ref-empty">пока никого</td></tr></tbody>
-                </table>
+    <!-- COMPACT SUMMARY — пустые/малоинформативные блоки в одну строку -->
+    <details class="compact-summary" data-project-view="videoai">
+        <summary>
+            <span class="cs-row">
+                <span class="cs-item">🤝 Партнёры: <b id="partners-count">—</b></span>
+                <span class="cs-item">💬 Тикеты: <b id="support-count">—</b></span>
+                <span class="cs-item">🎁 Рефереры: <b id="rk-referrers">—</b> <small>(оплат: <b id="rk-paid">—</b>)</small></span>
+                <span class="cs-item">💰 Кредитов выдано: <b id="rk-credits">—</b></span>
+                <span class="cs-hint">▾ кликни чтобы развернуть детали</span>
+            </span>
+        </summary>
+        <div class="compact-details">
+            <div class="cs-block">
+                <h3>🤝 Заявки в партнёрскую программу</h3>
+                <div class="partners-list" id="partners-list">
+                    <div class="loading">Загрузка...</div>
+                </div>
             </div>
-            <div class="referral-block">
-                <h3>Последние реф-платежи</h3>
-                <table class="ref-table" id="recent-referrals-table">
-                    <thead><tr><th>Дата</th><th>Реферер</th><th>Друг</th><th>Кредит</th></tr></thead>
-                    <tbody><tr><td colspan="4" class="ref-empty">пока пусто</td></tr></tbody>
-                </table>
+            <div class="cs-block">
+                <h3>💬 Тикеты поддержки</h3>
+                <div class="support-list" id="support-list">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </div>
+            <div class="cs-block">
+                <h3>🎁 Реферальная программа</h3>
+                <div class="referral-kpis" id="referral-kpis">
+                    <div class="ref-kpi"><span>Рефереров</span><b id="rk-referrers-detail">—</b></div>
+                    <div class="ref-kpi"><span>Приглашено</span><b id="rk-invited">—</b></div>
+                    <div class="ref-kpi"><span>Оплачено</span><b id="rk-paid-detail">—</b></div>
+                    <div class="ref-kpi"><span>Кредитов</span><b id="rk-credits-detail">—</b></div>
+                </div>
+                <div class="referral-grid">
+                    <div class="referral-block">
+                        <h3>Топ-10 рефереров</h3>
+                        <table class="ref-table" id="top-referrers-table">
+                            <thead><tr><th>Email</th><th>Код</th><th>Друзей</th><th>Кредитов</th></tr></thead>
+                            <tbody><tr><td colspan="4" class="ref-empty">пока никого</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="referral-block">
+                        <h3>Последние реф-платежи</h3>
+                        <table class="ref-table" id="recent-referrals-table">
+                            <thead><tr><th>Дата</th><th>Реферер</th><th>Друг</th><th>Кредит</th></tr></thead>
+                            <tbody><tr><td colspan="4" class="ref-empty">пока пусто</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </details>
 
     <!-- TASK BOARD — рендерится только под текущий выбранный проект -->
     <div class="tasks-section">
@@ -2389,53 +2546,185 @@
         loadSocialQueue();
         setInterval(loadSocialQueue, 60000);
 
+        // ===== KPI КОМАНДНЫЙ ЦЕНТР =====
+        async function loadKPICommandCenter() {
+            try {
+                // Параллельные fetch для скорости
+                const [direct, metrika, social, ytStats] = await Promise.allSettled([
+                    fetch('https://n8n.24isk.ru/webhook/direct-stats').then(r => r.json()),
+                    fetch('https://n8n.24isk.ru/webhook/metrika-stats').then(r => r.json()),
+                    fetch('https://n8n.24isk.ru/webhook/social-queue').then(r => r.json()),
+                    fetch('https://n8n.24isk.ru/webhook/youtube-stats').then(r => r.json()),
+                ]);
+
+                // Direct: суммарный CTR + расход
+                if (direct.status === 'fulfilled' && direct.value) {
+                    const d = direct.value;
+                    const total = d.total || {};
+                    const ctr = total.impressions > 0 ? (total.clicks * 100 / total.impressions).toFixed(1) : '0';
+                    document.getElementById('kpi-direct-ctr').textContent = ctr;
+                    // Расход — оценка по кликам (CPC ~3-5₽)
+                    const estSpend = Math.round((total.clicks || 0) * 4);
+                    document.getElementById('kpi-direct-spend').textContent = estSpend.toLocaleString('ru-RU');
+                    // Лучшая кампания
+                    if (Array.isArray(d.campaigns)) {
+                        const best = d.campaigns.reduce((b, c) =>
+                            (c.impressions > 0 && (!b || c.clicks/c.impressions > b.clicks/b.impressions)) ? c : b, null);
+                        if (best) {
+                            const bestCtr = (best.clicks * 100 / best.impressions).toFixed(1);
+                            document.getElementById('kpi-direct-best').textContent = `🏆 ${best.name?.split('—')[1]?.trim() || best.name}: ${bestCtr}%`;
+                        }
+                    }
+                }
+
+                // Metrika: воронка сегодня
+                if (metrika.status === 'fulfilled' && metrika.value) {
+                    const m = metrika.value;
+                    const goals = m.goals || {};
+                    const visits = m.summary?.visits || 0;
+                    const uploaded = goals.PHOTO_UPLOADED?.reaches || 0;
+                    const paid = goals.PAYMENT_SUCCESS?.reaches || 0;
+                    document.getElementById('kpi-funnel-line').innerHTML =
+                        `${visits} <span class="kpi-sep">→</span> ${uploaded} <span class="kpi-sep">→</span> ${paid}`;
+                    const conv = visits > 0 ? (paid * 100 / visits).toFixed(2) : '0';
+                    document.getElementById('kpi-funnel-conv').textContent =
+                        `visits → upload → paid · конв. ${conv}%`;
+                }
+
+                // Social queue: видео опубликованных сегодня + pending
+                if (social.status === 'fulfilled' && Array.isArray(social.value)) {
+                    const items = social.value;
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const todayPosted = items.filter(p => {
+                        const dt = p.youtube_posted_at ? new Date(p.youtube_posted_at) : null;
+                        return dt && dt >= today;
+                    }).length;
+                    const pending = items.filter(p =>
+                        (p.target_youtube && p.youtube_status === 'pending') ||
+                        (p.target_telegram && p.telegram_status === 'pending')).length;
+                    document.getElementById('kpi-vid-today').textContent = todayPosted;
+                    document.getElementById('kpi-vid-queue').textContent = pending;
+                }
+
+                // Выручка (Метрика-цели → конверсии × средний чек 290₽ упрощённо, но честнее из БД)
+                // Пока считаем 0₽ как точную цифру — реальные данные подтянем из digest'а
+                try {
+                    const digestResp = await fetch('https://n8n.24isk.ru/webhook/admin-digest');
+                    const dgst = (await digestResp.json()).items || [];
+                    if (dgst.length) {
+                        document.getElementById('kpi-rev-today').textContent = (dgst[0].revenue_rub || 0).toLocaleString('ru-RU');
+                        document.getElementById('kpi-rev-week').textContent =
+                            dgst.reduce((s, d) => s + (d.revenue_rub || 0), 0).toLocaleString('ru-RU');
+                        const todayRev = dgst[0].revenue_rub || 0;
+                        const prev = dgst[1]?.revenue_rub || 0;
+                        if (prev > 0) {
+                            const delta = todayRev - prev;
+                            document.getElementById('kpi-rev-trend').textContent =
+                                delta >= 0 ? `▲ +${delta.toLocaleString('ru-RU')} ₽` : `▼ ${delta.toLocaleString('ru-RU')} ₽`;
+                        } else {
+                            document.getElementById('kpi-rev-trend').textContent = todayRev > 0 ? 'первый дайджест 🚀' : '—';
+                        }
+                    } else {
+                        document.getElementById('kpi-rev-today').textContent = '0';
+                        document.getElementById('kpi-rev-week').textContent = '0';
+                        document.getElementById('kpi-rev-trend').textContent = 'жду первый дайджест (9:00 МСК)';
+                    }
+                } catch {}
+            } catch (e) {
+                console.error('KPI:', e);
+            }
+        }
+        loadKPICommandCenter();
+        setInterval(loadKPICommandCenter, 60000);
+
+        let socialAllItems = [];
+        let socialActiveFilter = 'all';
         async function loadSocialQueue() {
             try {
                 const resp = await fetch('https://n8n.24isk.ru/webhook/social-queue');
                 const items = await resp.json();
-                const el = document.getElementById('social-queue');
+                socialAllItems = Array.isArray(items) ? items : [];
                 const meta = document.getElementById('social-meta');
-                if (!Array.isArray(items) || items.length === 0) {
-                    el.innerHTML = '<div class="creatives-empty">постов в очереди пока нет</div>';
+                if (socialAllItems.length === 0) {
+                    document.getElementById('social-queue').innerHTML =
+                        '<div class="creatives-empty">постов в очереди пока нет</div>';
                     meta.textContent = '(0)';
                     return;
                 }
-                const pending = items.filter(p =>
+                // Подсчёт для табов
+                const pending = socialAllItems.filter(p =>
                     (p.target_youtube && p.youtube_status === 'pending') ||
-                    (p.target_telegram && p.telegram_status === 'pending') ||
-                    (p.target_vk && p.vk_status === 'pending')).length;
-                const posted = items.filter(p => p.youtube_status === 'posted' || p.telegram_status === 'posted' || p.vk_status === 'posted').length;
-                meta.textContent = `(${items.length} всего · ${pending} в очереди · ${posted} опубликовано)`;
+                    (p.target_telegram && p.telegram_status === 'pending'));
+                const posted = socialAllItems.filter(p =>
+                    p.youtube_status === 'posted' || p.telegram_status === 'posted');
+                const failed = socialAllItems.filter(p =>
+                    p.youtube_status === 'failed' || p.telegram_status === 'failed');
+                const ytOnly = socialAllItems.filter(p => p.target_youtube && !p.target_telegram);
+                const tgOnly = socialAllItems.filter(p => p.target_telegram && !p.target_youtube);
+                document.getElementById('cnt-all').textContent = socialAllItems.length;
+                document.getElementById('cnt-pending').textContent = pending.length;
+                document.getElementById('cnt-posted').textContent = posted.length;
+                document.getElementById('cnt-failed').textContent = failed.length;
+                document.getElementById('cnt-yt').textContent = ytOnly.length;
+                document.getElementById('cnt-tg').textContent = tgOnly.length;
+                meta.textContent = `(${socialAllItems.length} всего · ${pending.length} в очереди · ${posted.length} опубликовано)`;
+                renderSocialQueue();
+            } catch (e) {
+                console.error('social queue:', e);
+            }
+        }
+        function renderSocialQueue() {
+            const filter = socialActiveFilter;
+            let items = socialAllItems;
+            if (filter === 'pending') items = items.filter(p =>
+                (p.target_youtube && p.youtube_status === 'pending') ||
+                (p.target_telegram && p.telegram_status === 'pending'));
+            else if (filter === 'posted') items = items.filter(p =>
+                p.youtube_status === 'posted' || p.telegram_status === 'posted');
+            else if (filter === 'failed') items = items.filter(p =>
+                p.youtube_status === 'failed' || p.telegram_status === 'failed');
+            else if (filter === 'yt') items = items.filter(p => p.target_youtube && !p.target_telegram);
+            else if (filter === 'tg') items = items.filter(p => p.target_telegram && !p.target_youtube);
 
-                el.innerHTML = items.map(p => {
-                    const dt = new Date(p.scheduled_at);
-                    const dtStr = dt.toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
-                    const thumbUrl = p.creative_file ? `https://n8n.24isk.ru/videos/${p.creative_file}` : '';
-                    function chip(name, enabled, status, url) {
-                        if (!enabled) return '';
-                        const cls = status === 'posted' ? 'posted' : (status === 'failed' ? 'failed' : 'pending');
-                        const inner = url
-                            ? `<a href="${url}" target="_blank">${name}</a>`
-                            : name;
-                        return `<span class="platform-chip ${cls}">${inner}</span>`;
-                    }
-                    return `<div class="social-post-row">
-                        <video class="thumb" muted preload="metadata" src="${thumbUrl}"></video>
-                        <div>
-                            <div class="title">${(p.title || '—').slice(0, 60)}</div>
-                            <div class="meta">${dtStr} · ${p.creative_file?.slice(0, 40)}</div>
-                        </div>
+            const el = document.getElementById('social-queue');
+            if (items.length === 0) {
+                el.innerHTML = '<div class="creatives-empty">нет постов с этим фильтром</div>';
+                return;
+            }
+            el.innerHTML = items.map(p => {
+                const dt = new Date(p.scheduled_at);
+                const dtStr = dt.toLocaleDateString('ru-RU', {day:'2-digit', month:'short'}) + ', ' +
+                              dt.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+                const thumbUrl = p.creative_file ? `https://n8n.24isk.ru/videos/${p.creative_file}` : '';
+                function chip(name, enabled, status, url) {
+                    if (!enabled) return '';
+                    const cls = status === 'posted' ? 'posted' : (status === 'failed' ? 'failed' : 'pending');
+                    const inner = url ? `<a href="${url}" target="_blank">${name}</a>` : name;
+                    return `<span class="platform-chip ${cls}">${inner}</span>`;
+                }
+                return `<div class="social-card">
+                    <video class="thumb" muted preload="metadata" src="${thumbUrl}"></video>
+                    <div class="body">
+                        <div class="title">${(p.title || '—').slice(0, 70)}</div>
+                        <div class="meta">${dtStr}</div>
                         <div class="platforms">
                             ${chip('YT', p.target_youtube, p.youtube_status, p.youtube_url)}
                             ${chip('TG', p.target_telegram, p.telegram_status, p.telegram_url)}
                             ${chip('VK', p.target_vk, p.vk_status, p.vk_url)}
                         </div>
-                    </div>`;
-                }).join('');
-            } catch (e) {
-                console.error('social queue:', e);
-            }
+                    </div>
+                </div>`;
+            }).join('');
         }
+        // Listener на табы
+        document.addEventListener('click', e => {
+            const tab = e.target.closest('.social-tab');
+            if (!tab) return;
+            document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            socialActiveFilter = tab.dataset.filter;
+            renderSocialQueue();
+        });
 
         async function loadCreatives() {
             try {
@@ -2954,10 +3243,14 @@
             try {
                 const resp = await fetch('https://n8n.24isk.ru/webhook/referral-stats');
                 const data = await resp.json();
-                document.getElementById('rk-referrers').textContent = data.total_referrers ?? 0;
-                document.getElementById('rk-invited').textContent  = data.users_invited ?? 0;
-                document.getElementById('rk-paid').textContent     = data.paid_referrals ?? 0;
-                document.getElementById('rk-credits').textContent  = data.total_bonus_credits ?? 0;
+                const setBoth = (idA, idB, val) => {
+                    const ea = document.getElementById(idA); if (ea) ea.textContent = val;
+                    const eb = document.getElementById(idB); if (eb) eb.textContent = val;
+                };
+                setBoth('rk-referrers', 'rk-referrers-detail', data.total_referrers ?? 0);
+                const ei = document.getElementById('rk-invited'); if (ei) ei.textContent = data.users_invited ?? 0;
+                setBoth('rk-paid', 'rk-paid-detail', data.paid_referrals ?? 0);
+                setBoth('rk-credits', 'rk-credits-detail', data.total_bonus_credits ?? 0);
 
                 const topTbody = document.querySelector('#top-referrers-table tbody');
                 if (Array.isArray(data.top_referrers) && data.top_referrers.length > 0) {
