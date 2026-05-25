@@ -16,7 +16,8 @@ LIST_QUERY = """
 SELECT id::text AS id, platform, tz_title, tz_markdown, article_text,
        suggested_price_rub, utm_content, status,
        generated_at::text, given_to_executor_at::text,
-       published_at::text, publication_url, executor_name
+       published_at::text, publication_url, executor_name,
+       cover_url, video_url
 FROM workzilla_tz_drafts
 WHERE generated_at > NOW() - INTERVAL '90 days'
 ORDER BY generated_at DESC LIMIT 30

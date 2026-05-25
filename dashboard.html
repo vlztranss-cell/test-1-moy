@@ -677,6 +677,16 @@
             display: none;
         }
         .wz-card.expanded .wz-preview { display: block; }
+        .wz-cover {
+            display: flex; align-items: flex-start; gap: 14px; margin: 10px 0;
+        }
+        .wz-cover img {
+            width: 160px; height: auto; border-radius: 8px;
+            border: 1px solid #21262d; flex-shrink: 0;
+            background: #06080d url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23484f58"><circle cx="12" cy="12" r="10"/></svg>') center/40% no-repeat;
+        }
+        .wz-cover-info { flex: 1; font-size: 11px; color: #8b949e; }
+        .wz-cover-info b { display: block; color: #c9d1d9; margin-bottom: 4px; font-size: 12px; }
 
         /* ===== AUTOMATION CALENDAR ===== */
         .automation-section { margin-bottom: 32px; }
@@ -3338,6 +3348,21 @@
                 const showCopy = it.status === 'ready_to_post';
                 const showMarkSent = it.status === 'ready_to_post';
                 const showMarkPub = it.status === 'pending_publication';
+                const coverBlock = it.cover_url
+                    ? `<div class="wz-cover">
+                          <img src="${it.cover_url}" alt="cover" loading="lazy">
+                          <div class="wz-cover-info">
+                              <b>🎨 Обложка готова (DALL-E 3)</b>
+                              <div>Прикрепи к публикации на ${it.platform}.</div>
+                              <div style="margin-top:6px;">
+                                  <a href="${it.cover_url}" download target="_blank" class="wz-btn" style="font-size:11px;padding:4px 10px;">⬇ Скачать</a>
+                              </div>
+                              <div style="margin-top:6px;color:#6e7681;font-size:10px;">⚠ URL живёт ~1 час от OpenAI, скачай сразу при создании ТЗ.</div>
+                          </div>
+                       </div>`
+                    : (showCopy
+                        ? '<div style="font-size:11px;color:#d29922;margin:8px 0;">⏳ Обложка генерируется... обнови страницу через минуту</div>'
+                        : '');
                 return `
                 <div class="wz-card" data-wz-id="${it.id}">
                     <div class="wz-head">
@@ -3346,6 +3371,7 @@
                         <span class="wz-price">💰 ${it.suggested_price_rub || '—'} ₽</span>
                     </div>
                     <div style="font-size:11px;color:#6e7681;">сгенерировано ${ds} · UTM: ${it.utm_content || '—'}</div>
+                    ${coverBlock}
                     <div class="wz-actions">
                         ${showCopy ? `<button class="wz-btn primary" onclick="wzCopy(${it.id})">📋 Скопировать ТЗ</button>` : ''}
                         <button class="wz-btn" onclick="wzExpand(${it.id})">👁 Превью</button>
