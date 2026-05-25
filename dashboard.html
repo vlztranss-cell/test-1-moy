@@ -629,6 +629,55 @@
             font-size: 14px; color: #c9d1d9; margin-bottom: 10px;
         }
 
+        /* ===== WORKZILLA TZ SECTION ===== */
+        .workzilla-section { margin-bottom: 32px; }
+        .workzilla-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 8px; }
+        .wz-tabs { display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap; }
+        .wz-tab {
+            padding: 6px 12px; border-radius: 8px;
+            background: rgba(255,255,255,0.04); color: #8b949e;
+            font-size: 12px; cursor: pointer; border: 1px solid transparent;
+            user-select: none;
+        }
+        .wz-tab.active { background: rgba(255, 153, 51, 0.12); color: #ff9933; border-color: rgba(255, 153, 51, 0.3); }
+        .wz-tab .cnt { color: #6e7681; margin-left: 4px; }
+        .wz-tab.active .cnt { color: #ff9933; }
+        .wz-card {
+            background: #0d1117; border: 1px solid #21262d; border-radius: 10px;
+            padding: 14px 16px; margin-bottom: 10px;
+        }
+        .wz-head {
+            display: flex; gap: 10px; align-items: center;
+            justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap;
+        }
+        .wz-platform {
+            font-size: 11px; padding: 3px 10px; border-radius: 8px;
+            background: rgba(88,166,255,0.12); color: #58a6ff;
+            text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap;
+        }
+        .wz-title { font-size: 14px; color: #e6edf3; font-weight: 600; flex: 1; }
+        .wz-price { font-size: 12px; color: #3fb950; white-space: nowrap; }
+        .wz-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .wz-btn {
+            padding: 6px 14px; border-radius: 6px; cursor: pointer;
+            font-size: 12px; border: none; user-select: none;
+            background: rgba(88,166,255,0.12); color: #58a6ff;
+            border: 1px solid rgba(88,166,255,0.3);
+        }
+        .wz-btn:hover { background: rgba(88,166,255,0.2); }
+        .wz-btn.primary { background: linear-gradient(135deg,#ff9933,#ff6633); color: white; border: none; }
+        .wz-btn.success { background: rgba(63,185,80,0.15); color: #3fb950; border-color: rgba(63,185,80,0.3); }
+        .wz-preview {
+            background: rgba(255,255,255,0.02);
+            border-left: 3px solid #58a6ff;
+            padding: 10px 14px; margin-top: 8px;
+            font-size: 11px; color: #c9d1d9;
+            white-space: pre-wrap; max-height: 200px; overflow-y: auto;
+            font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
+            display: none;
+        }
+        .wz-card.expanded .wz-preview { display: block; }
+
         /* ===== AUTOMATION CALENDAR ===== */
         .automation-section { margin-bottom: 32px; }
         .automation-section > h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 14px; }
@@ -1867,6 +1916,22 @@
             <div class="loading">Загрузка…</div>
         </div>
         <div id="digest-recommendations" style="margin-top:14px;"></div>
+    </div>
+
+    <!-- WORKZILLA TZ DRAFTS — автогенерируемые ТЗ для исполнителей -->
+    <div class="workzilla-section" id="z-workzilla" data-project-view="videoai">
+        <h2>📝 Готовые ТЗ для Workzilla <span id="wz-count" style="font-size:12px;color:#8b949e;">—</span></h2>
+        <div class="seeding-meta">
+            Автогенерация: Mark_Auto_Workzilla_TZ каждый день в 9:00 МСК подбирает площадку по ротации
+            (Дзен 1×нед / Pikabu 1×2нед / Otzovik+IRecommend 1×2нед / VC 1×мес / Habr 1×2.5мес)
+            и GPT-4o-mini пишет ТЗ. Тебе остаётся «Скопировать → выложить на Workzilla → вставить URL публикации».
+        </div>
+        <div class="wz-tabs">
+            <span class="wz-tab active" data-wz-filter="ready_to_post">📋 Готовы к публикации <span class="cnt" id="wz-cnt-ready">—</span></span>
+            <span class="wz-tab" data-wz-filter="pending_publication">⏳ У исполнителя <span class="cnt" id="wz-cnt-pending">—</span></span>
+            <span class="wz-tab" data-wz-filter="published">✅ Опубликовано <span class="cnt" id="wz-cnt-published">—</span></span>
+        </div>
+        <div id="wz-list"><div class="loading">Загрузка ТЗ…</div></div>
     </div>
 
     <!-- SEEDING CANDIDATES -->
@@ -3241,6 +3306,97 @@
             }
         }
         loadDigest();
+
+        // ===== Workzilla TZ =====
+        let wzAllItems = [];
+        let wzActiveFilter = 'ready_to_post';
+        async function loadWorkzillaTZ() {
+            try {
+                const r = await fetch('https://n8n.24isk.ru/webhook/workzilla-tz-list');
+                const { items } = await r.json();
+                wzAllItems = items || [];
+                const counts = { ready_to_post:0, pending_publication:0, published:0 };
+                wzAllItems.forEach(it => { counts[it.status] = (counts[it.status]||0) + 1; });
+                document.getElementById('wz-cnt-ready').textContent = counts.ready_to_post;
+                document.getElementById('wz-cnt-pending').textContent = counts.pending_publication;
+                document.getElementById('wz-cnt-published').textContent = counts.published;
+                document.getElementById('wz-count').textContent = `(${wzAllItems.length} всего)`;
+                renderWorkzillaList();
+            } catch (e) {
+                console.error('workzilla:', e);
+            }
+        }
+        function renderWorkzillaList() {
+            const items = wzAllItems.filter(i => i.status === wzActiveFilter);
+            const el = document.getElementById('wz-list');
+            if (!items.length) {
+                el.innerHTML = '<div style="color:#6e7681;font-size:12px;padding:14px;">ТЗ с этим статусом пока нет. Следующая авто-генерация — завтра 9:00 МСК.</div>';
+                return;
+            }
+            el.innerHTML = items.map(it => {
+                const ds = new Date(it.generated_at).toLocaleDateString('ru-RU', {day:'2-digit', month:'short'});
+                const showCopy = it.status === 'ready_to_post';
+                const showMarkSent = it.status === 'ready_to_post';
+                const showMarkPub = it.status === 'pending_publication';
+                return `
+                <div class="wz-card" data-wz-id="${it.id}">
+                    <div class="wz-head">
+                        <span class="wz-platform">${it.platform}</span>
+                        <span class="wz-title">${it.tz_title || '(без заголовка)'}</span>
+                        <span class="wz-price">💰 ${it.suggested_price_rub || '—'} ₽</span>
+                    </div>
+                    <div style="font-size:11px;color:#6e7681;">сгенерировано ${ds} · UTM: ${it.utm_content || '—'}</div>
+                    <div class="wz-actions">
+                        ${showCopy ? `<button class="wz-btn primary" onclick="wzCopy(${it.id})">📋 Скопировать ТЗ</button>` : ''}
+                        <button class="wz-btn" onclick="wzExpand(${it.id})">👁 Превью</button>
+                        ${showMarkSent ? `<button class="wz-btn" onclick="wzUpdate(${it.id}, 'pending_publication')">⏳ Отдано исполнителю</button>` : ''}
+                        ${showMarkPub  ? `<button class="wz-btn success" onclick="wzMarkPublished(${it.id})">✅ Получил URL публикации</button>` : ''}
+                        ${it.publication_url ? `<a class="wz-btn success" href="${it.publication_url}" target="_blank">🔗 Открыть публикацию</a>` : ''}
+                    </div>
+                    <div class="wz-preview">${(it.tz_markdown || '').slice(0, 3000)}</div>
+                </div>`;
+            }).join('');
+        }
+        async function wzCopy(id) {
+            const it = wzAllItems.find(x => +x.id === id);
+            if (!it) return;
+            try {
+                await navigator.clipboard.writeText(it.tz_markdown || '');
+                event.target.textContent = '✓ Скопировано';
+                setTimeout(() => event.target.textContent = '📋 Скопировать ТЗ', 2000);
+            } catch (e) {
+                alert('Не удалось скопировать. Откройте превью и скопируйте вручную.');
+            }
+        }
+        function wzExpand(id) {
+            document.querySelector(`[data-wz-id='${id}']`).classList.toggle('expanded');
+        }
+        async function wzUpdate(id, newStatus, extra={}) {
+            const body = {id, status: newStatus, ...extra};
+            await fetch('https://n8n.24isk.ru/webhook/workzilla-tz-update', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(body)
+            });
+            await loadWorkzillaTZ();
+        }
+        async function wzMarkPublished(id) {
+            const url = prompt('Вставь URL публикации:');
+            if (!url) return;
+            const executor = prompt('Имя исполнителя (опционально):') || '';
+            const paid = parseInt(prompt('Сколько фактически заплатил (₽)?') || '0', 10);
+            await wzUpdate(id, 'published', {publication_url: url, executor_name: executor, actually_paid_rub: paid});
+        }
+        document.addEventListener('click', e => {
+            const tab = e.target.closest('.wz-tab');
+            if (tab) {
+                document.querySelectorAll('.wz-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                wzActiveFilter = tab.dataset.wzFilter;
+                renderWorkzillaList();
+            }
+        });
+        loadWorkzillaTZ();
+        setInterval(loadWorkzillaTZ, 5 * 60 * 1000);
 
         // Seeding channels
         async function loadSeeding() {
