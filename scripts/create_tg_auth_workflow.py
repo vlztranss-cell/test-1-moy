@@ -21,11 +21,11 @@ from env_loader import load_env
 
 env = load_env()
 
-# Bot token нужен для HMAC проверки. Берём из credentials store n8n
-# или передаём напрямую (мы знаем токен @VideoAI_24isk_bot, но это не наш бот).
-# ВАЖНО: для Login Widget нужен ИМЕННО тот бот, для которого делали /setdomain.
-# Используем @VideoAI_24isk_bot (он public face сервиса).
-BOT_TOKEN = env["TELEGRAM_BOT_PHOTO2VIDEO"]   # @VideoAI_24isk_bot
+# Bot token нужен для HMAC проверки.
+# Используем @botisk_collect_bot — он создан на нашем Telegram-аккаунте,
+# поэтому BotFather разрешает /setdomain для него.
+# @VideoAI_24isk_bot не подходит (он на другом аккаунте).
+BOT_TOKEN = env["TELEGRAM_BOT_COLLECT"]   # @botisk_collect_bot
 
 PG_CRED = {"id": "6JRfp0UMBDBhhghL", "name": "Postgres account"}
 
