@@ -915,6 +915,27 @@
         @media (max-width: 560px) {
             .watermark-notice .wn-cta { width: 100%; padding: 12px; }
         }
+        /* ===== STICKY MOBILE CTA ===== */
+        .sticky-mobile-cta {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            z-index: 99;
+            background: linear-gradient(135deg, #ff9933 0%, #ff6633 100%);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+            padding: 12px 16px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .sticky-mobile-cta .smc-text { flex: 1; color: white; line-height: 1.2; }
+        .sticky-mobile-cta .smc-text b { font-size: 14px; display: block; font-weight: 700; }
+        .sticky-mobile-cta .smc-text small { font-size: 12px; opacity: 0.9; }
+        .sticky-mobile-cta .smc-btn {
+            background: white; color: #ff6633; border: none;
+            padding: 10px 22px; border-radius: 10px;
+            font-size: 15px; font-weight: 800; cursor: pointer;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .sticky-mobile-cta .smc-btn:hover { background: #fff8f0; }
+        /* Показываем только на мобильных */
+        @media (min-width: 769px) { .sticky-mobile-cta { display: none !important; } }
         .result-actions { display: flex; gap: 10px; margin-top: 16px; }
         .result-btn {
             flex: 1; padding: 12px; border-radius: var(--radius-sm);
@@ -1724,6 +1745,17 @@
         </div>
     </footer>
 
+    <!-- STICKY MOBILE CTA — появляется после клика «Создать видео» (т.е. когда юзер понял ценность) -->
+    <div class="sticky-mobile-cta" id="sticky-mobile-cta" style="display:none;">
+        <div class="smc-text">
+            <b>Без водяного знака</b>
+            <small>от 99₽ за видео</small>
+        </div>
+        <button class="smc-btn" onclick="openPayment('micro', 99, '1 видео без watermark'); trackGoal('PAYMENT_OPEN', {source:'sticky_mobile_cta'});">
+            Получить
+        </button>
+    </div>
+
     <!-- PAYMENT MODAL -->
     <div class="modal-overlay" id="payment-modal">
         <div class="modal">
@@ -2243,6 +2275,10 @@
             emailInput.classList.remove('invalid');
             setEmail(enteredEmail);
             trackGoal('GENERATION_STARTED');
+
+            // Показываем sticky-mobile-CTA (юзер нажал «Создать» — теперь интерес явный)
+            const smc = document.getElementById('sticky-mobile-cta');
+            if (smc) smc.style.display = 'flex';
 
             generateBtn.disabled = true;
             hideError();
