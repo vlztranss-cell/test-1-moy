@@ -113,7 +113,7 @@ def build_workflow():
             {"parameters": {"operation": "executeQuery", "query": SAVE_SQL, "options": {}},
              "type": "n8n-nodes-base.postgres", "typeVersion": 2.5,
              "position": [660, 0], "id": "sv", "name": "Save",
-             "credentials": {"postgres": {"id": "6JRfp0UMBDBhhghL", "name": "Postgres account"}}},
+             "credentials": {"postgres": {"id": "VHwQR0NCUn28HZPP", "name": "ssh root@72.56.96.64"}}},
         ],
         "connections": {
             "Weekly Sun":  {"main": [[{"node": "Find Worst", "type": "main", "index": 0}]]},

@@ -27,7 +27,7 @@ env = load_env()
 # @VideoAI_24isk_bot не подходит (он на другом аккаунте).
 BOT_TOKEN = env["TELEGRAM_BOT_COLLECT"]   # @botisk_collect_bot
 
-PG_CRED = {"id": "6JRfp0UMBDBhhghL", "name": "Postgres account"}
+PG_CRED = {"id": "VHwQR0NCUn28HZPP", "name": "ssh root@72.56.96.64"}
 
 # JS код для верификации HMAC + UPSERT
 VERIFY_JS = f"""

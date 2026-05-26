@@ -23,7 +23,7 @@ from env_loader import load_env
 
 env = load_env()
 
-PG_CRED = {"id": "6JRfp0UMBDBhhghL", "name": "Postgres account"}
+PG_CRED = {"id": "VHwQR0NCUn28HZPP", "name": "ssh root@72.56.96.64"}
 GMAIL_CRED = {"id": "ap4THiNHfGpAXmL6", "name": "Gmail 05/03/2026"}
 
 SELECT_SQL = """
