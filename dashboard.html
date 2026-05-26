@@ -3288,10 +3288,13 @@
         async function loadDigest() {
             try {
                 const r = await fetch('https://n8n.24isk.ru/webhook/admin-digest');
-                const { items } = await r.json();
+                const txt = await r.text();
+                const data = txt ? JSON.parse(txt) : {items: []};
+                const { items } = data;
                 if (!items || !items.length) {
                     document.getElementById('digest-grid').innerHTML =
-                        '<div style="color:#6e7681;font-size:13px;padding:10px;">Дайджест появится завтра в 9:00 МСК (auto-cron).</div>';
+                        '<div style="color:#8b949e;font-size:13px;padding:14px;background:rgba(255,255,255,0.02);border-radius:8px;">📭 Дайджест появится завтра в 9:00 МСК — это первый автозапуск workflow Mark_Daily_Digest.</div>';
+                    document.getElementById('digest-date').textContent = '(ждёт первый автозапуск)';
                     return;
                 }
                 const d = items[0];
@@ -3323,17 +3326,19 @@
         async function loadWorkzillaTZ() {
             try {
                 const r = await fetch('https://n8n.24isk.ru/webhook/workzilla-tz-list');
-                const { items } = await r.json();
-                wzAllItems = items || [];
+                const txt = await r.text();
+                const data = txt ? JSON.parse(txt) : {items: []};
+                wzAllItems = data.items || [];
                 const counts = { ready_to_post:0, pending_publication:0, published:0 };
                 wzAllItems.forEach(it => { counts[it.status] = (counts[it.status]||0) + 1; });
                 document.getElementById('wz-cnt-ready').textContent = counts.ready_to_post;
                 document.getElementById('wz-cnt-pending').textContent = counts.pending_publication;
                 document.getElementById('wz-cnt-published').textContent = counts.published;
-                document.getElementById('wz-count').textContent = `(${wzAllItems.length} всего)`;
+                document.getElementById('wz-count').textContent = wzAllItems.length ? `(${wzAllItems.length} всего)` : '(ждёт первую генерацию)';
                 renderWorkzillaList();
             } catch (e) {
                 console.error('workzilla:', e);
+                document.getElementById('wz-list').innerHTML = '<div style="color:#f85149;font-size:12px;padding:14px;">⚠ Ошибка загрузки webhook. Возможно n8n workflow не активен.</div>';
             }
         }
         function renderWorkzillaList() {
@@ -3428,10 +3433,12 @@
         async function loadSeeding() {
             try {
                 const r = await fetch('https://n8n.24isk.ru/webhook/seeding-list');
-                const { items } = await r.json();
+                const txt = await r.text();
+                const data = txt ? JSON.parse(txt) : {items: []};
+                const { items } = data;
                 if (!items || !items.length) {
                     document.getElementById('seeding-table').innerHTML =
-                        '<div style="color:#6e7681;font-size:13px;padding:10px;">Список появится после запуска n8n workflow Mark_TGStat_Seeding_Finder (manual Execute).</div>';
+                        '<div style="color:#8b949e;font-size:13px;padding:14px;background:rgba(255,255,255,0.02);border-radius:8px;">📭 Список пуст. Запусти workflow Mark_TGStat_Seeding_Finder вручную из n8n UI: n8n.24isk.ru → Workflows → Mark_TGStat_Seeding_Finder → Execute. Через 30 сек появится топ-30 каналов с score по моим маркетинговым критериям.</div>';
                     document.getElementById('seeding-count').textContent = '(пусто)';
                     return;
                 }

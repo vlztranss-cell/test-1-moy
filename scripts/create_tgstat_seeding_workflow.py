@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from env_loader import load_env
 
 env = load_env()
-PG_CRED = {"id": "6JRfp0UMBDBhhghL", "name": "Postgres account"}
+PG_CRED = {"id": "VHwQR0NCUn28HZPP", "name": "ssh root@72.56.96.64"}
 TGSTAT_CRED = {"id": "dtpaFWozqmvFMB8P", "name": "api.tgstat.ru"}
 
 KEYWORDS = [
