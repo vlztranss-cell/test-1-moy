@@ -553,6 +553,36 @@
         .yt-video-row .yvr-views { color: #ff6b6b; font-weight: 700; font-size: 14px; min-width: 60px; text-align: right; }
         .yt-video-row .yvr-likes { color: #8b949e; min-width: 40px; text-align: right; }
 
+        /* ===== AI SPEND TRACKER ===== */
+        .ai-spend-section { margin-bottom: 16px; }
+        .ai-spend-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 800px) { .ai-spend-row { grid-template-columns: 1fr; } }
+        .ai-spend-card {
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            border: 1px solid #21262d; border-radius: 10px;
+            padding: 10px 14px;
+        }
+        .ai-spend-card.piapi { border-left: 3px solid #58a6ff; }
+        .ai-spend-card.openai { border-left: 3px solid #10a37f; }
+        .ai-spend-card.check { border-left: 3px solid #6e7681; }
+        .ai-sp-head {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 4px;
+        }
+        .ai-sp-icon { font-size: 16px; }
+        .ai-sp-name { font-size: 12px; color: #c9d1d9; font-weight: 600; flex: 1; }
+        .ai-sp-balance {
+            font-size: 16px; font-weight: 700; color: #3fb950;
+            font-variant-numeric: tabular-nums;
+        }
+        .ai-sp-balance.low { color: #d29922; }
+        .ai-sp-balance.critical { color: #f85149; }
+        .ai-sp-meta { font-size: 10px; color: #8b949e; }
+
         /* ===== KPI COMMAND CENTER ===== */
         .kpi-command-center {
             display: grid;
@@ -1437,6 +1467,35 @@
     <div class="zone-header" id="z-kpi" data-project-view="videoai">
         <h1>🎯 Обзор</h1>
         <span class="zone-desc">бизнес-метрики и здоровье проекта</span>
+    </div>
+
+    <!-- AI SPEND TRACKER — PiAPI + OpenAI остатки -->
+    <div class="ai-spend-section" data-project-view="videoai">
+        <div class="ai-spend-row" id="ai-spend-row">
+            <div class="ai-spend-card piapi">
+                <div class="ai-sp-head">
+                    <span class="ai-sp-icon">🎬</span>
+                    <span class="ai-sp-name">PiAPI (Kling)</span>
+                    <span class="ai-sp-balance" id="piapi-balance">—</span>
+                </div>
+                <div class="ai-sp-meta" id="piapi-meta">проверяю...</div>
+            </div>
+            <div class="ai-spend-card openai">
+                <div class="ai-sp-head">
+                    <span class="ai-sp-icon">🤖</span>
+                    <span class="ai-sp-name">OpenAI (GPT + DALL-E)</span>
+                    <span class="ai-sp-balance" id="openai-balance">—</span>
+                </div>
+                <div class="ai-sp-meta" id="openai-meta">проверяю...</div>
+            </div>
+            <div class="ai-spend-card check">
+                <div class="ai-sp-head">
+                    <span class="ai-sp-icon">⏱</span>
+                    <span class="ai-sp-name">Последний чек</span>
+                </div>
+                <div class="ai-sp-meta" id="ai-checked-at">—</div>
+            </div>
+        </div>
     </div>
 
     <!-- KPI КОМАНДНЫЙ ЦЕНТР (всегда сверху для VideoAI) -->
@@ -2851,8 +2910,37 @@
         }
         loadKPICommandCenter();
         // 5 мин вместо 60с — иначе Yandex Metrika блокирует 429.
-        // Direct/social локально на VPS — могут чаще, но KPI агрегатор всё равно держит rhythm 5 мин.
         setInterval(loadKPICommandCenter, 5 * 60 * 1000);
+
+        // ===== AI Spend Tracker (PiAPI + OpenAI остаток) =====
+        async function loadAISpend() {
+            try {
+                const r = await fetch('https://n8n.24isk.ru/webhook/ai-spend');
+                const txt = await r.text();
+                if (!txt) return;
+                const d = JSON.parse(txt);
+                const p = d.piapi || {}, o = d.openai || {};
+                const setBal = (elId, balance) => {
+                    const el = document.getElementById(elId);
+                    if (!el) return;
+                    el.textContent = '$' + (+balance).toFixed(2);
+                    el.classList.toggle('low', balance < 10 && balance >= 3);
+                    el.classList.toggle('critical', balance < 3);
+                };
+                setBal('piapi-balance', p.estimated_balance_usd || 0);
+                setBal('openai-balance', o.estimated_balance_usd || 0);
+                document.getElementById('piapi-meta').textContent =
+                    `потрачено $${(+p.spent_usd).toFixed(2)} (${p.calls_since} видео) с ${new Date(p.baseline_at).toLocaleDateString('ru-RU')}`;
+                document.getElementById('openai-meta').textContent =
+                    `потрачено $${(+o.spent_usd).toFixed(4)} (${o.workzilla_calls + o.seo_calls + o.direct_ab_calls} вызовов) с ${new Date(o.baseline_at).toLocaleDateString('ru-RU')}`;
+                document.getElementById('ai-checked-at').textContent =
+                    new Date(d.checked_at).toLocaleString('ru-RU', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+            } catch (e) {
+                console.error('ai-spend:', e);
+            }
+        }
+        loadAISpend();
+        setInterval(loadAISpend, 60 * 1000);
 
         let socialAllItems = [];
         let socialActiveFilter = 'all';

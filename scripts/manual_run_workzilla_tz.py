@@ -122,14 +122,26 @@ def generate_cover(platform, title, topic):
         f"Photorealistic. High emotional impact. Warm color palette suggesting family memories."
     )
     print(f"  DALL-E 3 генерит обложку ({size})...")
-    resp = openai_request("images/generations", {
-        "model": "dall-e-3",
-        "prompt": prompt,
-        "size": size,
-        "quality": "standard",
-        "style": "natural",
-    }, timeout=120)
-    return resp["data"][0]["url"], prompt
+    # Пробуем разные модели — у разных аккаунтов разный access
+    last_err = None
+    # gpt-image-1 нужен другой формат size, его подменю
+    gpt_image_size = "1024x1024" if size == "1024x1024" else "1536x1024"
+    for model, model_size in [("gpt-image-1", gpt_image_size), ("dall-e-3", size), ("dall-e-2", "1024x1024")]:
+        try:
+            payload = {"model": model, "prompt": prompt, "size": model_size}
+            # gpt-image-1 не поддерживает quality=standard
+            if model == "dall-e-3":
+                payload["quality"] = "standard"
+            resp = openai_request("images/generations", payload, timeout=120)
+            data = resp["data"][0]
+            # gpt-image-1 возвращает b64_json, dall-e — url
+            url = data.get("url") or ("data:image/png;base64," + data.get("b64_json", ""))
+            return url, prompt + f" [via {model}]"
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")[:200]
+            last_err = f"{model}: HTTP {e.code} {body}"
+            print(f"    ⊘ {model} не подошла: {body[:100]}")
+    raise RuntimeError(f"все модели не работают. last: {last_err}")
 
 
 def main():
@@ -153,6 +165,10 @@ def main():
     try:
         cover_url, cover_prompt = generate_cover(platform, title, topic)
         print(f"  ✓ Cover URL получен")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")[:400]
+        print(f"  ✗ Cover failed HTTP {e.code}: {body}")
+        cover_url, cover_prompt = None, None
     except Exception as e:
         print(f"  ✗ Cover failed: {e}")
         cover_url, cover_prompt = None, None
