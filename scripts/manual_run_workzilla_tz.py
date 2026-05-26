@@ -25,6 +25,7 @@ from ssh import psql
 
 env = load_env()
 OPENAI_KEY = env["OPENAI_API_KEY"]
+PIAPI_KEY = env["PIAPI_KEY"]
 
 TOPICS = {
     "dzen": ["детское фото мамы", "свадебное фото бабушки", "фото деда-фронтовика", "фото мамы 60-х", "питомец которого больше нет"],
@@ -112,36 +113,75 @@ def generate_article(platform, topic):
     return json.loads(content)
 
 
-def generate_cover(platform, title, topic):
-    style, size = COVER_STYLES[platform]
-    prompt = (
-        f'Create a high-quality cover image for an article titled "{title}". '
-        f"Theme: {topic}. Service context: AI photo animation (revive old family photos via Kling neural network). "
-        f"Visual style: {style}. "
-        f"IMPORTANT: NO text or words in the image. Focus on visual storytelling. "
-        f"Photorealistic. High emotional impact. Warm color palette suggesting family memories."
+def generate_cover_piapi(prompt, width, height):
+    """PiAPI Flux Schnell — основной путь (дёшево + стабильно)."""
+    import time as _t
+    body = {
+        "model": "Qubico/flux1-schnell",
+        "task_type": "txt2img",
+        "input": {"prompt": prompt, "width": width, "height": height},
+        "config": {"service_mode": "public"},
+    }
+    req = urllib.request.Request(
+        "https://api.piapi.ai/api/v1/task",
+        data=json.dumps(body).encode(), method="POST",
+        headers={"x-api-key": PIAPI_KEY, "Content-Type": "application/json",
+                 "User-Agent": "Mozilla/5.0 VideoAI/1.0"},
     )
-    print(f"  DALL-E 3 генерит обложку ({size})...")
-    # Пробуем разные модели — у разных аккаунтов разный access
+    r = json.loads(urllib.request.urlopen(req, timeout=30).read())
+    task_id = r["data"]["task_id"]
+    # Polling до 90 сек
+    for i in range(30):
+        _t.sleep(3)
+        s = json.loads(urllib.request.urlopen(urllib.request.Request(
+            f"https://api.piapi.ai/api/v1/task/{task_id}",
+            headers={"x-api-key": PIAPI_KEY, "User-Agent": "Mozilla/5.0 VideoAI/1.0"}
+        ), timeout=15).read())
+        st = s["data"]["status"]
+        if st == "completed":
+            return s["data"]["output"]["image_url"]
+        if st == "failed":
+            err = (s["data"].get("error") or {}).get("message", "?")
+            raise RuntimeError(f"PiAPI Flux failed: {err}")
+    raise RuntimeError("PiAPI Flux timeout (90s)")
+
+
+def generate_cover_openai(prompt, size):
+    """OpenAI fallback — DALL-E 3 / gpt-image-1 / DALL-E 2 цепочка."""
     last_err = None
-    # gpt-image-1 нужен другой формат size, его подменю
     gpt_image_size = "1024x1024" if size == "1024x1024" else "1536x1024"
     for model, model_size in [("gpt-image-1", gpt_image_size), ("dall-e-3", size), ("dall-e-2", "1024x1024")]:
         try:
             payload = {"model": model, "prompt": prompt, "size": model_size}
-            # gpt-image-1 не поддерживает quality=standard
             if model == "dall-e-3":
                 payload["quality"] = "standard"
             resp = openai_request("images/generations", payload, timeout=120)
             data = resp["data"][0]
-            # gpt-image-1 возвращает b64_json, dall-e — url
-            url = data.get("url") or ("data:image/png;base64," + data.get("b64_json", ""))
-            return url, prompt + f" [via {model}]"
+            return data.get("url") or ("data:image/png;base64," + data.get("b64_json", "")), model
         except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8", errors="replace")[:200]
-            last_err = f"{model}: HTTP {e.code} {body}"
-            print(f"    ⊘ {model} не подошла: {body[:100]}")
-    raise RuntimeError(f"все модели не работают. last: {last_err}")
+            last_err = f"{model}: HTTP {e.code}"
+    raise RuntimeError(f"OpenAI всё не работает: {last_err}")
+
+
+def generate_cover(platform, title, topic):
+    style, size = COVER_STYLES[platform]
+    prompt = (
+        f'Cover image for article "{title}". '
+        f"Theme: {topic}. Service: AI photo animation (revive old family photos). "
+        f"Style: {style}. "
+        f"NO text or words. Photorealistic. Emotional. Warm family memories palette."
+    )
+    width, height = (1792, 1024) if size == "1792x1024" else (1024, 1024)
+
+    # Сначала пробуем PiAPI Flux (дёшево + надёжно)
+    print(f"  PiAPI Flux Schnell генерит обложку ({width}x{height})...")
+    try:
+        url = generate_cover_piapi(prompt, width, height)
+        return url, prompt + " [via PiAPI/flux-schnell]"
+    except Exception as e:
+        print(f"    ⊘ PiAPI не сработал ({e}), пробую OpenAI...")
+        url, model = generate_cover_openai(prompt, size)
+        return url, prompt + f" [via OpenAI/{model}]"
 
 
 def main():
