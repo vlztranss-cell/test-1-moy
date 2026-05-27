@@ -48,32 +48,40 @@ function qs(params) {{
 const baseUrl = 'https://api-metrika.yandex.net/stat/v1/data';
 const auth = {{'Authorization': 'OAuth ' + TOKEN}};
 
-// ОПТИМИЗАЦИЯ: объединяем 9 целей + summary в ОДИН запрос (вместо 11).
-// Yandex Metrika позволяет до 20 metrics за запрос.
-// Раньше был HTTP 429 rate-limit из-за слишком частых обращений.
+// 9 целей × 2 (reaches+users) + 5 summary = 23 метрики.
+// Yandex Metrika лимит — 20 metrics на запрос (error 4015), поэтому бьём на чанки ≤20
+// и склеиваем totals в исходном порядке. Раньше один запрос на 23 метрики падал → пустой ответ.
 const goalEntries = Object.entries(GOALS).filter(([,id]) => id);
 const goalMetrics = [];
 for (const [, gid] of goalEntries) {{
     goalMetrics.push('ym:s:goal' + gid + 'reaches');
     goalMetrics.push('ym:s:goal' + gid + 'users');
 }}
-const allMetrics = 'ym:s:visits,ym:s:users,ym:s:bounceRate,ym:s:pageDepth,ym:s:avgVisitDurationSeconds,' + goalMetrics.join(',');
+const allMetricsArr = ['ym:s:visits','ym:s:users','ym:s:bounceRate','ym:s:pageDepth','ym:s:avgVisitDurationSeconds'].concat(goalMetrics);
 
-const combined = await this.helpers.httpRequest({{
-    method: 'GET',
-    url: baseUrl + '?' + qs({{
-        ids: COUNTER,
-        metrics: allMetrics,
-        date1: 'today',
-        date2: 'today',
-        accuracy: 'full',
-    }}),
-    headers: auth,
-    json: true,
-    timeout: 20000,
-}});
-
-const totalsFlat = combined.totals || [];
+let totalsFlat = [];
+let fetchError = null;
+try {{
+    for (let i = 0; i < allMetricsArr.length; i += 20) {{
+        const chunk = allMetricsArr.slice(i, i + 20);
+        const resp = await this.helpers.httpRequest({{
+            method: 'GET',
+            url: baseUrl + '?' + qs({{
+                ids: COUNTER,
+                metrics: chunk.join(','),
+                date1: 'today',
+                date2: 'today',
+                accuracy: 'full',
+            }}),
+            headers: auth,
+            json: true,
+            timeout: 20000,
+        }});
+        totalsFlat = totalsFlat.concat(resp.totals || []);
+    }}
+}} catch (e) {{
+    fetchError = (e && e.message) ? e.message : String(e);
+}}
 // Первые 5 — summary
 const t = totalsFlat.slice(0, 5).length ? totalsFlat.slice(0, 5) : [0,0,0,0,0];
 
@@ -119,6 +127,7 @@ return [{{json: {{
     }},
     goals: goalsStats,
     traffic_by_campaign: traffic,
+    error: fetchError,
     fetched_at: new Date().toISOString(),
 }}}}];
 """.strip()
