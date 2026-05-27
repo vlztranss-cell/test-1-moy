@@ -212,35 +212,14 @@ SELECT
 
 WATERMARK_CODE_JS = r"""
 const ps = $input.first().json;
-let video_url = ps.video_url;
-let watermarked = false;
-
-if (ps.status === 'completed' && ps.charge_type === 'free' && ps.video_url) {
-    const taskId = $('Status Webhook').first().json.query.task_id;
-    try {
-        const resp = await this.helpers.httpRequest({
-            method: 'POST',
-            url: 'http://172.17.0.1:8765/watermark',
-            body: { task_id: taskId, src_url: ps.video_url },
-            json: true,
-            timeout: 60000,
-        });
-        if (resp && resp.url) {
-            video_url = resp.url;
-            watermarked = true;
-        }
-    } catch (e) {
-        // Если watermark-сервис умер — отдаём исходный URL, не теряем пользователя.
-        console.error('watermark failed:', e.message || e);
-    }
-}
-
+// Gating-модель: free-видео отдаём ЧИСТЫМ (без watermark). Смотреть можно,
+// а скачать на лендинге нельзя без оплаты → watermark-сервис больше не нужен.
 return [{json: {
     status: ps.status,
-    video_url,
+    video_url: ps.video_url,
     error: ps.error,
     charge_type: ps.charge_type,
-    watermarked,
+    watermarked: false,
 }}];
 """.strip()
 
@@ -254,13 +233,9 @@ if (st === 'completed') {
     const o = d.output || {};
     if (o.works && o.works[0]) {
         const v = o.works[0].video || {};
-        if (chargeType === 'free') {
-            // Бесплатная генерация → отдаём вариант с водяным знаком Kling
-            url = v.resource || v.resource_without_watermark || v.url || o.video_url || null;
-        } else {
-            // Платная → чистый URL без водяного знака
-            url = v.resource_without_watermark || v.resource || v.url || o.video_url || null;
-        }
+        // И free, и paid — чистое видео без watermark Kling.
+        // Free защищён gating'ом скачивания на лендинге: смотреть можно, скачать — после оплаты.
+        url = v.resource_without_watermark || v.resource || v.url || o.video_url || null;
     } else {
         // Старый формат (нет works[]): только один url доступен
         url = o.video_url || o.video || null;
@@ -302,6 +277,26 @@ RESPOND_402_BODY = (
     'credits_left: 0, '
     'available_paid: $json.available_paid || 0, '
     'available_free: $json.available_free === false}) }}'
+)
+
+# Возврат кредита, если PiAPI Create Task упал (напр. "failed to freeze credit").
+# Кредит списывается в Charge Credit ДО вызова PiAPI, а штатный refund привязан к
+# task_id в status-flow. При сбое создания task_id нет → без этого кредит терялся.
+REFUND_ON_FAIL_SQL = """UPDATE web_users SET
+    paid_credits = paid_credits + CASE WHEN '{{$('Charge Credit').first().json.charge_type}}' = 'paid' THEN 1 ELSE 0 END,
+    free_used = CASE WHEN '{{$('Charge Credit').first().json.charge_type}}' = 'free' THEN FALSE ELSE free_used END,
+    total_generated = GREATEST(total_generated - 1, 0)
+WHERE id = {{$('Charge Credit').first().json.user_id}}
+RETURNING id, paid_credits, free_used;"""
+
+# Внятный ответ вместо «Сервер не вернул task_id». 503 + явное «попытка не списана».
+RESPOND_503_BODY = (
+    '={{ JSON.stringify({'
+    'error: "generation_unavailable", '
+    'status: "error", '
+    'message: "Сервис генерации временно перегружен. Попробуйте через пару минут — '
+        'попытка не списана.", '
+    'retry: true}) }}'
 )
 
 
@@ -517,10 +512,32 @@ def build_modified_workflow(exported: dict) -> dict:
         '={{ JSON.stringify($(\'Watermark If Free\').first().json) }}'
     )
 
+    # === ФАЗА 3: возврат кредита при сбое PiAPI Create Task ===
+    # onError=continueErrorOutput даёт ноде 2-й выход «при ошибке».
+    create_task = by_name["PiAPI Create Task"]
+    create_task["onError"] = "continueErrorOutput"
+    ctx, cty = create_task["position"]
+    refund_on_fail_node = {
+        "parameters": {"operation": "executeQuery", "query": REFUND_ON_FAIL_SQL, "options": {}},
+        "type": "n8n-nodes-base.postgres", "typeVersion": 2.5,
+        "position": [ctx, cty + 200],
+        "id": "refund-on-create-fail-2026", "name": "Refund On Fail",
+        "credentials": {"postgres": PG_CREDENTIAL},
+    }
+    respond_503_node = {
+        "parameters": {"respondWith": "json", "responseBody": RESPOND_503_BODY,
+            "options": {"responseCode": 503, "responseHeaders": {"entries": [
+                {"name": "Access-Control-Allow-Origin", "value": "*"}]}}},
+        "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.5,
+        "position": [ctx + 220, cty + 200],
+        "id": "respond-503-2026", "name": "Respond 503",
+    }
+
     # Вставляем новые ноды
     nodes.extend([validate_node, validated_node, charge_node, allow_node,
                   respond_400, respond_402, pg_get_charge_node,
-                  watermark_code_node, refund_node])
+                  watermark_code_node, refund_node,
+                  refund_on_fail_node, respond_503_node])
 
     # Переписываем connections
     # Create Webhook → Validate → Validated? ─ true ─→ Charge → Allow? ─ true ─→ Prepare → ...
@@ -564,6 +581,16 @@ def build_modified_workflow(exported: dict) -> dict:
     }
     new_conn["Refund If Needed"] = {
         "main": [[{"node": "Respond Status", "type": "main", "index": 0}]]
+    }
+    # Create Task: успех (выход 0) → как было (Parse); ошибка (выход 1) → Refund On Fail → Respond 503
+    new_conn["PiAPI Create Task"] = {
+        "main": [
+            old_conn.get("PiAPI Create Task", {}).get("main", [[]])[0],
+            [{"node": "Refund On Fail", "type": "main", "index": 0}],
+        ]
+    }
+    new_conn["Refund On Fail"] = {
+        "main": [[{"node": "Respond 503", "type": "main", "index": 0}]]
     }
 
     modified = {

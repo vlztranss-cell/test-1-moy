@@ -1608,14 +1608,14 @@
                 <div class="error-msg" id="error"></div>
 
                 <div class="result-section" id="result">
-                    <video class="result-video" id="result-video" controls autoplay loop playsinline></video>
+                    <video class="result-video" id="result-video" controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false" autoplay loop playsinline></video>
                     <div class="watermark-notice" id="watermark-notice" style="display:none;">
-                        <div class="wn-icon">💧</div>
+                        <div class="wn-icon">🎬</div>
                         <div class="wn-body">
-                            <div class="wn-title">На бесплатной версии есть водяной знак <b>botisk.ru</b></div>
-                            <div class="wn-text">При платной генерации (от 99₽) видео без водяного знака. Идеально для подарка, рекламы, соцсетей.</div>
+                            <div class="wn-title">Видео готово! Нравится результат?</div>
+                            <div class="wn-text">Скачать в полном качестве без ограничений — всего <b>99₽</b>. Идеально для подарка, рекламы, соцсетей.</div>
                         </div>
-                        <button class="wn-cta" id="wn-cta">Получить без знака — от 99₽</button>
+                        <button class="wn-cta" id="wn-cta">⬇️ Скачать видео — 99₽</button>
                     </div>
                     <div class="result-actions">
                         <button class="result-btn download" id="download-btn">Скачать видео</button>
@@ -2424,33 +2424,40 @@
             resultSection.classList.add('active');
             resultVideo.src = videoUrl;
 
-            // Watermark notice — только после бесплатной генерации
             const wmNotice = document.getElementById('watermark-notice');
-            if (chargeType === 'free') {
-                wmNotice.style.display = 'flex';
-                document.getElementById('wn-cta').onclick = () => {
-                    document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
-                    trackGoal('PAYMENT_OPEN', { source: 'watermark_notice' });
-                };
-            } else {
-                wmNotice.style.display = 'none';
-            }
+            const isFree = chargeType === 'free';
 
-            downloadBtn.onclick = async () => {
-                trackGoal('VIDEO_DOWNLOAD');
-                try {
-                    const resp = await fetch(videoUrl);
-                    const blob = await resp.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'ai-video-' + Date.now() + '.mp4';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                } catch {
-                    window.open(videoUrl, '_blank');
-                }
-            };
+            if (isFree) {
+                // Бесплатно — только просмотр. Скачать = повод заплатить (gating).
+                wmNotice.style.display = 'flex';
+                const goPay = (source) => {
+                    trackGoal('VIDEO_DOWNLOAD', { source });
+                    openPayment('micro', 99, '1 видео без ограничений');
+                    trackGoal('PAYMENT_OPEN', { source });
+                };
+                document.getElementById('wn-cta').onclick = () => goPay('gate_notice');
+                downloadBtn.textContent = '⬇️ Скачать видео — 99₽';
+                downloadBtn.onclick = () => goPay('download_btn');
+            } else {
+                // Платное — чистое видео, реальное скачивание.
+                wmNotice.style.display = 'none';
+                downloadBtn.textContent = 'Скачать видео';
+                downloadBtn.onclick = async () => {
+                    trackGoal('VIDEO_DOWNLOAD');
+                    try {
+                        const resp = await fetch(videoUrl);
+                        const blob = await resp.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'ai-video-' + Date.now() + '.mp4';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    } catch {
+                        window.open(videoUrl, '_blank');
+                    }
+                };
+            }
         }
 
         againBtn.addEventListener('click', () => {
