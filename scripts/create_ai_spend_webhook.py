@@ -12,17 +12,31 @@ SPEND_SQL = """
 WITH baselines AS (
     SELECT service, known_balance_usd, known_at FROM ai_balance_baseline
 ),
-piapi_spend AS (
-    SELECT COUNT(*)::int AS calls,
-        (COUNT(*) * 0.10)::numeric(10, 2) AS cost_usd,
-        MAX(created_at) AS last_call_at
+-- Видео-генерации (Kling/Hailuo) — дорогие. Реальная цена ~$0.18 (калибровка $55/309).
+piapi_video AS (
+    SELECT COUNT(*)::int AS n, MAX(created_at) AS last_call_at
     FROM (
         SELECT created_at FROM web_orders WHERE piapi_task_id IS NOT NULL
             AND created_at > (SELECT known_at FROM baselines WHERE service='piapi')
         UNION ALL
         SELECT created_at FROM orders WHERE ai_job_id IS NOT NULL
             AND created_at > (SELECT known_at FROM baselines WHERE service='piapi')
-    ) all_calls
+    ) v
+),
+-- Обложки ТЗ на Flux Schnell — копейки (~$0.003). Раньше НЕ учитывались вообще.
+piapi_img AS (
+    SELECT COUNT(*)::int AS n
+    FROM workzilla_tz_drafts
+    WHERE cover_url IS NOT NULL
+        AND generated_at > (SELECT known_at FROM baselines WHERE service='piapi')
+),
+piapi_spend AS (
+    SELECT
+        (SELECT n FROM piapi_video) AS video_calls,
+        (SELECT n FROM piapi_img)   AS img_calls,
+        ((SELECT n FROM piapi_video) * 0.18
+         + (SELECT n FROM piapi_img) * 0.003)::numeric(10, 2) AS cost_usd,
+        (SELECT last_call_at FROM piapi_video) AS last_call_at
 ),
 openai_spend AS (
     SELECT
@@ -34,10 +48,18 @@ SELECT json_build_object(
     'piapi', json_build_object(
         'baseline_usd', (SELECT known_balance_usd FROM baselines WHERE service='piapi'),
         'baseline_at', (SELECT known_at FROM baselines WHERE service='piapi'),
-        'calls_since', (SELECT calls FROM piapi_spend),
+        'video_calls', (SELECT video_calls FROM piapi_spend),
+        'img_calls', (SELECT img_calls FROM piapi_spend),
+        'calls_since', ((SELECT video_calls FROM piapi_spend) + (SELECT img_calls FROM piapi_spend)),
+        'video_price_usd', 0.18,
         'spent_usd', (SELECT cost_usd FROM piapi_spend),
         'last_call_at', (SELECT last_call_at FROM piapi_spend),
+        -- Для дашборда (не пугаем минусом): не ниже 0
         'estimated_balance_usd', GREATEST(0::numeric,
+            (SELECT known_balance_usd FROM baselines WHERE service='piapi') - (SELECT cost_usd FROM piapi_spend)
+        )::numeric(10, 2),
+        -- Честный баланс: может быть отрицательным → сигнал, что baseline пора обновить/пополнить
+        'real_balance_usd', (
             (SELECT known_balance_usd FROM baselines WHERE service='piapi') - (SELECT cost_usd FROM piapi_spend)
         )::numeric(10, 2)
     ),
