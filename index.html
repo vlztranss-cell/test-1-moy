@@ -829,6 +829,22 @@
             margin-top: 6px;
             padding-left: 4px;
         }
+        .email-suggest {
+            font-size: 13px;
+            margin-top: 6px;
+            padding: 8px 10px;
+            background: rgba(255, 200, 0, 0.08);
+            border: 1px solid rgba(255, 200, 0, 0.35);
+            border-radius: 8px;
+            color: var(--text);
+            display: none;
+        }
+        .email-suggest a {
+            color: var(--accent);
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 600;
+        }
 
         .generate-btn {
             width: 100%;
@@ -1591,6 +1607,7 @@
                 <div class="email-field">
                     <input type="email" id="user-email" autocomplete="email" placeholder="your@email.com">
                     <div class="email-hint">На email зачислится 1 бесплатное видео и купленные кредиты</div>
+                    <div class="email-suggest" id="email-suggest"></div>
                 </div>
 
                 <button class="generate-btn" id="generate-btn" disabled>Создать видео</button>
@@ -1954,6 +1971,79 @@
         }
         function isValidEmail(e) {
             return /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test((e || '').trim());
+        }
+        // Топ-домены РФ-аудитории. Аудит web_users 28.05: gmail/mail.ru/yandex.ru ~85%.
+        const COMMON_DOMAINS = [
+            'gmail.com', 'mail.ru', 'yandex.ru', 'icloud.com', 'hotmail.com',
+            'outlook.com', 'yahoo.com', 'bk.ru', 'list.ru', 'inbox.ru',
+            'ya.ru', 'rambler.ru', 'internet.ru'
+        ];
+        // Расстояние Левенштейна, нужно только для коротких доменных строк.
+        function levDist(a, b) {
+            if (a === b) return 0;
+            const m = a.length, n = b.length;
+            if (!m) return n; if (!n) return m;
+            let prev = new Array(n + 1);
+            for (let j = 0; j <= n; j++) prev[j] = j;
+            for (let i = 1; i <= m; i++) {
+                let cur = [i];
+                for (let j = 1; j <= n; j++) {
+                    cur[j] = a[i - 1] === b[j - 1]
+                        ? prev[j - 1]
+                        : 1 + Math.min(prev[j - 1], prev[j], cur[j - 1]);
+                }
+                prev = cur;
+            }
+            return prev[n];
+        }
+        /**
+         * Найти исправление опечатки в домене email. Возвращает {fixed, suggestion}
+         * или null если всё ок / варианта нет.
+         * Покрывает: gmail.co → gmail.com, icloud.con → icloud.com,
+         * gmail..com → gmail.com, maii.ru → mail.ru, ya.ru → ya.ru (не трогаем точные).
+         */
+        function suggestEmailFix(raw) {
+            const email = (raw || '').trim().toLowerCase();
+            if (!email.includes('@')) return null;
+            const [local, domainRaw] = email.split('@');
+            if (!local || !domainRaw) return null;
+            // Нормализуем повторяющиеся точки. Юзер часто опечатывает gmail..com
+            const domain = domainRaw.replace(/\.{2,}/g, '.').replace(/^\.|\.$/g, '');
+            // Точное попадание — ничего не предлагаем
+            if (COMMON_DOMAINS.includes(domain)) {
+                // но если в исходном были лишние точки — всё равно подсказываем
+                if (domain !== domainRaw) return { fixed: `${local}@${domain}`, base: domain };
+                return null;
+            }
+            // Иначе ищем ближайший в списке топ-доменов
+            let best = null, bestDist = Infinity;
+            for (const d of COMMON_DOMAINS) {
+                const dist = levDist(domain, d);
+                if (dist < bestDist) { bestDist = dist; best = d; }
+            }
+            // Порог 2 для длинных доменов, 1 для коротких (ya.ru/bk.ru) чтоб не путать
+            const threshold = best && best.length <= 6 ? 1 : 2;
+            if (best && bestDist > 0 && bestDist <= threshold) {
+                return { fixed: `${local}@${best}`, base: best };
+            }
+            return null;
+        }
+        // Показать/скрыть inline-подсказку с кликабельным «использовать»
+        function renderEmailSuggest() {
+            const inp = document.getElementById('user-email');
+            const box = document.getElementById('email-suggest');
+            if (!inp || !box) return;
+            const sug = suggestEmailFix(inp.value);
+            if (!sug) { box.style.display = 'none'; box.innerHTML = ''; return; }
+            box.innerHTML = `Возможно, вы имели в виду <a id="email-suggest-link">${sug.fixed}</a>?`;
+            box.style.display = 'block';
+            const link = document.getElementById('email-suggest-link');
+            link.onclick = () => {
+                inp.value = sug.fixed;
+                setEmail(sug.fixed);
+                box.style.display = 'none';
+                if (window.ym) try { ym(window.YM_COUNTER_ID || 109293181, 'reachGoal', 'EMAIL_TYPO_FIXED'); } catch {}
+            };
         }
         function updateCreditsUI() {
             const el = document.getElementById('credits-info');
@@ -2668,7 +2758,9 @@
             emailInputEl.addEventListener('input', () => {
                 emailInputEl.classList.remove('invalid');
                 if (isValidEmail(emailInputEl.value)) setEmail(emailInputEl.value);
+                renderEmailSuggest();
             });
+            emailInputEl.addEventListener('blur', renderEmailSuggest);
         }
 
         // ===== INIT =====
