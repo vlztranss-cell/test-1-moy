@@ -176,9 +176,12 @@ PG_SAVE_SQL = """INSERT INTO web_orders (
     '{{$('Charge Credit').first().json.charge_type || "paid"}}'
 ) RETURNING order_id;"""
 
-# Status flow: SQL для определения типа списания по task_id
+# Status flow: SQL для определения типа списания по task_id.
+# БЕЗОПАСНЫЙ ДЕФОЛТ: неизвестный/NULL charge_type трактуем как 'free' → гейтим
+# скачивание. Раньше дефолт был 'paid' → ~20 заказов с NULL утекали с чистым
+# скачиванием без оплаты. Лучше лишний раз попросить оплату, чем раздать бесплатно.
 GET_CHARGE_TYPE_SQL = """SELECT
-    COALESCE(charge_type, 'paid') AS charge_type
+    COALESCE(charge_type, 'free') AS charge_type
 FROM web_orders
 WHERE piapi_task_id = '{{$json.query.task_id}}'
 LIMIT 1;"""
@@ -227,7 +230,7 @@ return [{json: {
 PARSE_STATUS_JS = r"""
 const d = ($('PiAPI Get Status').first().json).data || {};
 const st = (d.status || 'unknown').toLowerCase();
-const chargeType = (($('PG Get Charge Type').first() || {json:{}}).json.charge_type || 'paid').toLowerCase();
+const chargeType = (($('PG Get Charge Type').first() || {json:{}}).json.charge_type || 'free').toLowerCase();
 let url = null;
 if (st === 'completed') {
     const o = d.output || {};
