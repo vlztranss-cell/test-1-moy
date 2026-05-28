@@ -29,7 +29,7 @@ from __future__ import annotations
 import subprocess
 
 # --- Тарифы PiAPI (USD за единицу). Меняем тут при смене цен. ---
-COST_KLING_VIDEO = 0.20
+COST_KLING_VIDEO = 0.16  # подтверждённая реальная цена Kling 5с std (было 0.20 list-price)
 COST_NANO_BANANA = 0.08
 COST_FLUX_IMAGE = 0.003
 
