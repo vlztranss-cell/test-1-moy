@@ -3477,26 +3477,59 @@
                     <div style="font-size:11px;color:#6e7681;">сгенерировано ${ds} · UTM: ${it.utm_content || '—'}</div>
                     ${coverBlock}
                     <div class="wz-actions">
-                        ${showCopy ? `<button class="wz-btn primary" onclick="wzCopy(${it.id})">📋 Скопировать ТЗ</button>` : ''}
+                        ${showCopy ? `<button class="wz-btn primary" onclick="wzCopy(${it.id}, event)">📋 Скопировать ТЗ</button>` : ''}
                         <button class="wz-btn" onclick="wzExpand(${it.id})">👁 Превью</button>
                         ${showMarkSent ? `<button class="wz-btn" onclick="wzUpdate(${it.id}, 'pending_publication')">⏳ Отдано исполнителю</button>` : ''}
                         ${showMarkPub  ? `<button class="wz-btn success" onclick="wzMarkPublished(${it.id})">✅ Получил URL публикации</button>` : ''}
                         ${it.publication_url ? `<a class="wz-btn success" href="${it.publication_url}" target="_blank">🔗 Открыть публикацию</a>` : ''}
                     </div>
-                    <div class="wz-preview">${(it.tz_markdown || '').slice(0, 3000)}</div>
+                    <div class="wz-preview">${escapeHtml(it.tz_markdown || '')}</div>
                 </div>`;
             }).join('');
         }
-        async function wzCopy(id) {
+        // Копирование с фолбэком: navigator.clipboard работает только в HTTPS/localhost,
+        // при открытии дашборда как file:// или по http нужен execCommand-фолбэк.
+        async function copyTextRobust(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+            }
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus(); ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                return ok;
+            } catch (e) { return false; }
+        }
+        async function wzCopy(id, ev) {
             const it = wzAllItems.find(x => +x.id === id);
             if (!it) return;
-            try {
-                await navigator.clipboard.writeText(it.tz_markdown || '');
-                event.target.textContent = '✓ Скопировано';
-                setTimeout(() => event.target.textContent = '📋 Скопировать ТЗ', 2000);
-            } catch (e) {
-                alert('Не удалось скопировать. Откройте превью и скопируйте вручную.');
+            const btn = (ev && ev.target) || (window.event && window.event.target) || null;
+            const ok = await copyTextRobust(it.tz_markdown || '');
+            if (ok) {
+                if (btn) {
+                    btn.textContent = '✓ Скопировано';
+                    setTimeout(() => btn.textContent = '📋 Скопировать ТЗ', 2000);
+                }
+                return;
             }
+            // Фолбэк не сработал — раскрываем превью и выделяем весь текст ТЗ под Ctrl+C
+            const card = document.querySelector(`[data-wz-id='${id}']`);
+            if (card) {
+                card.classList.add('expanded');
+                const pre = card.querySelector('.wz-preview');
+                if (pre) {
+                    const range = document.createRange();
+                    range.selectNodeContents(pre);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges(); sel.addRange(range);
+                    pre.scrollIntoView({behavior: 'smooth', block: 'center'});
+                }
+            }
+            alert('Авто-копирование недоступно (нужен HTTPS). Текст ТЗ выделен в превью — нажми Ctrl+C.');
         }
         function wzExpand(id) {
             document.querySelector(`[data-wz-id='${id}']`).classList.toggle('expanded');
