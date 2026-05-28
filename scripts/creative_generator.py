@@ -5,7 +5,7 @@
 1. Загружает фото на freeimage.host (как делает бот для пользователей)
 2. Отправляет в PiAPI Kling → ждёт готовое видео (~60-120 сек)
 3. Скачивает видео на VPS в /srv/creatives/raw/kling/
-4. Через variator.py делает 3 вариации с текст-хуками
+4. Через variator.py делает 1 ролик с текст-хуком (правило «1 креатив = 1 видео»)
 5. Регистрирует в social_posts с расписанием (по умолчанию 1 пост/день)
 
 Категории → текст-хуки (по 5+ на каждую). Хуки эмоциональные, проверенные.
@@ -256,8 +256,9 @@ def process_one(photo_path: Path, category: str, env: dict, raw_dir: Path) -> li
     print(f"  ✓ скачано: {local_video} ({local_video.stat().st_size / 1e6:.1f} MB)")
 
     # Variator (импорт локально, должен быть запущен на VPS)
+    # Правило «1 креатив = 1 видео»: 1 исходное фото → 1 ролик → 1 пост
     from creative_variator import variate
-    hooks = random.sample(HOOKS[category], min(3, len(HOOKS[category])))
+    hooks = [random.choice(HOOKS[category])]
     variations = variate(str(local_video), category, hooks)
     for v in variations:
         v["source_photo"] = photo_path.name
