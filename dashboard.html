@@ -1987,6 +1987,17 @@
         <div id="digest-recommendations" style="margin-top:14px;"></div>
     </div>
 
+    <!-- ЭКОНОМИКА — реальный P&L (выручка из зеркала ЮKassa, COGS из PiAPI) -->
+    <div class="workzilla-section" id="z-economics" data-project-view="videoai">
+        <h2>💰 Экономика <span id="eco-updated" style="font-size:12px;color:#8b949e;">—</span></h2>
+        <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">
+            Выручка — из зеркала платежей ЮKassa (succeeded), не из is_paid. COGS — факт расхода PiAPI. Реклама — вручную (Директ выключен).
+        </div>
+        <div id="eco-cards" style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;"></div>
+        <div id="eco-warn"></div>
+        <div id="eco-months" style="font-size:12px;color:#8b949e;margin-top:8px;"></div>
+    </div>
+
     <!-- WORKZILLA TZ DRAFTS — автогенерируемые ТЗ для исполнителей -->
     <div class="workzilla-section" id="z-workzilla" data-project-view="videoai">
         <h2>📝 Готовые ТЗ для Workzilla <span id="wz-count" style="font-size:12px;color:#8b949e;">—</span></h2>
@@ -3558,6 +3569,37 @@
                 renderWorkzillaList();
             }
         });
+        // ===== Экономика (реальный P&L) =====
+        async function loadEconomics() {
+            try {
+                const r = await fetch('https://n8n.24isk.ru/webhook/economics');
+                const d = await r.json();
+                const cogsRub = Math.round(parseFloat(d.cogs_usd) * d.usd_rub);
+                const net = d.revenue_rub - cogsRub - d.ad_spend_rub;
+                const fmt = n => Number(n).toLocaleString('ru-RU');
+                const card = (label, val, color) =>
+                    `<div style="flex:1;min-width:140px;background:rgba(255,255,255,0.03);border:1px solid #30363d;border-radius:10px;padding:12px 14px;">
+                        <div style="font-size:11px;color:#8b949e;">${label}</div>
+                        <div style="font-size:20px;font-weight:700;color:${color};">${val}</div>
+                    </div>`;
+                document.getElementById('eco-cards').innerHTML =
+                    card(`Выручка · ${d.paid_count} оплат`, fmt(d.revenue_rub) + ' ₽', '#3fb950') +
+                    card(`COGS PiAPI · $${d.cogs_usd}`, fmt(cogsRub) + ' ₽', '#f0883e') +
+                    card('Реклама', fmt(d.ad_spend_rub) + ' ₽', '#f0883e') +
+                    card('Чистый итог', fmt(net) + ' ₽', net >= 0 ? '#3fb950' : '#f85149');
+                document.getElementById('eco-updated').textContent =
+                    'обновлено ' + (d.updated_at || '').slice(0, 16);
+                document.getElementById('eco-warn').innerHTML =
+                    (d.phantoms > 0 || d.missing > 0)
+                    ? `<div style="font-size:12px;color:#d29922;margin:6px 0;">⚠ Качество данных: ${d.phantoms} фантомных is_paid, ${d.missing} потерянных оплат. Выручка берётся из зеркала ЮKassa, не из is_paid.</div>`
+                    : '';
+                document.getElementById('eco-months').innerHTML = 'Выручка по месяцам: ' +
+                    (d.by_month || []).map(m => `${m.m}: ${fmt(m.rub)}₽ (${m.n})`).join(' · ');
+            } catch (e) { console.error('economics:', e); }
+        }
+        loadEconomics();
+        setInterval(loadEconomics, 5 * 60 * 1000);
+
         loadWorkzillaTZ();
         setInterval(loadWorkzillaTZ, 5 * 60 * 1000);
 
