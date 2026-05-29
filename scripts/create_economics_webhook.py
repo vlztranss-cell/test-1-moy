@@ -50,6 +50,7 @@ SELECT
             COUNT(*)::int AS n, SUM(amount_rub)::int AS rub
      FROM yukassa_payments WHERE status='succeeded' GROUP BY 1 ORDER BY 1
    ) t) AS by_month,
+  (SELECT diagnosis FROM funnel_health ORDER BY id DESC LIMIT 1) AS funnel_diagnosis,
   (SELECT MAX(synced_at)::text FROM yukassa_payments) AS updated_at
 """
 
