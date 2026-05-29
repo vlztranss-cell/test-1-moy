@@ -3457,7 +3457,7 @@
                     ? `<div class="wz-cover">
                           <img src="${it.cover_url}" alt="cover" loading="lazy">
                           <div class="wz-cover-info">
-                              <b>🎨 Обложка готова (DALL-E 3)</b>
+                              <b>🎨 Обложка готова</b>
                               <div>Прикрепи к публикации на ${it.platform}.</div>
                               <div style="margin-top:6px;">
                                   <a href="${it.cover_url}" download target="_blank" class="wz-btn" style="font-size:11px;padding:4px 10px;">⬇ Скачать</a>
@@ -3468,6 +3468,20 @@
                     : (showCopy
                         ? '<div style="font-size:11px;color:#d29922;margin:8px 0;">⏳ Обложка генерируется... обнови страницу через минуту</div>'
                         : '');
+                // Картинки к статье — парсим URL из текста ТЗ (кроме самой обложки)
+                const artImgs = [...new Set((it.tz_markdown || '').match(/https:\/\/n8n\.24isk\.ru\/op\/covers\/[A-Za-z0-9_\-]+\.png/g) || [])]
+                    .filter(u => u !== it.cover_url);
+                const imgsBlock = artImgs.length
+                    ? `<div style="margin:8px 0;">
+                          <div style="font-size:12px;color:#8b949e;margin-bottom:6px;">🖼 Картинки к статье (${artImgs.length}) — клик по «⬇» для скачивания:</div>
+                          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                              ${artImgs.map((u, idx) => `<div style="text-align:center;">
+                                  <a href="${u}" target="_blank"><img src="${u}" style="width:128px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #30363d;display:block;" loading="lazy"></a>
+                                  <a href="${u}" download class="wz-btn" style="font-size:10px;padding:2px 8px;margin-top:3px;display:inline-block;">⬇ ${idx + 1}</a>
+                              </div>`).join('')}
+                          </div>
+                       </div>`
+                    : '';
                 return `
                 <div class="wz-card" data-wz-id="${it.id}">
                     <div class="wz-head">
@@ -3477,6 +3491,7 @@
                     </div>
                     <div style="font-size:11px;color:#6e7681;">сгенерировано ${ds} · UTM: ${it.utm_content || '—'}</div>
                     ${coverBlock}
+                    ${imgsBlock}
                     <div class="wz-actions">
                         ${showCopy ? `<button class="wz-btn primary" onclick="wzCopy(${it.id}, event)">📋 Скопировать ТЗ</button>` : ''}
                         <button class="wz-btn" onclick="wzExpand(${it.id})">👁 Превью</button>
