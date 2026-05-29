@@ -27,9 +27,9 @@ const imgs=[
 ];
 document.getElementById('grid').innerHTML=imgs.map(i=>`
  <div class="card">
-   <a href="/op/covers/${i.f}.png" target="_blank"><img src="/op/covers/${i.f}.png?v=${Date.now()}" alt="${i.t}"></a>
+   <a href="/op/covers/${i.f}.jpg" target="_blank"><img src="/op/covers/${i.f}.jpg?v=${Date.now()}" alt="${i.t}"></a>
    <div class="meta"><div class="t">${i.t}</div><div class="d">${i.d}</div>
-   <a class="btn" href="/op/covers/${i.f}.png" download="${i.f}.png">⬇ Скачать</a></div>
+   <a class="btn" href="/op/covers/${i.f}.jpg" download="${i.f}.jpg">⬇ Скачать</a></div>
  </div>`).join('');
 </script>
 </body></html>

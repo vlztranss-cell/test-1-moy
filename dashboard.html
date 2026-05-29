@@ -3469,7 +3469,7 @@
                         ? '<div style="font-size:11px;color:#d29922;margin:8px 0;">⏳ Обложка генерируется... обнови страницу через минуту</div>'
                         : '');
                 // Картинки к статье — парсим URL из текста ТЗ (кроме самой обложки)
-                const artImgs = [...new Set((it.tz_markdown || '').match(/https:\/\/n8n\.24isk\.ru\/op\/covers\/[A-Za-z0-9_\-]+\.png/g) || [])]
+                const artImgs = [...new Set((it.tz_markdown || '').match(/https:\/\/n8n\.24isk\.ru\/op\/covers\/[A-Za-z0-9_\-]+\.(?:png|jpg)/g) || [])]
                     .filter(u => u !== it.cover_url);
                 const imgsBlock = artImgs.length
                     ? `<div style="margin:8px 0;">

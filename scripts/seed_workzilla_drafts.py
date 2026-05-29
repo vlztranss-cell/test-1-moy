@@ -41,7 +41,7 @@ def main() -> None:
     parts = ["BEGIN;"]
     for plat, (fname, title, price, utm) in SPEC.items():
         md = (DOCS / fname).read_text(encoding="utf-8")
-        cover = f"{COVER_BASE}/{plat}.png"
+        cover = f"{COVER_BASE}/{plat}.jpg"
         parts.append(
             f"UPDATE workzilla_tz_drafts SET tz_markdown='{esc(md)}', tz_title='{esc(title)}', "
             f"cover_url='{cover}', suggested_price_rub={price}, utm_content='{esc(utm)}', "
