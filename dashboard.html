@@ -1469,36 +1469,10 @@
         <span class="zone-desc">бизнес-метрики и здоровье проекта</span>
     </div>
 
-    <!-- AI SPEND TRACKER — PiAPI + OpenAI остатки -->
-    <div class="ai-spend-section" data-project-view="videoai">
-        <div class="ai-spend-row" id="ai-spend-row">
-            <div class="ai-spend-card piapi">
-                <div class="ai-sp-head">
-                    <span class="ai-sp-icon">🎬</span>
-                    <span class="ai-sp-name">PiAPI (Kling)</span>
-                    <span class="ai-sp-balance" id="piapi-balance">—</span>
-                </div>
-                <div class="ai-sp-meta" id="piapi-meta">проверяю...</div>
-            </div>
-            <div class="ai-spend-card openai">
-                <div class="ai-sp-head">
-                    <span class="ai-sp-icon">🤖</span>
-                    <span class="ai-sp-name">OpenAI (GPT + DALL-E)</span>
-                    <span class="ai-sp-balance" id="openai-balance">—</span>
-                </div>
-                <div class="ai-sp-meta" id="openai-meta">проверяю...</div>
-            </div>
-            <div class="ai-spend-card check">
-                <div class="ai-sp-head">
-                    <span class="ai-sp-icon">⏱</span>
-                    <span class="ai-sp-name">Последний чек</span>
-                </div>
-                <div class="ai-sp-meta" id="ai-checked-at">—</div>
-            </div>
-        </div>
-    </div>
+    <!-- ТРЕВОЖНАЯ ПЛАШКА — критичные сигналы (трафик/ошибки/оплата) на самом верху -->
+    <div id="alarm-bar" data-project-view="videoai" style="margin:8px 0;"></div>
 
-    <!-- KPI КОМАНДНЫЙ ЦЕНТР (всегда сверху для VideoAI) -->
+    <!-- KPI КОМАНДНЫЙ ЦЕНТР (главные метрики — на самом верху для VideoAI) -->
     <div class="kpi-command-center" data-project-view="videoai">
         <div class="kpi-card kpi-revenue">
             <div class="kpi-label">💰 Выручка сегодня / 7д</div>
@@ -1560,6 +1534,35 @@
         <div id="eco-warn"></div>
         <div id="eco-months" style="font-size:12px;color:#8b949e;"></div>
         <div id="eco-funnel" style="font-size:12px;color:#d2a8ff;margin-top:4px;"></div>
+    </div>
+
+    <!-- AI SPEND TRACKER — PiAPI + OpenAI остатки (перемещён под KPI) -->
+    <div class="ai-spend-section" data-project-view="videoai">
+        <div class="ai-spend-row" id="ai-spend-row">
+            <div class="ai-spend-card piapi">
+                <div class="ai-sp-head">
+                    <span class="ai-sp-icon">🎬</span>
+                    <span class="ai-sp-name">PiAPI (Kling)</span>
+                    <span class="ai-sp-balance" id="piapi-balance">—</span>
+                </div>
+                <div class="ai-sp-meta" id="piapi-meta">проверяю...</div>
+            </div>
+            <div class="ai-spend-card openai">
+                <div class="ai-sp-head">
+                    <span class="ai-sp-icon">🤖</span>
+                    <span class="ai-sp-name">OpenAI (GPT + DALL-E)</span>
+                    <span class="ai-sp-balance" id="openai-balance">—</span>
+                </div>
+                <div class="ai-sp-meta" id="openai-meta">проверяю...</div>
+            </div>
+            <div class="ai-spend-card check">
+                <div class="ai-sp-head">
+                    <span class="ai-sp-icon">⏱</span>
+                    <span class="ai-sp-name">Последний чек</span>
+                </div>
+                <div class="ai-sp-meta" id="ai-checked-at">—</div>
+            </div>
+        </div>
     </div>
 
     <!-- VIDEOAI: QUICK LINKS -->
@@ -3459,7 +3462,7 @@
                               <div style="margin-top:6px;">
                                   <a href="${it.cover_url}" download target="_blank" class="wz-btn" style="font-size:11px;padding:4px 10px;">⬇ Скачать</a>
                               </div>
-                              <div style="margin-top:6px;color:#6e7681;font-size:10px;">⚠ URL живёт ~1 час от OpenAI, скачай сразу при создании ТЗ.</div>
+                              <div style="margin-top:6px;color:#6e7681;font-size:10px;">Обложка готова (постоянная ссылка). Скачайте и приложите к заданию исполнителю.</div>
                           </div>
                        </div>`
                     : (showCopy
@@ -3590,6 +3593,40 @@
         }
         loadEconomics();
         setInterval(loadEconomics, 5 * 60 * 1000);
+
+        // ===== Тревожная плашка — критичные сигналы наверху =====
+        async function loadAlarms() {
+            const bar = document.getElementById('alarm-bar');
+            if (!bar) return;
+            const alarms = [];
+            try {
+                const [eco, metrika, digest] = await Promise.allSettled([
+                    fetch('https://n8n.24isk.ru/webhook/economics').then(r => r.json()),
+                    fetch('https://n8n.24isk.ru/webhook/metrika-stats').then(r => r.json()),
+                    fetch('https://n8n.24isk.ru/webhook/admin-digest').then(r => r.json()),
+                ]);
+                if (metrika.status === 'fulfilled' && metrika.value) {
+                    const v = metrika.value.summary?.visits;
+                    if (typeof v === 'number' && v < 80)
+                        alarms.push(['amber', `📉 Трафик сегодня: <b>${v}</b> визитов — это органика (реклама выключена, ждём раскрутки крауд-маркетинга)`]);
+                }
+                if (digest.status === 'fulfilled') {
+                    const last = (digest.value.items || [])[0];
+                    if (last && last.failed_orders >= 12)
+                        alarms.push(['amber', `⚠️ Всплеск ошибок генерации: <b>${last.failed_orders}</b> за ${last.digest_date} — проверь фото-модерацию / баланс PiAPI`]);
+                }
+                if (eco.status === 'fulfilled' && eco.value && eco.value.funnel_diagnosis
+                    && /🚨|СЛОМ|оплата лом/i.test(eco.value.funnel_diagnosis))
+                    alarms.push(['red', '🩺 ' + eco.value.funnel_diagnosis]);
+            } catch (e) { console.error('alarms:', e); }
+            if (!alarms.length) { bar.innerHTML = ''; return; }
+            const col = { red: '#f85149', amber: '#d29922' };
+            bar.innerHTML = alarms.map(([lvl, msg]) =>
+                `<div style="background:${lvl === 'red' ? 'rgba(248,81,73,0.12)' : 'rgba(210,153,34,0.12)'};border:1px solid ${col[lvl]};border-radius:10px;padding:10px 14px;margin-bottom:6px;color:${col[lvl]};font-weight:600;font-size:13px;">${msg}</div>`
+            ).join('');
+        }
+        loadAlarms();
+        setInterval(loadAlarms, 5 * 60 * 1000);
 
         loadWorkzillaTZ();
         setInterval(loadWorkzillaTZ, 5 * 60 * 1000);
