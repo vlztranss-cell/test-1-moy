@@ -67,7 +67,9 @@ def psql(sql: str) -> str:
 
 
 def ratio(num, den):
-    return (num / den) if den else 0.0
+    # клампим до 100% — конверсия шага не может быть >1; >1 = артефакт подсчёта
+    # целей Метрики по окну (цель срабатывает чаще, чем «предыдущий» шаг)
+    return min(num / den, 1.0) if den else 0.0
 
 
 def main() -> None:
@@ -91,10 +93,10 @@ def main() -> None:
         r_y = ratio(y[num_k], y[den_k])
         r_b = ratio(b[num_k], b[den_k])  # суммарный за 7д = средняя конверсия
         drop = (r_b - r_y) / r_b if r_b > 0 else 0.0
-        flag = "❗" if (drop >= 0.4 and y[den_k] >= 5) else "  "
+        flag = "❗" if (drop >= 0.35 and y[den_k] >= 5) else "  "
         print(f"  {flag} {label}: вчера {r_y*100:.1f}% vs база {r_b*100:.1f}% "
               f"({y[num_k]}/{y[den_k]})" + (f"  ↓{drop*100:.0f}%" if drop > 0 else ""))
-        if drop >= 0.4 and y[den_k] >= 5:
+        if drop >= 0.35 and y[den_k] >= 5:
             findings.append((drop, label, verdict))
 
     findings.sort(reverse=True)
