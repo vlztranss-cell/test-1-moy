@@ -1,0 +1,478 @@
+{
+  "updatedAt": "2026-05-20T23:18:44.755Z",
+  "createdAt": "2026-05-18T19:03:36.998Z",
+  "id": "j9yUxuFL8dz12xa3",
+  "name": "Web_YuKassa_Payment_Callback",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yukassa-payment-callback",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "5528ebba-7bae-4d1f-8326-d2db649dc5c6",
+      "name": "Webhook Callback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "ab3ff33e-893b-417d-9a2b-10d0308efbe4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "payment.succeeded",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "b8ecc805-c9cb-4c47-82c8-16428434c49b",
+      "name": "Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.object.metadata.source }}",
+              "rightValue": "web",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "f0306efc-3bf4-4529-84ab-bedf5bb8214a",
+      "name": "From Web?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH\npaid AS (\n    UPDATE web_orders\n    SET is_paid = 'yes',\n        status  = 'paid',\n        generations_left = generations_limit,\n        paid_at = NOW()\n    WHERE payment_id = '{{ $json.body.object.id }}'\n      AND is_paid <> 'yes'\n      AND '{{ $json.body.object.metadata.source }}' = 'web'\n    RETURNING id, email, generations_limit, tariff_code, ref_by\n),\ntariff_calc AS (\n    -- Размер бонусов по тарифу: referrer +10/30/80, friend +3/5/10\n    SELECT\n        p.id, LOWER(p.email) AS email, p.generations_limit, p.tariff_code, p.ref_by,\n        CASE p.tariff_code\n            WHEN 'starter'  THEN 10\n            WHEN 'pro'      THEN 30\n            WHEN 'business' THEN 80\n            ELSE 0\n        END AS referrer_bonus,\n        CASE p.tariff_code\n            WHEN 'starter'  THEN 3\n            WHEN 'pro'      THEN 5\n            WHEN 'business' THEN 10\n            ELSE 0\n        END AS friend_bonus\n    FROM paid p\n),\nfriend_upserted AS (\n    -- Друг (тот кто оплатил): +paid_credits + friend_bonus (если по реферальной ссылке).\n    -- Также генерим ref_code чтобы он сам мог приглашать.\n    -- ref_by фиксируется ТОЛЬКО при первой привязке (COALESCE).\n    INSERT INTO web_users (email, paid_credits, ref_by, ref_code, last_seen)\n    SELECT\n        t.email,\n        t.generations_limit + CASE WHEN t.ref_by IS NOT NULL THEN t.friend_bonus ELSE 0 END,\n        t.ref_by,\n        generate_ref_code(),\n        NOW()\n    FROM tariff_calc t\n    WHERE t.email IS NOT NULL AND t.email <> ''\n    ON CONFLICT (email) DO UPDATE SET\n        paid_credits = web_users.paid_credits + EXCLUDED.paid_credits,\n        ref_code     = COALESCE(web_users.ref_code, EXCLUDED.ref_code),\n        ref_by       = COALESCE(web_users.ref_by,   EXCLUDED.ref_by),\n        last_seen    = NOW()\n    RETURNING id, email, paid_credits, ref_code, ref_by\n),\nreferrer_paid AS (\n    -- Реферер получает +referrer_bonus в paid_credits.\n    -- Защита от self-referral: wu.email <> friend.email\n    UPDATE web_users wu\n    SET\n        paid_credits         = wu.paid_credits + tc.referrer_bonus,\n        bonus_credits_earned = wu.bonus_credits_earned + tc.referrer_bonus,\n        paid_referred_count  = wu.paid_referred_count + 1\n    FROM tariff_calc tc\n    WHERE wu.ref_code = tc.ref_by\n      AND tc.ref_by IS NOT NULL\n      AND tc.referrer_bonus > 0\n      AND LOWER(wu.email) <> tc.email\n    RETURNING wu.id AS referrer_user_id, wu.email AS referrer_email, tc.referrer_bonus AS credited\n),\nreferral_log AS (\n    -- Записываем в referrals (если ON CONFLICT — пропускаем, идемпотентно)\n    INSERT INTO referrals (\n        referrer_user_id, referred_user_id, referred_username,\n        platform, bonus_paid_credits, web_user_id, friend_web_user_id,\n        commission_rub, status, first_paid_at\n    )\n    SELECT\n        rp.referrer_user_id::text,\n        f.id::text,\n        f.email,\n        'web',\n        rp.credited,\n        rp.referrer_user_id,\n        f.id,\n        0,\n        'paid',\n        NOW()\n    FROM referrer_paid rp, friend_upserted f\n    ON CONFLICT (referred_user_id) DO NOTHING\n    RETURNING id\n)\nSELECT\n    (SELECT id              FROM paid)              AS order_id,\n    (SELECT email           FROM paid)              AS email,\n    (SELECT generations_limit FROM paid)            AS credits_added,\n    (SELECT friend_bonus    FROM tariff_calc)       AS friend_bonus,\n    (SELECT id              FROM friend_upserted)   AS web_user_id,\n    (SELECT ref_code        FROM friend_upserted)   AS friend_ref_code,\n    (SELECT paid_credits    FROM friend_upserted)   AS user_total_credits,\n    (SELECT referrer_email  FROM referrer_paid)     AS referrer_email,\n    (SELECT credited        FROM referrer_paid)     AS referrer_credited;",
+        "options": {}
+      },
+      "id": "c0f23aae-bc76-4426-a6c0-7d0f28eecc7d",
+      "name": "Update DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        920,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "VHwQR0NCUn28HZPP",
+          "name": "ssh root@72.56.96.64"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "ok",
+              "value": "bot_skipped",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "afc0583b-fca1-481e-8ed4-c9735875cc1f",
+      "name": "Bot skip",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        920,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s2",
+              "name": "ok",
+              "value": "ignored",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f4df7342-8fb7-4bb6-9543-da1e5e25c174",
+      "name": "Not OK skip",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Callback": {
+      "main": [
+        [
+          {
+            "node": "Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "From Web?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not OK skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "From Web?": {
+      "main": [
+        [
+          {
+            "node": "Update DB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bot skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "07aee355-fc82-48a6-bfb2-c75e21f0f11e",
+  "activeVersionId": "07aee355-fc82-48a6-bfb2-c75e21f0f11e",
+  "versionCounter": 20,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-18T19:03:36.998Z",
+      "createdAt": "2026-05-18T19:03:36.998Z",
+      "role": "workflow:owner",
+      "workflowId": "j9yUxuFL8dz12xa3",
+      "projectId": "RvULuMVFYbQpag8g",
+      "project": {
+        "updatedAt": "2026-01-14T17:31:10.810Z",
+        "createdAt": "2026-01-14T16:37:11.977Z",
+        "id": "RvULuMVFYbQpag8g",
+        "name": "Денис Искусных <vlz.transs@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "9c002dd4-f026-451d-aff0-0c3e6e62a428",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-01-14T16:37:11.977Z",
+            "createdAt": "2026-01-14T16:37:11.977Z",
+            "userId": "9c002dd4-f026-451d-aff0-0c3e6e62a428",
+            "projectId": "RvULuMVFYbQpag8g",
+            "user": {
+              "updatedAt": "2026-05-28T21:00:02.130Z",
+              "createdAt": "2026-01-14T16:37:11.061Z",
+              "id": "9c002dd4-f026-451d-aff0-0c3e6e62a428",
+              "email": "vlz.transs@gmail.com",
+              "firstName": "Денис",
+              "lastName": "Искусных",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-01-14T17:31:16.618Z",
+                "personalization_survey_n8n_version": "2.3.4"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "-OH014lzSCAqyK0LD2iqC",
+                "userActivatedAt": 1769104909343,
+                "easyAIWorkflowOnboarded": true,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1771336333810
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-05-28",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-20T23:18:44.756Z",
+    "createdAt": "2026-05-20T23:18:44.756Z",
+    "versionId": "07aee355-fc82-48a6-bfb2-c75e21f0f11e",
+    "workflowId": "j9yUxuFL8dz12xa3",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "yukassa-payment-callback",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "id": "5528ebba-7bae-4d1f-8326-d2db649dc5c6",
+        "name": "Webhook Callback",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          240,
+          300
+        ],
+        "webhookId": "ab3ff33e-893b-417d-9a2b-10d0308efbe4"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.body.event }}",
+                "rightValue": "payment.succeeded",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ]
+          }
+        },
+        "id": "b8ecc805-c9cb-4c47-82c8-16428434c49b",
+        "name": "Succeeded?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          460,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.body.object.metadata.source }}",
+                "rightValue": "web",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ]
+          }
+        },
+        "id": "f0306efc-3bf4-4529-84ab-bedf5bb8214a",
+        "name": "From Web?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          680,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH\npaid AS (\n    UPDATE web_orders\n    SET is_paid = 'yes',\n        status  = 'paid',\n        generations_left = generations_limit,\n        paid_at = NOW()\n    WHERE payment_id = '{{ $json.body.object.id }}'\n      AND is_paid <> 'yes'\n      AND '{{ $json.body.object.metadata.source }}' = 'web'\n    RETURNING id, email, generations_limit, tariff_code, ref_by\n),\ntariff_calc AS (\n    -- Размер бонусов по тарифу: referrer +10/30/80, friend +3/5/10\n    SELECT\n        p.id, LOWER(p.email) AS email, p.generations_limit, p.tariff_code, p.ref_by,\n        CASE p.tariff_code\n            WHEN 'starter'  THEN 10\n            WHEN 'pro'      THEN 30\n            WHEN 'business' THEN 80\n            ELSE 0\n        END AS referrer_bonus,\n        CASE p.tariff_code\n            WHEN 'starter'  THEN 3\n            WHEN 'pro'      THEN 5\n            WHEN 'business' THEN 10\n            ELSE 0\n        END AS friend_bonus\n    FROM paid p\n),\nfriend_upserted AS (\n    -- Друг (тот кто оплатил): +paid_credits + friend_bonus (если по реферальной ссылке).\n    -- Также генерим ref_code чтобы он сам мог приглашать.\n    -- ref_by фиксируется ТОЛЬКО при первой привязке (COALESCE).\n    INSERT INTO web_users (email, paid_credits, ref_by, ref_code, last_seen)\n    SELECT\n        t.email,\n        t.generations_limit + CASE WHEN t.ref_by IS NOT NULL THEN t.friend_bonus ELSE 0 END,\n        t.ref_by,\n        generate_ref_code(),\n        NOW()\n    FROM tariff_calc t\n    WHERE t.email IS NOT NULL AND t.email <> ''\n    ON CONFLICT (email) DO UPDATE SET\n        paid_credits = web_users.paid_credits + EXCLUDED.paid_credits,\n        ref_code     = COALESCE(web_users.ref_code, EXCLUDED.ref_code),\n        ref_by       = COALESCE(web_users.ref_by,   EXCLUDED.ref_by),\n        last_seen    = NOW()\n    RETURNING id, email, paid_credits, ref_code, ref_by\n),\nreferrer_paid AS (\n    -- Реферер получает +referrer_bonus в paid_credits.\n    -- Защита от self-referral: wu.email <> friend.email\n    UPDATE web_users wu\n    SET\n        paid_credits         = wu.paid_credits + tc.referrer_bonus,\n        bonus_credits_earned = wu.bonus_credits_earned + tc.referrer_bonus,\n        paid_referred_count  = wu.paid_referred_count + 1\n    FROM tariff_calc tc\n    WHERE wu.ref_code = tc.ref_by\n      AND tc.ref_by IS NOT NULL\n      AND tc.referrer_bonus > 0\n      AND LOWER(wu.email) <> tc.email\n    RETURNING wu.id AS referrer_user_id, wu.email AS referrer_email, tc.referrer_bonus AS credited\n),\nreferral_log AS (\n    -- Записываем в referrals (если ON CONFLICT — пропускаем, идемпотентно)\n    INSERT INTO referrals (\n        referrer_user_id, referred_user_id, referred_username,\n        platform, bonus_paid_credits, web_user_id, friend_web_user_id,\n        commission_rub, status, first_paid_at\n    )\n    SELECT\n        rp.referrer_user_id::text,\n        f.id::text,\n        f.email,\n        'web',\n        rp.credited,\n        rp.referrer_user_id,\n        f.id,\n        0,\n        'paid',\n        NOW()\n    FROM referrer_paid rp, friend_upserted f\n    ON CONFLICT (referred_user_id) DO NOTHING\n    RETURNING id\n)\nSELECT\n    (SELECT id              FROM paid)              AS order_id,\n    (SELECT email           FROM paid)              AS email,\n    (SELECT generations_limit FROM paid)            AS credits_added,\n    (SELECT friend_bonus    FROM tariff_calc)       AS friend_bonus,\n    (SELECT id              FROM friend_upserted)   AS web_user_id,\n    (SELECT ref_code        FROM friend_upserted)   AS friend_ref_code,\n    (SELECT paid_credits    FROM friend_upserted)   AS user_total_credits,\n    (SELECT referrer_email  FROM referrer_paid)     AS referrer_email,\n    (SELECT credited        FROM referrer_paid)     AS referrer_credited;",
+          "options": {}
+        },
+        "id": "c0f23aae-bc76-4426-a6c0-7d0f28eecc7d",
+        "name": "Update DB",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          920,
+          240
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "VHwQR0NCUn28HZPP",
+            "name": "ssh root@72.56.96.64"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "s1",
+                "name": "ok",
+                "value": "bot_skipped",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "id": "afc0583b-fca1-481e-8ed4-c9735875cc1f",
+        "name": "Bot skip",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          920,
+          420
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "s2",
+                "name": "ok",
+                "value": "ignored",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "id": "f4df7342-8fb7-4bb6-9543-da1e5e25c174",
+        "name": "Not OK skip",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          680,
+          500
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook Callback": {
+        "main": [
+          [
+            {
+              "node": "Succeeded?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Succeeded?": {
+        "main": [
+          [
+            {
+              "node": "From Web?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Not OK skip",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "From Web?": {
+        "main": [
+          [
+            {
+              "node": "Update DB",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Bot skip",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Денис Искусных",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-20T23:18:44.823Z",
+        "id": 400,
+        "workflowId": "j9yUxuFL8dz12xa3",
+        "versionId": "07aee355-fc82-48a6-bfb2-c75e21f0f11e",
+        "event": "activated",
+        "userId": "9c002dd4-f026-451d-aff0-0c3e6e62a428"
+      }
+    ]
+  }
+}
