@@ -1780,23 +1780,24 @@
             <h3>Оплата</h3>
             <div class="modal-plan-info" id="modal-plan-info"></div>
             <div class="modal-form">
-                <!-- TG Login Widget — 1-клик, без email -->
+                <!-- Основной путь — email (быстро, без телефона/SMS) -->
+                <label>Email — на него зачислятся кредиты и придёт чек</label>
+                <input type="email" id="payment-email" placeholder="your@email.com">
+                <button class="modal-pay-btn" id="modal-pay-btn">Перейти к оплате</button>
+                <div class="tg-auth-divider"><span>или войти через</span></div>
+                <!-- TG Login Widget — опционально. На устройстве без Telegram просит телефон+SMS,
+                     поэтому это второстепенный путь, не основной. -->
                 <div class="tg-auth-section" id="tg-auth-section">
-                    <div class="tg-auth-label">⚡ В 1 клик через Telegram (рекомендуем)</div>
-                    <div id="tg-login-widget" style="margin: 8px 0 12px 0; min-height: 48px;">
+                    <div id="tg-login-widget" style="margin: 4px 0; min-height: 44px;">
                         <script async src="https://telegram.org/js/telegram-widget.js?22"
                                 data-telegram-login="botisk_collect_bot"
-                                data-size="large"
+                                data-size="medium"
                                 data-radius="10"
                                 data-onauth="onTelegramAuth(user)"
                                 data-request-access="write"></script>
                     </div>
-                    <div class="tg-auth-note">Уведомим о готовности видео прямо в Telegram</div>
+                    <div class="tg-auth-note">Если уже в Telegram — войдёте в 1 клик, уведомим о готовности там</div>
                 </div>
-                <div class="tg-auth-divider"><span>или</span></div>
-                <label>Email (для получения кредитов)</label>
-                <input type="email" id="payment-email" placeholder="your@email.com">
-                <button class="modal-pay-btn" id="modal-pay-btn">Перейти к оплате</button>
             </div>
             <div class="modal-secure">&#128274; Безопасная оплата через ЮKassa</div>
         </div>
@@ -1857,6 +1858,7 @@
         // Webhooks для оплаты через n8n:
         const API_PAYMENT = 'https://n8n.24isk.ru/webhook/yukassa-create-payment';
         const API_PAYMENT_STATUS = 'https://n8n.24isk.ru/webhook/yukassa-check-payment';
+        const API_CREDITS = 'https://n8n.24isk.ru/webhook/web-credits';
 
         // Telegram бот
         const TG_BOT_URL = 'https://t.me/VideoAI_24isk_bot';
@@ -1961,6 +1963,21 @@
         function setCredits(n) {
             localStorage.setItem('videoai_credits', String(n));
             updateCreditsUI();
+        }
+        // Источник правды — сервер. Подтягиваем реальный баланс по email, чтобы не
+        // показывать устаревший localStorage. Доступно = платные + (1 бесплатное, если не использовано).
+        async function syncServerCredits() {
+            const email = getEmail();
+            if (!email) return;
+            try {
+                const r = await fetch(API_CREDITS + '?email=' + encodeURIComponent(email));
+                const d = await r.json();
+                const it = (d.items && d.items[0]) || null;
+                if (!it) return;
+                const available = (parseInt(it.paid_credits, 10) || 0) + (it.free_used ? 0 : 1);
+                localStorage.setItem('videoai_credits', String(available));
+                updateCreditsUI();
+            } catch (e) { /* офлайн — оставляем локальное значение */ }
         }
         function getEmail() {
             return (localStorage.getItem('videoai_email') || '').trim().toLowerCase();
@@ -2209,10 +2226,13 @@
                     showPaymentSuccess(data.credits);
                     showReferralCard(data);
                 } else if (data.status === 'pending') {
-                    // Платёж ещё обрабатывается
-                    if (creditsInfo) creditsInfo.innerHTML = 'Платёж обрабатывается. Кредиты зачислятся автоматически. <a href="#pricing" style="color:var(--accent-light)">Обновить</a>';
+                    // Оплата НЕ подтверждена (могли нажать «назад»). Не обещаем зачисление —
+                    // показываем честный статус и сверяем реальный баланс с сервера.
+                    if (creditsInfo) creditsInfo.innerHTML = 'Оплата ещё не подтверждена. Если вы её завершили — кредиты появятся в течение минуты: <a href="javascript:location.reload()" style="color:var(--accent-light)">Обновить</a>';
+                    syncServerCredits();
                 } else {
                     localStorage.removeItem('videoai_pending_plan');
+                    syncServerCredits();
                     updateCreditsUI();
                 }
             } catch (e) {
@@ -2765,6 +2785,7 @@
 
         // ===== INIT =====
         updateCreditsUI();
+        syncServerCredits();
         checkPaymentReturn();
         renderHeroVideoCount();
     </script>
