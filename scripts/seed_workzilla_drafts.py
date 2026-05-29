@@ -28,7 +28,7 @@ COVER_BASE = "https://n8n.24isk.ru/op/covers"
 SPEC = {
     "vc":     ("TZ_01_VC_FOR_WORKZILLA.md",     "Как мы запустили AI-сервис оживления фото за неделю (VC.ru)", 600, "vc_workzilla_01"),
     "pikabu": ("TZ_02_Pikabu_FOR_WORKZILLA.md", "Я оживил фото бабушки через AI — папа плакал (Pikabu)",       400, ""),
-    "habr":   ("TZ_03_Habr_FOR_WORKZILLA.md",   "Kling 2.5 vs Sora vs Runway: опыт оживления 600+ фото (Habr)", 1000, "habr_workzilla_03"),
+    "habr":   ("../habr_article_kling_2026.md",  "Kling 2.5 vs Sora vs Runway: production-опыт 600+ генераций (Habr, личная статья)", 1000, "habr_workzilla_03"),
     "dzen":   ("TZ_04_Dzen_FOR_WORKZILLA.md",   "Подарила маме видео из её детского фото (Дзен)",               300, ""),
 }
 
