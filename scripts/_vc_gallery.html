@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Иллюстрации к VC-статье</title>
+<style>
+  body{background:#0d1117;color:#e6edf3;font-family:Inter,system-ui,Arial,sans-serif;margin:0;padding:24px}
+  h1{font-size:20px;margin:0 0 6px} .sub{color:#8b949e;font-size:13px;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:12px;overflow:hidden}
+  .card img{width:100%;display:block;background:#0d1117;aspect-ratio:16/9;object-fit:cover}
+  .meta{padding:10px 14px}
+  .meta .t{font-weight:700;font-size:14px} .meta .d{color:#8b949e;font-size:12px;margin:2px 0 8px}
+  .btn{display:inline-block;background:#238636;color:#fff;text-decoration:none;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600}
+  .note{color:#d29922;font-size:12px;margin-top:18px}
+</style></head><body>
+<h1>🖼 Иллюстрации к VC-статье (5 шт)</h1>
+<div class="sub">Визуальная история запуска. Кликни «Скачать» под нужной картинкой.</div>
+<div class="grid" id="grid"></div>
+<div class="note">⚠️ Файлы 2K (~5–7 МБ). Перед заливкой на VC ужать до ширины ~1200px / ≤2 МБ.</div>
+<script>
+const imgs=[
+ {f:'vc_art_1',t:'1. Обложка — «до/после»',d:'Старое фото оживает'},
+ {f:'vc_art_2',t:'2. День 1 — рождение идеи',d:'Старый семейный альбом'},
+ {f:'vc_art_3',t:'3. Техническая схема',d:'Фото → AI → видео'},
+ {f:'vc_art_4',t:'4. Воронка с потерями',d:'Где теряются юзеры'},
+ {f:'vc_art_5',t:'5. Финал — ожившее фото',d:'Эмоциональная сцена'},
+];
+document.getElementById('grid').innerHTML=imgs.map(i=>`
+ <div class="card">
+   <a href="/op/covers/${i.f}.png" target="_blank"><img src="/op/covers/${i.f}.png?v=${Date.now()}" alt="${i.t}"></a>
+   <div class="meta"><div class="t">${i.t}</div><div class="d">${i.d}</div>
+   <a class="btn" href="/op/covers/${i.f}.png" download="${i.f}.png">⬇ Скачать</a></div>
+ </div>`).join('');
+</script>
+</body></html>
