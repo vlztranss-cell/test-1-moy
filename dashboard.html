@@ -1508,6 +1508,19 @@
             </div>
             <div class="kpi-sub" id="kpi-rev-trend">—</div>
         </div>
+        <div class="kpi-card kpi-direct">
+            <div class="kpi-label">💸 COGS PiAPI / Реклама</div>
+            <div class="kpi-value">
+                <span id="kpi-cogs">—</span> <span class="kpi-sep">/</span>
+                <span id="kpi-ad">—</span> ₽
+            </div>
+            <div class="kpi-sub">расход всего · реклама OFF</div>
+        </div>
+        <div class="kpi-card kpi-funnel">
+            <div class="kpi-label">📊 Чистый итог (P&amp;L)</div>
+            <div class="kpi-value" id="kpi-net">—</div>
+            <div class="kpi-sub">выручка − COGS − реклама</div>
+        </div>
         <div class="kpi-card kpi-orders">
             <div class="kpi-label">🎬 Видео опубл. / в очереди</div>
             <div class="kpi-value">
@@ -1540,6 +1553,12 @@
                 <span class="kpi-ch ok" title="@botisk_collect_bot UGC">📥 UGC</span>
             </div>
         </div>
+    </div>
+
+    <!-- P&L контекст к KPI-центру: качество данных + выручка по месяцам -->
+    <div data-project-view="videoai" style="margin:-6px 0 14px;">
+        <div id="eco-warn"></div>
+        <div id="eco-months" style="font-size:12px;color:#8b949e;"></div>
     </div>
 
     <!-- VIDEOAI: QUICK LINKS -->
@@ -1985,17 +2004,6 @@
             <div class="loading">Загрузка…</div>
         </div>
         <div id="digest-recommendations" style="margin-top:14px;"></div>
-    </div>
-
-    <!-- ЭКОНОМИКА — реальный P&L (выручка из зеркала ЮKassa, COGS из PiAPI) -->
-    <div class="workzilla-section" id="z-economics" data-project-view="videoai">
-        <h2>💰 Экономика <span id="eco-updated" style="font-size:12px;color:#8b949e;">—</span></h2>
-        <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">
-            Выручка — из зеркала платежей ЮKassa (succeeded), не из is_paid. COGS — факт расхода PiAPI. Реклама — вручную (Директ выключен).
-        </div>
-        <div id="eco-cards" style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;"></div>
-        <div id="eco-warn"></div>
-        <div id="eco-months" style="font-size:12px;color:#8b949e;margin-top:8px;"></div>
     </div>
 
     <!-- WORKZILLA TZ DRAFTS — автогенерируемые ТЗ для исполнителей -->
@@ -2902,30 +2910,8 @@
                     document.getElementById('kpi-vid-queue').textContent = pending;
                 }
 
-                // Выручка (Метрика-цели → конверсии × средний чек 290₽ упрощённо, но честнее из БД)
-                // Пока считаем 0₽ как точную цифру — реальные данные подтянем из digest'а
-                try {
-                    const digestResp = await fetch('https://n8n.24isk.ru/webhook/admin-digest');
-                    const dgst = (await digestResp.json()).items || [];
-                    if (dgst.length) {
-                        document.getElementById('kpi-rev-today').textContent = (dgst[0].revenue_rub || 0).toLocaleString('ru-RU');
-                        document.getElementById('kpi-rev-week').textContent =
-                            dgst.reduce((s, d) => s + (d.revenue_rub || 0), 0).toLocaleString('ru-RU');
-                        const todayRev = dgst[0].revenue_rub || 0;
-                        const prev = dgst[1]?.revenue_rub || 0;
-                        if (prev > 0) {
-                            const delta = todayRev - prev;
-                            document.getElementById('kpi-rev-trend').textContent =
-                                delta >= 0 ? `▲ +${delta.toLocaleString('ru-RU')} ₽` : `▼ ${delta.toLocaleString('ru-RU')} ₽`;
-                        } else {
-                            document.getElementById('kpi-rev-trend').textContent = todayRev > 0 ? 'первый дайджест 🚀' : '—';
-                        }
-                    } else {
-                        document.getElementById('kpi-rev-today').textContent = '0';
-                        document.getElementById('kpi-rev-week').textContent = '0';
-                        document.getElementById('kpi-rev-trend').textContent = 'жду первый дайджест (9:00 МСК)';
-                    }
-                } catch {}
+                // Выручка/COGS/итог теперь питает loadEconomics() из /webhook/economics
+                // (источник правды — зеркало yukassa_payments, а не is_paid из дайджеста).
             } catch (e) {
                 console.error('KPI:', e);
             }
@@ -3569,30 +3555,31 @@
                 renderWorkzillaList();
             }
         });
-        // ===== Экономика (реальный P&L) =====
+        // ===== Экономика (реальный P&L) — питает карточки KPI-центра =====
         async function loadEconomics() {
             try {
-                const r = await fetch('https://n8n.24isk.ru/webhook/economics');
-                const d = await r.json();
+                const d = await fetch('https://n8n.24isk.ru/webhook/economics').then(r => r.json());
+                const fmt = n => Number(n || 0).toLocaleString('ru-RU');
                 const cogsRub = Math.round(parseFloat(d.cogs_usd) * d.usd_rub);
                 const net = d.revenue_rub - cogsRub - d.ad_spend_rub;
-                const fmt = n => Number(n).toLocaleString('ru-RU');
-                const card = (label, val, color) =>
-                    `<div style="flex:1;min-width:140px;background:rgba(255,255,255,0.03);border:1px solid #30363d;border-radius:10px;padding:12px 14px;">
-                        <div style="font-size:11px;color:#8b949e;">${label}</div>
-                        <div style="font-size:20px;font-weight:700;color:${color};">${val}</div>
-                    </div>`;
-                document.getElementById('eco-cards').innerHTML =
-                    card(`Выручка · ${d.paid_count} оплат`, fmt(d.revenue_rub) + ' ₽', '#3fb950') +
-                    card(`COGS PiAPI · $${d.cogs_usd}`, fmt(cogsRub) + ' ₽', '#f0883e') +
-                    card('Реклама', fmt(d.ad_spend_rub) + ' ₽', '#f0883e') +
-                    card('Чистый итог', fmt(net) + ' ₽', net >= 0 ? '#3fb950' : '#f85149');
-                document.getElementById('eco-updated').textContent =
-                    'обновлено ' + (d.updated_at || '').slice(0, 16);
+                // Карточка «Выручка сегодня / 7д» + тренд
+                document.getElementById('kpi-rev-today').textContent = fmt(d.rev_today_rub);
+                document.getElementById('kpi-rev-week').textContent = fmt(d.rev_week_rub);
+                const today = d.rev_today_rub || 0, prev = d.rev_yesterday_rub || 0, delta = today - prev;
+                document.getElementById('kpi-rev-trend').textContent =
+                    prev > 0 ? (delta >= 0 ? `▲ +${fmt(delta)} ₽ к вчера` : `▼ ${fmt(delta)} ₽ к вчера`)
+                             : (today > 0 ? `сегодня ${fmt(today)} ₽` : 'сегодня оплат нет');
+                // Карточка COGS / Реклама + Чистый итог
+                document.getElementById('kpi-cogs').textContent = fmt(cogsRub);
+                document.getElementById('kpi-ad').textContent = fmt(d.ad_spend_rub);
+                const netEl = document.getElementById('kpi-net');
+                netEl.textContent = fmt(net) + ' ₽';
+                netEl.style.color = net >= 0 ? '#3fb950' : '#f85149';
+                // Полоса под KPI: качество данных + выручка по месяцам
                 document.getElementById('eco-warn').innerHTML =
                     (d.phantoms > 0 || d.missing > 0)
-                    ? `<div style="font-size:12px;color:#d29922;margin:6px 0;">⚠ Качество данных: ${d.phantoms} фантомных is_paid, ${d.missing} потерянных оплат. Выручка берётся из зеркала ЮKassa, не из is_paid.</div>`
-                    : '';
+                    ? `<div style="font-size:12px;color:#d29922;">⚠ Качество данных: ${d.phantoms} фантомных is_paid, ${d.missing} потерянных оплат. Выручка из зеркала ЮKassa: <b>${fmt(d.revenue_rub)} ₽ / ${d.paid_count} оплат</b> (всё время), не из is_paid.</div>`
+                    : `<div style="font-size:12px;color:#8b949e;">Выручка из зеркала ЮKassa: <b>${fmt(d.revenue_rub)} ₽ / ${d.paid_count} оплат</b> (всё время).</div>`;
                 document.getElementById('eco-months').innerHTML = 'Выручка по месяцам: ' +
                     (d.by_month || []).map(m => `${m.m}: ${fmt(m.rub)}₽ (${m.n})`).join(' · ');
             } catch (e) { console.error('economics:', e); }
