@@ -25,6 +25,12 @@ QUERY = f"""
 SELECT
   (SELECT COALESCE(SUM(amount_rub),0)::int FROM yukassa_payments WHERE status='succeeded') AS revenue_rub,
   (SELECT COUNT(*)::int FROM yukassa_payments WHERE status='succeeded') AS paid_count,
+  (SELECT COALESCE(SUM(amount_rub),0)::int FROM yukassa_payments WHERE status='succeeded'
+     AND (COALESCE(captured_at,created_at) AT TIME ZONE 'Europe/Moscow')::date = (now() AT TIME ZONE 'Europe/Moscow')::date) AS rev_today_rub,
+  (SELECT COALESCE(SUM(amount_rub),0)::int FROM yukassa_payments WHERE status='succeeded'
+     AND (COALESCE(captured_at,created_at) AT TIME ZONE 'Europe/Moscow')::date = ((now() AT TIME ZONE 'Europe/Moscow')::date - 1)) AS rev_yesterday_rub,
+  (SELECT COALESCE(SUM(amount_rub),0)::int FROM yukassa_payments WHERE status='succeeded'
+     AND COALESCE(captured_at,created_at) >= now() - interval '7 days') AS rev_week_rub,
   COALESCE((SELECT spent_usd FROM piapi_spend_snapshots ORDER BY id DESC LIMIT 1),0)::numeric AS cogs_usd,
   COALESCE((SELECT remain_usd FROM piapi_spend_snapshots ORDER BY id DESC LIMIT 1),0)::numeric AS piapi_remain_usd,
   {AD_SPEND_RUB} AS ad_spend_rub,
