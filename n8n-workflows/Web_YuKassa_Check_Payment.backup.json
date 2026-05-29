@@ -1,0 +1,418 @@
+{
+  "updatedAt": "2026-05-20T23:22:12.861Z",
+  "createdAt": "2026-05-18T19:03:36.269Z",
+  "id": "8WFoMJ9GqrrcC20a",
+  "name": "Web_YuKassa_Check_Payment",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "yukassa-check-payment",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://botisk.ru"
+        }
+      },
+      "id": "70d5cd15-4568-405e-b5e8-34cd492e84d2",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "14278aa0-2054-4a95-9bfc-0779e51e422b"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT   wo.payment_id, wo.tariff_code, wo.amount_rub, wo.is_paid,   wo.generations_limit, wo.generations_left,   wu.ref_code,   COALESCE(wu.bonus_credits_earned, 0) AS bonus_credits_earned,   COALESCE(wu.paid_referred_count, 0) AS paid_referred_count FROM web_orders wo LEFT JOIN web_users wu ON LOWER(wu.email) = LOWER(wo.email) WHERE (wo.email = '{{ $json.body.email }}' OR wo.session_id = '{{ $json.body.session_id }}')   AND wo.payment_id IS NOT NULL ORDER BY wo.created_at DESC LIMIT 1",
+        "options": {}
+      },
+      "id": "26e555c9-0aa7-4b12-ab62-f0b2388a10f8",
+      "name": "Check DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "VHwQR0NCUn28HZPP",
+          "name": "ssh root@72.56.96.64"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_paid }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "ed1a2fda-7c48-4d43-b224-476ad3ed417a",
+      "name": "Paid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"succeeded\", \"credits\": {{ $('Check DB').item.json.generations_limit || 0 }}, \"plan\": \"{{ $('Check DB').item.json.tariff_code }}\", \"ref_code\": \"{{ $('Check DB').item.json.ref_code || '' }}\", \"bonus_credits_earned\": {{ $('Check DB').item.json.bonus_credits_earned || 0 }}, \"paid_referred_count\": {{ $('Check DB').item.json.paid_referred_count || 0 }} }",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://botisk.ru"
+              }
+            ]
+          }
+        }
+      },
+      "id": "58c459bb-f151-48a6-b6b4-5c0412227520",
+      "name": "Respond Paid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        960,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"{{ $('Check DB').item.json.is_paid || 'not_found' }}\", \"credits\": 0}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://botisk.ru"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2a159455-f453-4438-b63d-9de924001c2d",
+      "name": "Respond Pending",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        960,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check DB": {
+      "main": [
+        [
+          {
+            "node": "Paid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paid?": {
+      "main": [
+        [
+          {
+            "node": "Respond Paid",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "42e84d86-4fb6-4bdb-8a5e-79481aa03d55",
+  "activeVersionId": "42e84d86-4fb6-4bdb-8a5e-79481aa03d55",
+  "versionCounter": 11,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-18T19:03:36.269Z",
+      "createdAt": "2026-05-18T19:03:36.269Z",
+      "role": "workflow:owner",
+      "workflowId": "8WFoMJ9GqrrcC20a",
+      "projectId": "RvULuMVFYbQpag8g",
+      "project": {
+        "updatedAt": "2026-01-14T17:31:10.810Z",
+        "createdAt": "2026-01-14T16:37:11.977Z",
+        "id": "RvULuMVFYbQpag8g",
+        "name": "Денис Искусных <vlz.transs@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "9c002dd4-f026-451d-aff0-0c3e6e62a428",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-01-14T16:37:11.977Z",
+            "createdAt": "2026-01-14T16:37:11.977Z",
+            "userId": "9c002dd4-f026-451d-aff0-0c3e6e62a428",
+            "projectId": "RvULuMVFYbQpag8g",
+            "user": {
+              "updatedAt": "2026-05-29T21:00:02.176Z",
+              "createdAt": "2026-01-14T16:37:11.061Z",
+              "id": "9c002dd4-f026-451d-aff0-0c3e6e62a428",
+              "email": "vlz.transs@gmail.com",
+              "firstName": "Денис",
+              "lastName": "Искусных",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-01-14T17:31:16.618Z",
+                "personalization_survey_n8n_version": "2.3.4"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "-OH014lzSCAqyK0LD2iqC",
+                "userActivatedAt": 1769104909343,
+                "easyAIWorkflowOnboarded": true,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1771336333810
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-05-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-20T23:22:12.862Z",
+    "createdAt": "2026-05-20T23:22:12.862Z",
+    "versionId": "42e84d86-4fb6-4bdb-8a5e-79481aa03d55",
+    "workflowId": "8WFoMJ9GqrrcC20a",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "yukassa-check-payment",
+          "responseMode": "responseNode",
+          "options": {
+            "allowedOrigins": "https://botisk.ru"
+          }
+        },
+        "id": "70d5cd15-4568-405e-b5e8-34cd492e84d2",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          240,
+          300
+        ],
+        "webhookId": "14278aa0-2054-4a95-9bfc-0779e51e422b"
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT   wo.payment_id, wo.tariff_code, wo.amount_rub, wo.is_paid,   wo.generations_limit, wo.generations_left,   wu.ref_code,   COALESCE(wu.bonus_credits_earned, 0) AS bonus_credits_earned,   COALESCE(wu.paid_referred_count, 0) AS paid_referred_count FROM web_orders wo LEFT JOIN web_users wu ON LOWER(wu.email) = LOWER(wo.email) WHERE (wo.email = '{{ $json.body.email }}' OR wo.session_id = '{{ $json.body.session_id }}')   AND wo.payment_id IS NOT NULL ORDER BY wo.created_at DESC LIMIT 1",
+          "options": {}
+        },
+        "id": "26e555c9-0aa7-4b12-ab62-f0b2388a10f8",
+        "name": "Check DB",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          480,
+          300
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "VHwQR0NCUn28HZPP",
+            "name": "ssh root@72.56.96.64"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.is_paid }}",
+                "rightValue": "yes",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ]
+          }
+        },
+        "id": "ed1a2fda-7c48-4d43-b224-476ad3ed417a",
+        "name": "Paid?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          720,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={ \"status\": \"succeeded\", \"credits\": {{ $('Check DB').item.json.generations_limit || 0 }}, \"plan\": \"{{ $('Check DB').item.json.tariff_code }}\", \"ref_code\": \"{{ $('Check DB').item.json.ref_code || '' }}\", \"bonus_credits_earned\": {{ $('Check DB').item.json.bonus_credits_earned || 0 }}, \"paid_referred_count\": {{ $('Check DB').item.json.paid_referred_count || 0 }} }",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "https://botisk.ru"
+                }
+              ]
+            }
+          }
+        },
+        "id": "58c459bb-f151-48a6-b6b4-5c0412227520",
+        "name": "Respond Paid",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          960,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={\"status\": \"{{ $('Check DB').item.json.is_paid || 'not_found' }}\", \"credits\": 0}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "https://botisk.ru"
+                }
+              ]
+            }
+          }
+        },
+        "id": "2a159455-f453-4438-b63d-9de924001c2d",
+        "name": "Respond Pending",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          960,
+          420
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Check DB",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check DB": {
+        "main": [
+          [
+            {
+              "node": "Paid?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Paid?": {
+        "main": [
+          [
+            {
+              "node": "Respond Paid",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond Pending",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Денис Искусных",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-20T23:22:12.925Z",
+        "id": 401,
+        "workflowId": "8WFoMJ9GqrrcC20a",
+        "versionId": "42e84d86-4fb6-4bdb-8a5e-79481aa03d55",
+        "event": "activated",
+        "userId": "9c002dd4-f026-451d-aff0-0c3e6e62a428"
+      }
+    ]
+  }
+}

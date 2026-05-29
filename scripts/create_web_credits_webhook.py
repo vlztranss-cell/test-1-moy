@@ -19,7 +19,9 @@ PG_CRED = {"id": "VHwQR0NCUn28HZPP", "name": "ssh root@72.56.96.64"}
 QUERY = ("SELECT COALESCE((SELECT paid_credits FROM web_users "
          "WHERE LOWER(email)=LOWER('{{$json.query.email}}') LIMIT 1),0)::int AS paid_credits, "
          "COALESCE((SELECT free_used FROM web_users "
-         "WHERE LOWER(email)=LOWER('{{$json.query.email}}') LIMIT 1),false) AS free_used")
+         "WHERE LOWER(email)=LOWER('{{$json.query.email}}') LIMIT 1),false) AS free_used, "
+         "COALESCE((SELECT ref_code FROM web_users "
+         "WHERE LOWER(email)=LOWER('{{$json.query.email}}') LIMIT 1),'') AS ref_code")
 
 
 def workflow():
