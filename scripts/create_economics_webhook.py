@@ -35,12 +35,18 @@ SELECT
   COALESCE((SELECT remain_usd FROM piapi_spend_snapshots ORDER BY id DESC LIMIT 1),0)::numeric AS piapi_remain_usd,
   {AD_SPEND_RUB} AS ad_spend_rub,
   {USD_RUB} AS usd_rub,
+  -- Реальные аномалии: НЕ тестовые email с платным заказом (amount>0, is_paid=yes),
+  -- но без единого успешного платежа в ЮKassa (исторический хвост до фикса callback).
+  -- Легит free-trial (amount=0) и тестовые аккаунты исключены — не считаем их фантомами.
   (SELECT COUNT(*)::int FROM (
-     SELECT payment_id FROM web_orders WHERE is_paid IN ('t','true','yes','1') AND payment_id<>''
-     UNION ALL
-     SELECT payment_id FROM orders WHERE is_paid IN ('t','true','yes','1') AND payment_id<>''
-   ) p WHERE NOT EXISTS (SELECT 1 FROM yukassa_payments y WHERE y.id=p.payment_id AND y.status='succeeded')
-  ) AS phantoms,
+     SELECT DISTINCT LOWER(email) em FROM web_orders
+     WHERE is_paid IN ('t','true','yes','1') AND amount_rub>0 AND email<>''
+       AND email NOT ILIKE '%test%' AND email NOT ILIKE '%e2e%' AND email NOT ILIKE 'autotest%'
+       AND LOWER(email) <> 'vlz.transs@gmail.com'
+   ) m WHERE NOT EXISTS (
+     SELECT 1 FROM web_orders o JOIN yukassa_payments y ON y.id=o.payment_id
+     WHERE LOWER(o.email)=m.em AND y.status='succeeded')
+  ) AS anomalies,
   (SELECT COUNT(*)::int FROM yukassa_payments y WHERE y.status='succeeded'
      AND NOT EXISTS (SELECT 1 FROM web_orders w WHERE w.payment_id=y.id)
      AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.payment_id=y.id)
