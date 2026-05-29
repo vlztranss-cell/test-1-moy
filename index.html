@@ -1964,20 +1964,24 @@
             localStorage.setItem('videoai_credits', String(n));
             updateCreditsUI();
         }
-        // Источник правды — сервер. Подтягиваем реальный баланс по email, чтобы не
-        // показывать устаревший localStorage. Доступно = платные + (1 бесплатное, если не использовано).
-        async function syncServerCredits() {
-            const email = getEmail();
-            if (!email) return;
+        // Реальный баланс с сервера: {paid_credits, free_used, ref_code} или null при ошибке сети.
+        async function getServerCreditsInfo(email) {
             try {
                 const r = await fetch(API_CREDITS + '?email=' + encodeURIComponent(email));
                 const d = await r.json();
-                const it = (d.items && d.items[0]) || null;
-                if (!it) return;
-                const available = (parseInt(it.paid_credits, 10) || 0) + (it.free_used ? 0 : 1);
-                localStorage.setItem('videoai_credits', String(available));
-                updateCreditsUI();
-            } catch (e) { /* офлайн — оставляем локальное значение */ }
+                return (d.items && d.items[0]) || null;
+            } catch (e) { return null; }
+        }
+        // Источник правды — сервер. Доступно = платные + (1 бесплатное, если не использовано).
+        async function syncServerCredits() {
+            const email = getEmail();
+            if (!email) return;
+            const it = await getServerCreditsInfo(email);
+            if (!it) return;
+            const available = (parseInt(it.paid_credits, 10) || 0) + (it.free_used ? 0 : 1);
+            localStorage.setItem('videoai_credits', String(available));
+            if (it.ref_code) localStorage.setItem('videoai_my_ref_code', it.ref_code);
+            updateCreditsUI();
         }
         function getEmail() {
             return (localStorage.getItem('videoai_email') || '').trim().toLowerCase();
@@ -2171,6 +2175,10 @@
                 if (data.confirmation_url) {
                     // Email уже сохранён через setEmail() выше; помечаем pending plan
                     localStorage.setItem('videoai_pending_plan', currentPlan);
+                    // Запоминаем РЕАЛЬНЫЙ баланс ДО оплаты — на возврате сравним, чтобы
+                    // «зачислено» показать только при фактическом росте кредитов на сервере.
+                    const _before = await getServerCreditsInfo(email);
+                    localStorage.setItem('videoai_paid_before', String(_before ? (parseInt(_before.paid_credits, 10) || 0) : 0));
                     // ВАЖНО: Метрика отправляет reachGoal асинхронно через pixel.
                     // window.location.href = немедленный редирект отменяет pending запросы → goal не уходит.
                     // Используем callback ym() — он гарантирует что pixel ушёл перед редиректом.
@@ -2203,41 +2211,30 @@
             const creditsInfo = document.querySelector('.credits-info');
             if (creditsInfo) creditsInfo.innerHTML = 'Проверяем оплату...';
 
-            try {
-                const resp = await fetch(API_PAYMENT_STATUS, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: email,
-                        plan: pending,
-                        session_id: getSessionId()
-                    })
-                });
-                const data = await resp.json();
-
-                if (data.status === 'succeeded' && data.credits > 0) {
-                    const current = getCredits();
-                    setCredits(current + data.credits);
-                    localStorage.removeItem('videoai_pending_plan');
-                    trackGoal('PAYMENT_SUCCESS', { plan: pending, credits: data.credits });
-                    // Сохраняем свой ref_code (даёт пользователь сервер) для UI «Пригласи друга»
-                    if (data.ref_code) localStorage.setItem('videoai_my_ref_code', data.ref_code);
-                    // Показываем уведомление об успешной оплате + блок реф-ссылки
-                    showPaymentSuccess(data.credits);
-                    showReferralCard(data);
-                } else if (data.status === 'pending') {
-                    // Оплата НЕ подтверждена (могли нажать «назад»). Не обещаем зачисление —
-                    // показываем честный статус и сверяем реальный баланс с сервера.
-                    if (creditsInfo) creditsInfo.innerHTML = 'Оплата ещё не подтверждена. Если вы её завершили — кредиты появятся в течение минуты: <a href="javascript:location.reload()" style="color:var(--accent-light)">Обновить</a>';
-                    syncServerCredits();
-                } else {
-                    localStorage.removeItem('videoai_pending_plan');
-                    syncServerCredits();
-                    updateCreditsUI();
-                }
-            } catch (e) {
-                console.error('Payment check failed:', e);
-                updateCreditsUI();
+            // Источник правды — РЕАЛЬНЫЙ баланс paid_credits в web_users (его наращивает только
+            // callback ЮKassa, проверяющий статус платежа через API). «Зачислено» показываем
+            // ТОЛЬКО если баланс реально вырос против сохранённого ДО оплаты — иначе это ложное
+            // срабатывание (нажал «назад», устаревший is_paid и т.п.).
+            const before = parseInt(localStorage.getItem('videoai_paid_before') || '0', 10);
+            const it = await getServerCreditsInfo(email);
+            if (it === null) {
+                if (creditsInfo) creditsInfo.innerHTML = 'Не удалось проверить оплату. <a href="javascript:location.reload()" style="color:var(--accent-light)">Обновить</a>';
+                return;
+            }
+            const now = parseInt(it.paid_credits, 10) || 0;
+            if (now > before) {
+                const added = now - before;
+                localStorage.removeItem('videoai_pending_plan');
+                localStorage.removeItem('videoai_paid_before');
+                if (it.ref_code) localStorage.setItem('videoai_my_ref_code', it.ref_code);
+                trackGoal('PAYMENT_SUCCESS', { plan: pending, credits: added });
+                showPaymentSuccess(added);
+                showReferralCard({ ref_code: it.ref_code });
+                syncServerCredits();
+            } else {
+                // Оплата не подтверждена (нажали «назад» / ещё обрабатывается callback)
+                if (creditsInfo) creditsInfo.innerHTML = 'Оплата ещё не подтверждена. Если вы её завершили — кредиты зачислятся в течение минуты: <a href="javascript:location.reload()" style="color:var(--accent-light)">Обновить</a>';
+                syncServerCredits();
             }
         }
 
