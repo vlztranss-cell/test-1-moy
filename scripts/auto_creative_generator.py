@@ -129,13 +129,13 @@ def pick_rotating_source() -> str:
 
 
 def pick_source_photo(category: str) -> tuple[str, str] | None:
-    """Возвращает (image_url, source_tag).
+    """Возвращает (image_url, source_tag) или None.
 
-    Ротация трёх источников:
       1) UGC из collect-bot — приоритет, если есть свежее неиспользованное фото;
-      2) иначе равномерно чередуем Unsplash-сток и генерацию Nano Banana 2.
-    source_tag начинается с типа источника (ugc/unsplash/nano-banana) — по нему
-    pick_rotating_source считает статистику в auto_creative_log.
+      2) иначе — генерация исходника через Nano Banana 2.
+
+    Unsplash УБРАН 30.05.26: source.unsplash.com отключён Unsplash'ом → картинка
+    не скачивалась → Kling падал (kling timeout/error). Источник теперь Nano Banana 2.
     """
     # 1) UGC — берём первое неиспользованное фото (всегда приоритет)
     from_bot_dir = Path("/srv/creatives/raw/source/from_bot")
@@ -149,22 +149,16 @@ def pick_source_photo(category: str) -> tuple[str, str] | None:
                 if upload_url:
                     return upload_url, f"ugc:{f.name}"
 
-    # 2) Ротация синтетических источников
-    source = pick_rotating_source()
-    if source == "nano-banana":
-        print(f"  источник: nano-banana (генерация исходника)")
-        task_id = nano_banana_create_task(category)
-        if task_id:
-            img_url = nano_banana_wait(task_id)
-            if img_url:
-                return img_url, f"nano-banana:{task_id}"
-        print("  ⚠️ nano-banana не дал картинку — fallback на Unsplash")
-
-    # 3) Unsplash (выбран ротацией или fallback)
-    query = random.choice(UNSPLASH_QUERIES.get(category, ["portrait"]))
-    # Используем Unsplash Source (random photo by query — без API key)
-    url = f"https://source.unsplash.com/1080x1080/?{urllib.parse.quote(query)}"
-    return url, f"unsplash:{query}"
+    # 2) Nano Banana 2 — генерим фотореалистичный исходник под категорию.
+    # Ephemeral-URL (img.theapi.app) Kling скачивает напрямую (проверено e2e).
+    print("  источник: nano-banana (генерация исходника)")
+    task_id = nano_banana_create_task(category)
+    if task_id:
+        img_url = nano_banana_wait(task_id)
+        if img_url:
+            return img_url, f"nano-banana:{task_id}"
+    print("  ❌ nano-banana не дал картинку — пропускаю запуск (Unsplash убран)")
+    return None
 
 
 def upload_to_freeimage(local_path: str) -> str | None:
