@@ -14,3 +14,6 @@ design/
 *.exported.json
 *.modified.json
 *.backup_*.json
+
+# n8n bot workflow exports/backups (содержат токен бота — НЕ коммитить)
+n8n-workflows/AI_Photo2Video_Bot*.json
