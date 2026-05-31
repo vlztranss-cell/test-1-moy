@@ -39,14 +39,18 @@ def psql(sql: str) -> str:
     return r.stdout.strip()
 
 
-def fetch_wallet() -> dict:
+def fetch_account() -> dict:
+    """Полный data из account/info. ВАЖНО: реальный баланс лежит в
+    data.equivalent_in_usd (credit-пакеты), а НЕ в wallet.point_remain —
+    последний это старый pay-as-you-go пул, который почти всегда около нуля
+    и давал ложную тревогу «баланс на нуле»."""
     env = load_env()
     req = urllib.request.Request(
         "https://api.piapi.ai/account/info",
         headers={"x-api-key": env["PIAPI_KEY"], "User-Agent": "VideoAI-SpendLogger/1.0"},
     )
     data = json.loads(urllib.request.urlopen(req, timeout=20).read())
-    return (data.get("data") or {}).get("wallet", {})
+    return data.get("data") or {}
 
 
 def main() -> None:
@@ -63,14 +67,17 @@ def main() -> None:
         );
     """)
 
-    w = fetch_wallet()
+    acc = fetch_account()
+    w = acc.get("wallet", {})
     point_used = int(w.get("point_used", 0))
     point_remain = int(w.get("point_remain", 0))
     point_frozen = int(w.get("point_frozen", 0))
     llm_used = int(w.get("llm_used", 0))
 
     spent_usd = round(point_used / POINTS_PER_USD, 2)
-    remain_usd = round(point_remain / POINTS_PER_USD, 2)
+    # РЕАЛЬНЫЙ остаток = equivalent_in_usd (credit-пакеты), а не legacy point_remain.
+    remain_usd = round(float(acc.get("equivalent_in_usd", 0) or 0), 2)
+    avail_credits = int((acc.get("credit_pack_info") or {}).get("available_credits", 0))
 
     psql(
         "INSERT INTO piapi_spend_snapshots "
@@ -87,8 +94,8 @@ def main() -> None:
         delta = round(spent_usd - float(prev_usd), 2)
         delta_line = f"  Δ с {prev_date}: +${delta}"
 
-    print(f"PiAPI spend: ВСЕГО потрачено ${spent_usd} | остаток ${remain_usd} "
-          f"(point_used={point_used:,}){delta_line}")
+    print(f"PiAPI spend: ВСЕГО потрачено ${spent_usd} | РЕАЛЬНЫЙ остаток ${remain_usd} "
+          f"({avail_credits:,} credits){delta_line}")
     if remain_usd < 5:
         print(f"  ⚠️ ОСТАТОК НИЗКИЙ (${remain_usd}) — нужен топап PiAPI, иначе генерация встанет.")
 
