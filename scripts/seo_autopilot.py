@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -241,6 +242,7 @@ def est_read(html: str) -> int:
 
 def render_html(data: dict, slug: str, img: str, today: str) -> str:
     url = f"{SITE}/blog/{slug}.html"; img_url = f"{SITE}/blog/img/{img}"
+    lead = re.sub(r'^\s*<p[^>]*>|</p>\s*$', '', (data.get("lead") or "").strip())  # GPT иногда оборачивает в <p>
     toc = "".join(f'<li><a href="#s{i+1}">{esc(t)}</a></li>' for i, t in enumerate(data.get("toc", [])))
     faq_html = "".join(f'<div class="faq-q">{esc(f["q"])}</div><p>{esc(f["a"])}</p>' for f in data.get("faq", []))
     faq_schema = json.dumps({"@context": "https://schema.org", "@type": "FAQPage",
@@ -282,7 +284,7 @@ def render_html(data: dict, slug: str, img: str, today: str) -> str:
 <h1>{esc(data['title'])}</h1>
 <div class="meta">{today_human(today)} · {est_read(data.get('body_html',''))} мин чтения · VideoAI</div>
 <figure class="hero"><img src="img/{img}" alt="{esc(data['title'])}" loading="lazy"></figure>
-<p class="lead">{data['lead']}</p>
+<p class="lead">{lead}</p>
 <div class="toc"><div class="toc-title">📋 В этой статье</div><ol>{toc}</ol></div>
 {data['body_html']}
 <div class="cta"><h3>Оживите фото бесплатно</h3><p>Без регистрации. Первое видео — бесплатно. Загрузите снимок — получите живое видео за 60 секунд.</p><a href="/#generator" class="cta-btn">Создать видео из фото →</a></div>
@@ -349,7 +351,7 @@ def main() -> None:
             (REPO_DIR / f"_preview_{k['slug']}.html").write_text(html, encoding="utf-8")
             print(f"  [dry-run] превью + картинка {img}"); continue
         (BLOG_DIR / f"{k['slug']}.html").write_text(html, encoding="utf-8")
-        excerpt = data["lead"].replace("<strong>", "").replace("</strong>", "")[:180]
+        excerpt = re.sub(r'<[^>]+>', '', data["lead"]).strip()[:180]
         update_index(k["slug"], data["title"], excerpt, today)
         mark_used(k["id"])
         save_draft(k["slug"], k["keyword"], data["title"], data["meta_description"], len(data["body_html"].split()))
