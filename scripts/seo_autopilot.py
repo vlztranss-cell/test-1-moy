@@ -3,7 +3,7 @@
 SEO Autopilot — АВТОПИЛОТ контента блога botisk.ru (вариант B, на VPS).
 
 Раз в день (cron на VPS) берёт N свободных ключей из seo_keywords_queue,
-пишет по каждому качественный лонгрид через Claude API, генерит тематическую
+пишет по каждому качественный лонгрид через GPT (OpenAI), генерит тематическую
 hero-картинку в Nano Banana 2 (PiAPI), собирает HTML по шаблону блога,
 обновляет blog/index.html, помечает ключ использованным, коммитит и пушит
 на GitHub Pages. Работает БЕЗ участия человека и без открытого Claude Code.
@@ -20,7 +20,7 @@ hero-картинку в Nano Banana 2 (PiAPI), собирает HTML по ша�
 Cron (раз в день, 04:07 UTC, off-minute):
     7 4 * * *  cd /srv/seo-site && /usr/bin/python3 scripts/seo_autopilot.py >> /var/log/seo_gen.log 2>&1
 
-Требует в .env: ANTHROPIC_API_KEY, PIAPI_KEY. Git remote с GitHub-токеном
+Требует в .env: OPENAI_API_KEY, PIAPI_KEY (оба уже есть). Git remote с GitHub-токеном
 настраивается ОДИН раз при клонировании репо — в этом скрипте токен НЕ фигурирует.
 """
 from __future__ import annotations
@@ -43,10 +43,10 @@ BLOG_DIR = REPO_DIR / "blog"
 IMG_DIR = BLOG_DIR / "img"
 SITE = "https://botisk.ru"
 METRIKA_ID = "109293181"
-MODEL = "claude-sonnet-4-6"                              # качество/цена для ежедневной генерации
+MODEL = "gpt-4o"                                        # существующее подключение OpenAI (для SEO-качества лучше mini)
 N_DEFAULT = 3
 
-ANTHROPIC_KEY = ENV.get("ANTHROPIC_API_KEY", "")
+OPENAI_KEY = ENV.get("OPENAI_API_KEY", "")
 PIAPI_KEY = ENV.get("PIAPI_KEY", "")
 
 
@@ -122,27 +122,24 @@ USER_TMPL = """Напиши SEO-статью под ключевой запро�
 Тема — оживление фото/память/семья. Тон тёплый, без пафоса. Только валидный JSON."""
 
 
-def claude_write(keyword: str) -> dict | None:
+def gpt_write(keyword: str) -> dict | None:
+    """Пишет статью через OpenAI (существующее подключение). JSON-режим гарантирует валидный JSON."""
     body = json.dumps({
-        "model": MODEL, "max_tokens": 4000, "system": SYSTEM_PROMPT,
-        "messages": [{"role": "user", "content": USER_TMPL.format(keyword=keyword)}],
+        "model": MODEL, "temperature": 0.7,
+        "response_format": {"type": "json_object"},
+        "messages": [{"role": "system", "content": SYSTEM_PROMPT},
+                     {"role": "user", "content": USER_TMPL.format(keyword=keyword)}],
     }).encode()
     req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages", data=body, method="POST",
-        headers={"x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01",
-                 "content-type": "application/json"})
+        "https://api.openai.com/v1/chat/completions", data=body, method="POST",
+        headers={"Authorization": f"Bearer {OPENAI_KEY}", "content-type": "application/json"})
     try:
         r = json.loads(urllib.request.urlopen(req, timeout=120).read())
-        text = "".join(b.get("text", "") for b in r.get("content", []) if b.get("type") == "text").strip()
-        if text.startswith("```"):
-            text = text.split("```", 2)[1]
-            if text.startswith("json"):
-                text = text[4:]
-        return json.loads(text.strip())
+        return json.loads(r["choices"][0]["message"]["content"].strip())
     except urllib.error.HTTPError as e:
-        print(f"  claude HTTP {e.code}: {e.read().decode()[:200]}")
+        print(f"  gpt HTTP {e.code}: {e.read().decode()[:200]}")
     except Exception as e:
-        print(f"  claude err: {e}")
+        print(f"  gpt err: {e}")
     return None
 
 
@@ -312,8 +309,8 @@ def main() -> None:
     ap.add_argument("--count", type=int, default=N_DEFAULT)
     args = ap.parse_args()
 
-    if not ANTHROPIC_KEY or not PIAPI_KEY:
-        sys.exit("НЕТ ANTHROPIC_API_KEY или PIAPI_KEY в .env — генерация невозможна.")
+    if not OPENAI_KEY or not PIAPI_KEY:
+        sys.exit("НЕТ OPENAI_API_KEY или PIAPI_KEY в .env — генерация невозможна.")
 
     today = subprocess.run(["date", "+%Y-%m-%d"], capture_output=True, text=True).stdout.strip()
     kws = pick_keywords(args.count)
@@ -324,9 +321,9 @@ def main() -> None:
     published = []
     for k in kws:
         print(f"\n→ «{k['keyword']}» ({k['slug']})")
-        data = claude_write(k["keyword"])
+        data = gpt_write(k["keyword"])
         if not data or not data.get("title") or not data.get("body_html"):
-            print("  пропуск: Claude не дал валидную статью"); continue
+            print("  пропуск: GPT не дал валидную статью"); continue
         img = nano_banana(data.get("image_prompt", k["keyword"]), k["slug"])
         if not img:
             print("  пропуск: нет картинки Nano Banana (ПРАВИЛО: без картинки не публикуем)"); continue
