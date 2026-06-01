@@ -17,3 +17,11 @@ design/
 
 # n8n bot workflow exports/backups (содержат токен бота — НЕ коммитить)
 n8n-workflows/AI_Photo2Video_Bot*.json
+
+# временные ad-hoc диагностические файлы (могут содержать секреты)
+scripts/_diag*
+scripts/_*_out.txt
+scripts/_recon_*
+scripts/_probe_*
+scripts/_schema*
+scripts/_daily_stats.py

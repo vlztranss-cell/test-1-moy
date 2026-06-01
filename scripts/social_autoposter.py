@@ -46,8 +46,10 @@ import subprocess
 
 def psql_fetch(sql: str) -> str:
     """Локальный psql на VPS (мы уже на сервере)."""
+    # -F '\x1f': разделитель полей — спецсимвол, которого не бывает в title/caption/hashtags
+    # (раньше был дефолтный '|', и caption вида "...за 60 сек | botisk.ru" ломал парсинг колонок).
     result = subprocess.run(
-        ["sudo", "-u", "postgres", "psql", "-d", "photo_bot", "-tA", "-c", sql],
+        ["sudo", "-u", "postgres", "psql", "-d", "photo_bot", "-tA", "-F", "\x1f", "-c", sql],
         capture_output=True, text=True, timeout=15
     )
     if result.returncode != 0:
@@ -245,7 +247,7 @@ def get_next_pending_post() -> dict | None:
     cols = ["id", "creative_file", "title", "caption", "hashtags",
             "target_youtube", "target_telegram", "target_vk",
             "youtube_status", "telegram_status", "vk_status"]
-    vals = out.split("|")
+    vals = out.split("\x1f")
     return dict(zip(cols, vals))
 
 
