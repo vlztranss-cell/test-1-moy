@@ -1625,7 +1625,7 @@
                 <div class="error-msg" id="error"></div>
 
                 <div class="result-section" id="result">
-                    <video class="result-video" id="result-video" controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false" autoplay loop playsinline></video>
+                    <video class="result-video" id="result-video" controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false" autoplay loop muted playsinline></video>
                     <div class="watermark-notice" id="watermark-notice" style="display:none;">
                         <div class="wn-icon">🎬</div>
                         <div class="wn-body">
@@ -2529,7 +2529,12 @@
         function showResult(videoUrl, chargeType) {
             progressSection.classList.remove('active');
             resultSection.classList.add('active');
+            resultVideo.muted = true;
+            let _vr = 0;
+            resultVideo.onerror = () => { if (_vr++ < 4) setTimeout(() => { resultVideo.src = videoUrl + (videoUrl.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now(); resultVideo.load(); }, 2500); };
             resultVideo.src = videoUrl;
+            resultVideo.load();
+            resultVideo.play().catch(function(){});
 
             const wmNotice = document.getElementById('watermark-notice');
             const isFree = chargeType === 'free';
