@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#06080d">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%8E%AC</text></svg>">
     <title>VideoAI — Оживи фото за 60 секунд | AI генератор видео</title>
     <meta name="description" content="Превращаем обычные фотографии в живые видео с помощью нейросети. Загрузите фото — получите видео за минуту. Попробуйте бесплатно!">
     <meta property="og:title" content="VideoAI — Оживи фото за 60 секунд">
@@ -40,7 +42,7 @@
           "name": "VideoAI / ИП Искусных Е.В.",
           "url": "https://botisk.ru/",
           "logo": "https://botisk.ru/og-image.png",
-          "email": "support@videoai.ru",
+          "email": "support@botisk.ru",
           "sameAs": ["https://t.me/VideoAI_24isk_bot"]
         },
         {
@@ -54,8 +56,7 @@
             {"@type": "Offer", "name": "Старт", "price": "290", "priceCurrency": "RUB", "description": "10 видео", "url": "https://botisk.ru/#pricing"},
             {"@type": "Offer", "name": "Про",   "price": "790", "priceCurrency": "RUB", "description": "50 видео", "url": "https://botisk.ru/#pricing"},
             {"@type": "Offer", "name": "Бизнес","price": "2490","priceCurrency": "RUB", "description": "200 видео", "url": "https://botisk.ru/#pricing"}
-          ],
-          "aggregateRating": {"@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "127"}
+          ]
         },
         {
           "@type": "FAQPage",
@@ -1293,9 +1294,41 @@
             .hero-actions { flex-direction: column; }
             .btn { justify-content: center; }
         }
+
+        /* Заглушка-фон под ленивыми видео, пока не загрузился постер/ролик */
+        .lazy-video {
+            display: block;
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-card-hover));
+        }
+
+        /* Ссылка «к содержимому» — появляется только при фокусе с клавиатуры */
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            z-index: 2000;
+            background: var(--accent);
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 0 0 8px 0;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .skip-link:focus { left: 0; }
+
+        /* Уважение к настройке «уменьшить движение»: гасим анимации и переходы */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
     </style>
 </head>
 <body>
+    <a class="skip-link" href="#main-content">К содержимому</a>
 
     <!-- NAVBAR -->
     <nav class="navbar" id="navbar">
@@ -1315,7 +1348,7 @@
     </nav>
 
     <!-- HERO -->
-    <section class="hero">
+    <section class="hero" id="main-content">
         <div class="hero-content">
             <div class="hero-badge">
                 <span class="pulse"></span>
@@ -1325,8 +1358,8 @@
             <p class="hero-sub">Семейное фото, детский снимок, фото с питомцем — загрузите любую фотографию, и нейросеть превратит её в живое видео. Без программ, без ожидания.</p>
             <!-- Hero demo video -->
             <div style="margin: 32px auto 36px; max-width: 360px;">
-                <video autoplay loop muted playsinline style="width:100%; border-radius:16px; box-shadow: 0 8px 40px rgba(124,92,252,0.2);">
-                    <source src="videos/welcome.mp4" type="video/mp4">
+                <video loop muted playsinline preload="none" class="lazy-video" data-lazy poster="videos/posters/welcome.webp" style="width:100%; aspect-ratio:9/16; border-radius:16px; box-shadow: 0 8px 40px rgba(124,92,252,0.2);">
+                    <source data-src="videos/welcome.mp4" type="video/mp4">
                 </video>
                 <p style="text-align:center; font-size:13px; color:var(--text-dim); margin-top:8px;">Вот как оживают старые фотографии</p>
             </div>
@@ -1394,8 +1427,8 @@
             <div class="examples-grid">
                 <div class="example-card">
                     <div class="example-visual">
-                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
-                            <source src="videos/warm_memory.mp4" type="video/mp4">
+                        <video loop muted playsinline preload="none" class="lazy-video" data-lazy poster="videos/posters/warm_memory.webp" style="width:100%;height:100%;object-fit:cover;">
+                            <source data-src="videos/warm_memory.mp4" type="video/mp4">
                         </video>
                         <span class="example-badge">Память</span>
                     </div>
@@ -1406,8 +1439,8 @@
                 </div>
                 <div class="example-card">
                     <div class="example-visual">
-                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
-                            <source src="videos/childhood.mp4" type="video/mp4">
+                        <video loop muted playsinline preload="none" class="lazy-video" data-lazy poster="videos/posters/childhood.webp" style="width:100%;height:100%;object-fit:cover;">
+                            <source data-src="videos/childhood.mp4" type="video/mp4">
                         </video>
                         <span class="example-badge">Детство</span>
                     </div>
@@ -1418,8 +1451,8 @@
                 </div>
                 <div class="example-card">
                     <div class="example-visual">
-                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
-                            <source src="videos/pet.mp4" type="video/mp4">
+                        <video loop muted playsinline preload="none" class="lazy-video" data-lazy poster="videos/posters/pet.webp" style="width:100%;height:100%;object-fit:cover;">
+                            <source data-src="videos/pet.mp4" type="video/mp4">
                         </video>
                         <span class="example-badge">Питомцы</span>
                     </div>
@@ -1430,8 +1463,8 @@
                 </div>
                 <div class="example-card">
                     <div class="example-visual">
-                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
-                            <source src="videos/love_story.mp4" type="video/mp4">
+                        <video loop muted playsinline preload="none" class="lazy-video" data-lazy poster="videos/posters/love_story.webp" style="width:100%;height:100%;object-fit:cover;">
+                            <source data-src="videos/love_story.mp4" type="video/mp4">
                         </video>
                         <span class="example-badge">Love Story</span>
                     </div>
@@ -1442,8 +1475,8 @@
                 </div>
                 <div class="example-card">
                     <div class="example-visual">
-                        <video autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;">
-                            <source src="videos/examples.mp4" type="video/mp4">
+                        <video loop muted playsinline preload="none" class="lazy-video" data-lazy poster="videos/posters/examples.webp" style="width:100%;height:100%;object-fit:cover;">
+                            <source data-src="videos/examples.mp4" type="video/mp4">
                         </video>
                         <span class="example-badge">Пример</span>
                     </div>
@@ -2785,6 +2818,45 @@
         syncServerCredits();
         checkPaymentReturn();
         renderHeroVideoCount();
+    </script>
+
+    <!-- Ленивая подгрузка видео: ролик скачивается только когда подъезжает к экрану.
+         Экономит ~23 МБ трафика на первой загрузке и улучшает LCP. -->
+    <script>
+    (function () {
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var videos = document.querySelectorAll('video[data-lazy]');
+
+        function activate(video) {
+            if (video.dataset.loaded) return;
+            video.dataset.loaded = '1';
+            var source = video.querySelector('source[data-src]');
+            if (source && !source.src) {
+                source.src = source.dataset.src;
+                video.load();
+            }
+            // Автовоспроизведение только если пользователь не просил уменьшить движение
+            if (!reduceMotion) {
+                var p = video.play();
+                if (p && p.catch) p.catch(function () {});
+            }
+        }
+
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        activate(entry.target);
+                        io.unobserve(entry.target);
+                    }
+                });
+            }, { rootMargin: '200px 0px' });
+            videos.forEach(function (v) { io.observe(v); });
+        } else {
+            // Старые браузеры без IntersectionObserver — грузим сразу
+            videos.forEach(activate);
+        }
+    })();
     </script>
 </body>
 </html>
