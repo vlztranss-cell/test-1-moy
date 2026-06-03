@@ -18,8 +18,26 @@ import json, sys, io, urllib.request, urllib.parse, time, os
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 N8N_URL = "https://n8n.24isk.ru/api/v1"
-N8N_KEY = "***N8N_KEY_REMOVED***"
-TG_TOKEN = "***TG_TOKEN_REMOVED***"
+
+
+def _load_env():
+    """Секреты читаем из .env (рядом со скриптом) или из окружения.
+    В коде ключи НЕ хранить — репозиторий публичный."""
+    import pathlib
+    env = {}
+    p = pathlib.Path(__file__).with_name(".env")
+    if p.exists():
+        for line in p.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                env[k.strip()] = v.strip().strip('"').strip("'")
+    return env
+
+
+_ENV = _load_env()
+N8N_KEY = os.environ.get("N8N_API_KEY") or _ENV.get("N8N_API_KEY", "")
+TG_TOKEN = os.environ.get("CONTROL_TG_TOKEN") or _ENV.get("CONTROL_TG_TOKEN", "")
 CHAT_ID = "411823087"
 PINNED_MSG_ID = 6  # закреплённое сообщение с командами
 STATUS_FILE = "C:/AI moy/test 1 moy/.status_msg_id"

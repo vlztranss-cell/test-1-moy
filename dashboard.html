@@ -2170,7 +2170,7 @@
             saveLocalArchive(s);
             loadData();
         }
-        const N8N_API_KEY = '***N8N_KEY_REMOVED***';
+        const N8N_API_KEY = ''; // SECURITY: ключ НЕ хранить в клиенте (репозиторий публичный) — вынести в серверный прокси
         const N8N_BASE = 'https://n8n.24isk.ru';
 
         async function loadData() {
