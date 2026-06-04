@@ -7,6 +7,8 @@ build/
 .venv/
 venv/
 .env
+.env.*
+!.env.server.example
 .claude/
 design/
 
@@ -25,3 +27,5 @@ scripts/_recon_*
 scripts/_probe_*
 scripts/_schema*
 scripts/_daily_stats.py
+scripts/_yk_*
+scripts/_*_ids.json
