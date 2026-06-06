@@ -2264,6 +2264,15 @@
                 showPaymentSuccess(added);
                 showReferralCard({ ref_code: it.ref_code });
                 syncServerCredits();
+                // Вернуть видео, за которое заплатили: после редиректа ЮKassa страница перезагрузилась
+                // и сгенерированное видео пропадало. Восстанавливаем его как оплаченное (с рабочим скачиванием).
+                try {
+                    const lv = JSON.parse(localStorage.getItem('videoai_last_video') || 'null');
+                    if (lv && lv.url) {
+                        showResult(lv.url, 'paid');
+                        setTimeout(function () { document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 400);
+                    }
+                } catch (e) {}
             } else {
                 // Оплата не подтверждена (нажали «назад» / ещё обрабатывается callback)
                 if (creditsInfo) creditsInfo.innerHTML = 'Оплата ещё не подтверждена. Если вы её завершили — кредиты зачислятся в течение минуты: <a href="javascript:location.reload()" style="color:var(--accent-light)">Обновить</a>';
@@ -2568,6 +2577,8 @@
             resultVideo.src = videoUrl;
             resultVideo.load();
             resultVideo.play().catch(function(){});
+            // Запоминаем видео, чтобы вернуть его после редиректа оплаты (ЮKassa перезагружает страницу)
+            try { localStorage.setItem('videoai_last_video', JSON.stringify({ url: videoUrl, ts: Date.now() })); } catch (e) {}
 
             const wmNotice = document.getElementById('watermark-notice');
             const isFree = chargeType === 'free';
