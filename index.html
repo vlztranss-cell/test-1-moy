@@ -808,6 +808,22 @@
             border-color: var(--accent);
         }
         .prompt-field textarea::placeholder { color: var(--text-dim); }
+        .prompt-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .prompt-presets .preset-label { width: 100%; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+        .preset-chip {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 999px;
+            padding: 7px 13px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .preset-chip:hover { border-color: var(--accent); }
+        .preset-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
         .email-field { margin-top: 12px; }
         .email-field input {
@@ -1634,7 +1650,18 @@
                 <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp">
 
                 <div class="prompt-field">
-                    <textarea id="prompt" placeholder="Описание движения (необязательно)..."></textarea>
+                    <div class="prompt-presets" id="prompt-presets">
+                        <div class="preset-label">Что должно произойти на видео? Выберите вариант или опишите сами:</div>
+                        <span class="preset-chip" data-prompt="The person smiles warmly and blinks gently, subtle natural head movement">🙂 Улыбается</span>
+                        <span class="preset-chip" data-prompt="The person laughs joyfully, eyes light up, lively natural motion">😂 Смеётся</span>
+                        <span class="preset-chip" data-prompt="The person blows a kiss to the camera, warm and gentle">😘 Шлёт поцелуй</span>
+                        <span class="preset-chip" data-prompt="The person waves a hand at the camera, friendly greeting">👋 Машет рукой</span>
+                        <span class="preset-chip" data-prompt="The person dances cheerfully with rhythmic body movement">💃 Танцует</span>
+                        <span class="preset-chip" data-prompt="The person winks playfully at the camera with a smile">😉 Подмигивает</span>
+                        <span class="preset-chip" data-prompt="The person looks deeply touched, eyes glisten with gentle tears, emotional moment">🥹 Растрогана</span>
+                        <span class="preset-chip" data-prompt="Gentle natural motion, soft breathing and a subtle head turn, bring the photo to life">✨ Просто оживить</span>
+                    </div>
+                    <textarea id="prompt" placeholder="…или опишите своими словами (необязательно)"></textarea>
                 </div>
 
                 <div class="email-field">
@@ -2407,6 +2434,30 @@
         }
 
         generateBtn.addEventListener('click', startGeneration);
+
+        // Пресеты промпта: тап по чипу подставляет готовое описание движения (можно дописать своё)
+        (function () {
+            const presets = document.getElementById('prompt-presets');
+            const promptEl = document.getElementById('prompt');
+            if (!presets || !promptEl) return;
+            presets.addEventListener('click', function (e) {
+                const chip = e.target.closest('.preset-chip');
+                if (!chip) return;
+                const wasActive = chip.classList.contains('active');
+                presets.querySelectorAll('.preset-chip').forEach(function (c) { c.classList.remove('active'); });
+                if (wasActive) {
+                    promptEl.value = '';
+                } else {
+                    chip.classList.add('active');
+                    promptEl.value = chip.getAttribute('data-prompt') || '';
+                }
+                try { if (window.trackGoal) trackGoal('PROMPT_PRESET', { p: (chip.textContent || '').trim() }); } catch (e) {}
+            });
+            // Если юзер начал править текст вручную — снимаем выделение с чипа
+            promptEl.addEventListener('input', function () {
+                presets.querySelectorAll('.preset-chip.active').forEach(function (c) { c.classList.remove('active'); });
+            });
+        })();
 
         async function startGeneration() {
             if (!selectedFile) return;
