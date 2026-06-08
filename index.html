@@ -2648,21 +2648,17 @@
             } else {
                 // Платное — чистое видео, реальное скачивание.
                 wmNotice.style.display = 'none';
-                downloadBtn.textContent = 'Скачать видео';
-                downloadBtn.onclick = async () => {
+                downloadBtn.textContent = '⬇️ Скачать видео';
+                downloadBtn.onclick = () => {
                     trackGoal('VIDEO_DOWNLOAD');
-                    try {
-                        const resp = await fetch(videoUrl);
-                        const blob = await resp.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'ai-video-' + Date.now() + '.mp4';
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    } catch {
-                        window.open(videoUrl, '_blank');
-                    }
+                    // Качаем через наш download-прокси: он отдаёт видео с Content-Disposition: attachment,
+                    // поэтому скачивание работает и на iOS (прямой storage.theapi.app только играет, не качается).
+                    const a = document.createElement('a');
+                    a.href = 'https://n8n.24isk.ru/dl?u=' + encodeURIComponent(videoUrl);
+                    a.download = 'botisk-ai-video.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
                 };
             }
         }
